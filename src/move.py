@@ -31,6 +31,9 @@ class Move:
         
         # Move ID để so sánh dễ dàng
         self.move_id = self.start_row * 1000 + self.start_col * 100 + self.end_row * 10 + self.end_col
+        
+        # Lưu lại trạng thái trước đó để Undo
+        self.enpassant_possible_prev = () 
 
     def __eq__(self, other):
         if isinstance(other, Move):

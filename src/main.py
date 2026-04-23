@@ -69,8 +69,22 @@ def main():
             move_made = False
 
         draw_game_state(screen, gs, valid_moves, sq_selected, images)
+
+        if gs.checkmate:
+            draw_text(screen, "CHECKMATE! " + ("Black" if gs.white_to_move else "White") + " wins")
+        elif gs.stalemate:
+            draw_text(screen, "STALEMATE!")
+
         clock.tick(MAX_FPS)
         p.display.flip()
+
+def draw_text(screen, text):
+    font = p.font.SysFont("Helvetica", 32, True, False)
+    text_object = font.render(text, 0, p.Color("Gray"))
+    text_location = p.Rect(0, 0, WIDTH, HEIGHT).move(WIDTH/2 - text_object.get_width()/2, HEIGHT/2 - text_object.get_height()/2)
+    screen.blit(text_object, text_location)
+    text_object = font.render(text, 0, p.Color("Black"))
+    screen.blit(text_object, text_location.move(2, 2))
 
 def load_images():
     pieces = ['wp', 'wR', 'wN', 'wB', 'wK', 'wQ', 'bp', 'bR', 'bN', 'bB', 'bK', 'bQ']
@@ -81,7 +95,7 @@ def load_images():
     return images
 
 def draw_game_state(screen, gs, valid_moves, sq_selected, images):
-    draw_board(screqen)
+    draw_board(screen)
     highlight_squares(screen, gs, valid_moves, sq_selected)
     draw_pieces(screen, gs.board.grid, images)
 
