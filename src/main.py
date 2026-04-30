@@ -151,6 +151,14 @@ def draw_board(screen):
             p.draw.rect(screen, color, p.Rect(c * SQ_SIZE, r * SQ_SIZE, SQ_SIZE, SQ_SIZE))
 
 def highlight_squares(screen, gs, valid_moves, sq_selected):
+    if len(gs.move_log) > 0:
+        last_move = gs.move_log[-1]
+        s = p.Surface((SQ_SIZE, SQ_SIZE))
+        s.set_alpha(100)
+        s.fill(p.Color("yellow"))
+        screen.blit(s, (last_move.start_col * SQ_SIZE, last_move.start_row * SQ_SIZE))
+        screen.blit(s, (last_move.end_col * SQ_SIZE, last_move.end_row * SQ_SIZE))
+
     if sq_selected != ():
         r, c = sq_selected
         if gs.board.grid[r][c] and gs.board.grid[r][c].color == ('w' if gs.white_to_move else 'b'):
