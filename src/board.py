@@ -43,7 +43,7 @@ class GameState:
         self.current_castle_rights = CastleRights(True, True, True, True)
         self.castle_rights_log = [CastleRights(True, True, True, True)]
 
-    def make_move(self, move):
+    def make_move(self, move, promotion_choice='Q'):
         # Lưu trạng thái cũ vào Move object trước khi thay đổi
         move.enpassant_possible_prev = self.enpassant_possible
         
@@ -59,10 +59,17 @@ class GameState:
         if move.is_enpassant_move:
             self.board.grid[move.start_row][move.end_col] = None
             
-        # Xử lý Pawn Promotion (mặc định lên Hậu)
+        # Xử lý Pawn Promotion
         if move.is_pawn_promotion:
-            from .piece import Queen
-            self.board.grid[move.end_row][move.end_col] = Queen(move.piece_moved.color, (move.end_row, move.end_col))
+            from .piece import Queen, Rook, Bishop, Knight
+            if promotion_choice == 'Q':
+                self.board.grid[move.end_row][move.end_col] = Queen(move.piece_moved.color, (move.end_row, move.end_col))
+            elif promotion_choice == 'R':
+                self.board.grid[move.end_row][move.end_col] = Rook(move.piece_moved.color, (move.end_row, move.end_col))
+            elif promotion_choice == 'B':
+                self.board.grid[move.end_row][move.end_col] = Bishop(move.piece_moved.color, (move.end_row, move.end_col))
+            elif promotion_choice == 'N':
+                self.board.grid[move.end_row][move.end_col] = Knight(move.piece_moved.color, (move.end_row, move.end_col))
             
         # Cập nhật enpassant_possible
         if move.piece_moved.name == 'p' and abs(move.start_row - move.end_row) == 2:

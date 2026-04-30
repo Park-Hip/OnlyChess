@@ -16,6 +16,7 @@ def main():
     running = True
     sq_selected = () # (row, col) cuối cùng được chọn
     player_clicks = [] # [(row, col), (row, col)] 2 điểm chọn (điểm đầu và điểm cuối)
+    promotion_move_pending = None
     
     while running:
         for e in p.event.get():
@@ -23,6 +24,24 @@ def main():
                 running = False
             # Xử lý chuột
             elif e.type == p.MOUSEBUTTONDOWN:
+                if promotion_move_pending:
+                    location = p.mouse.get_pos()
+                    menu_width = 4 * SQ_SIZE
+                    menu_height = SQ_SIZE
+                    start_x = WIDTH // 2 - menu_width // 2
+                    start_y = HEIGHT // 2 - menu_height // 2
+                    
+                    if start_x <= location[0] < start_x + menu_width and start_y <= location[1] < start_y + menu_height:
+                        index = (location[0] - start_x) // SQ_SIZE
+                        pieces = ['Q', 'R', 'B', 'N']
+                        choice = pieces[index]
+                        gs.make_move(promotion_move_pending, choice)
+                        move_made = True
+                    promotion_move_pending = None
+                    sq_selected = ()
+                    player_clicks = []
+                    continue
+
                 location = p.mouse.get_pos() # (x, y)
                 col = location[0] // SQ_SIZE
                 row = location[1] // SQ_SIZE
@@ -42,13 +61,19 @@ def main():
                 
                 if len(player_clicks) == 2: # Đã chọn đủ 2 điểm
                     move = Move(player_clicks[0], player_clicks[1], gs.board.grid)
+                    move_found = False
                     for i in range(len(valid_moves)):
                         if move == valid_moves[i]:
-                            gs.make_move(valid_moves[i])
-                            move_made = True
-                            sq_selected = () # Reset chọn
-                            player_clicks = []
-                    if not move_made:
+                            move_found = True
+                            if valid_moves[i].is_pawn_promotion:
+                                promotion_move_pending = valid_moves[i]
+                            else:
+                                gs.make_move(valid_moves[i])
+                                move_made = True
+                                sq_selected = () # Reset chọn
+                                player_clicks = []
+                            break
+                    if not move_found and not promotion_move_pending:
                         # Nếu nước đi không hợp lệ, giữ lại ô vừa click làm ô chọn mới nếu nó là quân của mình
                         piece = gs.board.grid[row][col]
                         if piece is not None and piece.color == ('w' if gs.white_to_move else 'b'):
@@ -69,6 +94,9 @@ def main():
             move_made = False
 
         draw_game_state(screen, gs, valid_moves, sq_selected, images)
+        if promotion_move_pending:
+            color = 'w' if gs.white_to_move else 'b'
+            draw_promotion_menu(screen, color, images)
 
         if gs.checkmate:
             draw_text(screen, "CHECKMATE! " + ("Black" if gs.white_to_move else "White") + " wins")
@@ -77,6 +105,22 @@ def main():
 
         clock.tick(MAX_FPS)
         p.display.flip()
+
+def draw_promotion_menu(screen, color, images):
+    menu_width = 4 * SQ_SIZE
+    menu_height = SQ_SIZE
+    start_x = WIDTH // 2 - menu_width // 2
+    start_y = HEIGHT // 2 - menu_height // 2
+    
+    # Vẽ nền
+    p.draw.rect(screen, p.Color("gray"), p.Rect(start_x, start_y, menu_width, menu_height))
+    p.draw.rect(screen, p.Color("black"), p.Rect(start_x, start_y, menu_width, menu_height), 2)
+    
+    # Vẽ các quân cờ
+    pieces = ['Q', 'R', 'B', 'N']
+    for i, piece in enumerate(pieces):
+        image = images[color + piece]
+        screen.blit(image, p.Rect(start_x + i * SQ_SIZE, start_y, SQ_SIZE, SQ_SIZE))
 
 def draw_text(screen, text):
     font = p.font.SysFont("Helvetica", 32, True, False)
