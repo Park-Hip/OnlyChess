@@ -6,7 +6,7 @@ WIDTH = 512
 HEIGHT = 512
 DIMENSION = 8  # Bàn cờ 8x8
 SQ_SIZE = WIDTH // DIMENSION # Kích thước 1 ô cờ
-MAX_FPS = 15
+MAX_FPS = 60
 
 # Mã màu RGB cho giao diện
 COLOR_LIGHT = pygame.Color("white")

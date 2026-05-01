@@ -17,6 +17,10 @@ def main():
     sq_selected = () # (row, col) cuối cùng được chọn
     player_clicks = [] # [(row, col), (row, col)] 2 điểm chọn (điểm đầu và điểm cuối)
     promotion_move_pending = None
+    dragging = False
+    mouse_pos = (0, 0)
+    move_attempt_type = 'click'
+    click_type = 'first_click'
     
     while running:
         for e in p.event.get():
@@ -46,39 +50,76 @@ def main():
                 col = location[0] // SQ_SIZE
                 row = location[1] // SQ_SIZE
                 
-                if sq_selected == (row, col): # Click lại ô cũ -> Hủy chọn
-                    sq_selected = ()
-                    player_clicks = []
+                if sq_selected == (row, col):
+                    dragging = True
+                    mouse_pos = location
+                    click_type = 'second_click'
                 else:
-                    if len(player_clicks) == 0: # Lần click đầu tiên
-                        piece = gs.board.grid[row][col]
+                    piece = gs.board.grid[row][col]
+                    if len(player_clicks) == 0:
                         if piece is not None and piece.color == ('w' if gs.white_to_move else 'b'):
                             sq_selected = (row, col)
                             player_clicks.append(sq_selected)
-                    else: # Lần click thứ hai
-                        sq_selected = (row, col)
-                        player_clicks.append(sq_selected)
-                
-                if len(player_clicks) == 2: # Đã chọn đủ 2 điểm
-                    move = Move(player_clicks[0], player_clicks[1], gs.board.grid)
-                    move_found = False
-                    for i in range(len(valid_moves)):
-                        if move == valid_moves[i]:
-                            move_found = True
-                            if valid_moves[i].is_pawn_promotion:
-                                promotion_move_pending = valid_moves[i]
-                            else:
-                                gs.make_move(valid_moves[i])
-                                move_made = True
-                                sq_selected = () # Reset chọn
-                                player_clicks = []
-                            break
-                    if not move_found and not promotion_move_pending:
-                        # Nếu nước đi không hợp lệ, giữ lại ô vừa click làm ô chọn mới nếu nó là quân của mình
-                        piece = gs.board.grid[row][col]
+                            dragging = True
+                            mouse_pos = location
+                            click_type = 'first_click'
+                    else:
                         if piece is not None and piece.color == ('w' if gs.white_to_move else 'b'):
-                            player_clicks = [(row, col)]
                             sq_selected = (row, col)
+                            player_clicks = [sq_selected]
+                            dragging = True
+                            mouse_pos = location
+                            click_type = 'first_click'
+                        else:
+                            sq_selected = (row, col)
+                            player_clicks.append(sq_selected)
+                            move_attempt_type = 'click'
+            
+            elif e.type == p.MOUSEMOTION:
+                mouse_pos = p.mouse.get_pos()
+                
+            elif e.type == p.MOUSEBUTTONUP:
+                if promotion_move_pending:
+                    continue
+                if dragging:
+                    dragging = False
+                    location = p.mouse.get_pos()
+                    end_col = location[0] // SQ_SIZE
+                    end_row = location[1] // SQ_SIZE
+                    
+                    if (end_row, end_col) != player_clicks[0]:
+                        player_clicks.append((end_row, end_col))
+                        move_attempt_type = 'drag'
+                    else:
+                        if click_type == 'second_click':
+                            sq_selected = ()
+                            player_clicks = []
+
+            # Process Move Attempt
+            if len(player_clicks) == 2:
+                move = Move(player_clicks[0], player_clicks[1], gs.board.grid)
+                move_found = False
+                for i in range(len(valid_moves)):
+                    if move == valid_moves[i]:
+                        move_found = True
+                        if valid_moves[i].is_pawn_promotion:
+                            promotion_move_pending = valid_moves[i]
+                        else:
+                            gs.make_move(valid_moves[i])
+                            move_made = True
+                            sq_selected = ()
+                            player_clicks = []
+                        break
+                if not move_found and not promotion_move_pending:
+                    if move_attempt_type == 'drag':
+                        sq_selected = player_clicks[0]
+                        player_clicks = [player_clicks[0]]
+                    else:
+                        r, c = player_clicks[1]
+                        piece = gs.board.grid[r][c]
+                        if piece is not None and piece.color == ('w' if gs.white_to_move else 'b'):
+                            player_clicks = [(r, c)]
+                            sq_selected = (r, c)
                         else:
                             player_clicks = []
                             sq_selected = ()
@@ -93,7 +134,7 @@ def main():
             valid_moves = gs.get_valid_moves()
             move_made = False
 
-        draw_game_state(screen, gs, valid_moves, sq_selected, images)
+        draw_game_state(screen, gs, valid_moves, sq_selected, images, dragging, mouse_pos)
         if promotion_move_pending:
             color = 'w' if gs.white_to_move else 'b'
             draw_promotion_menu(screen, color, images)
@@ -138,10 +179,17 @@ def load_images():
         images[piece] = p.transform.scale(p.image.load("images/" + piece + ".png"), (SQ_SIZE, SQ_SIZE))
     return images
 
-def draw_game_state(screen, gs, valid_moves, sq_selected, images):
+def draw_game_state(screen, gs, valid_moves, sq_selected, images, dragging, mouse_pos):
     draw_board(screen)
     highlight_squares(screen, gs, valid_moves, sq_selected)
-    draw_pieces(screen, gs.board.grid, images)
+    draw_pieces(screen, gs.board.grid, images, sq_selected if dragging else ())
+    
+    if dragging and sq_selected:
+        r, c = sq_selected
+        piece = gs.board.grid[r][c]
+        if piece:
+            image = images[piece.id]
+            screen.blit(image, p.Rect(mouse_pos[0] - SQ_SIZE//2, mouse_pos[1] - SQ_SIZE//2, SQ_SIZE, SQ_SIZE))
 
 def draw_board(screen):
     colors = [COLOR_LIGHT, COLOR_DARK]
@@ -173,9 +221,11 @@ def highlight_squares(screen, gs, valid_moves, sq_selected):
                 if move.start_row == r and move.start_col == c:
                     screen.blit(s, (move.end_col * SQ_SIZE, move.end_row * SQ_SIZE))
 
-def draw_pieces(screen, board_grid, images):
+def draw_pieces(screen, board_grid, images, dragged_sq):
     for r in range(DIMENSION):
         for c in range(DIMENSION):
+            if (r, c) == dragged_sq:
+                continue
             piece = board_grid[r][c]
             if piece:
                 screen.blit(images[piece.id], p.Rect(c * SQ_SIZE, r * SQ_SIZE, SQ_SIZE, SQ_SIZE))
