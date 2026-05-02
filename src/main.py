@@ -21,6 +21,7 @@ def main():
     mouse_pos = (0, 0)
     move_attempt_type = 'click'
     click_type = 'first_click'
+    font_panel = p.font.SysFont("Helvetica", 16, True, False)
     
     while running:
         for e in p.event.get():
@@ -32,8 +33,8 @@ def main():
                     location = p.mouse.get_pos()
                     menu_width = 4 * SQ_SIZE
                     menu_height = SQ_SIZE
-                    start_x = WIDTH // 2 - menu_width // 2
-                    start_y = HEIGHT // 2 - menu_height // 2
+                    start_x = BOARD_WIDTH // 2 - menu_width // 2
+                    start_y = INFO_PANEL_HEIGHT + BOARD_HEIGHT // 2 - menu_height // 2
                     
                     if start_x <= location[0] < start_x + menu_width and start_y <= location[1] < start_y + menu_height:
                         index = (location[0] - start_x) // SQ_SIZE
@@ -47,8 +48,11 @@ def main():
                     continue
 
                 location = p.mouse.get_pos() # (x, y)
+                if location[1] < INFO_PANEL_HEIGHT or location[1] >= INFO_PANEL_HEIGHT + BOARD_HEIGHT:
+                    continue # Clicked outside the board
+                
                 col = location[0] // SQ_SIZE
-                row = location[1] // SQ_SIZE
+                row = (location[1] - INFO_PANEL_HEIGHT) // SQ_SIZE
                 
                 if sq_selected == (row, col):
                     dragging = True
@@ -84,8 +88,8 @@ def main():
                 if dragging:
                     dragging = False
                     location = p.mouse.get_pos()
-                    end_col = location[0] // SQ_SIZE
-                    end_row = location[1] // SQ_SIZE
+                    end_col = max(0, min(7, location[0] // SQ_SIZE))
+                    end_row = max(0, min(7, (location[1] - INFO_PANEL_HEIGHT) // SQ_SIZE))
                     
                     if (end_row, end_col) != player_clicks[0]:
                         player_clicks.append((end_row, end_col))
@@ -135,6 +139,7 @@ def main():
             move_made = False
 
         draw_game_state(screen, gs, valid_moves, sq_selected, images, dragging, mouse_pos)
+        draw_info_panels(screen, gs, images, font_panel)
         if promotion_move_pending:
             color = 'w' if gs.white_to_move else 'b'
             draw_promotion_menu(screen, color, images)
@@ -150,8 +155,8 @@ def main():
 def draw_promotion_menu(screen, color, images):
     menu_width = 4 * SQ_SIZE
     menu_height = SQ_SIZE
-    start_x = WIDTH // 2 - menu_width // 2
-    start_y = HEIGHT // 2 - menu_height // 2
+    start_x = BOARD_WIDTH // 2 - menu_width // 2
+    start_y = INFO_PANEL_HEIGHT + BOARD_HEIGHT // 2 - menu_height // 2
     
     # Vẽ nền
     p.draw.rect(screen, p.Color("gray"), p.Rect(start_x, start_y, menu_width, menu_height))
@@ -166,7 +171,7 @@ def draw_promotion_menu(screen, color, images):
 def draw_text(screen, text):
     font = p.font.SysFont("Helvetica", 32, True, False)
     text_object = font.render(text, 0, p.Color("Gray"))
-    text_location = p.Rect(0, 0, WIDTH, HEIGHT).move(WIDTH/2 - text_object.get_width()/2, HEIGHT/2 - text_object.get_height()/2)
+    text_location = p.Rect(0, INFO_PANEL_HEIGHT, BOARD_WIDTH, BOARD_HEIGHT).move(BOARD_WIDTH/2 - text_object.get_width()/2, BOARD_HEIGHT/2 - text_object.get_height()/2)
     screen.blit(text_object, text_location)
     text_object = font.render(text, 0, p.Color("Black"))
     screen.blit(text_object, text_location.move(2, 2))
@@ -196,7 +201,7 @@ def draw_board(screen):
     for r in range(DIMENSION):
         for c in range(DIMENSION):
             color = colors[((r + c) % 2)]
-            p.draw.rect(screen, color, p.Rect(c * SQ_SIZE, r * SQ_SIZE, SQ_SIZE, SQ_SIZE))
+            p.draw.rect(screen, color, p.Rect(c * SQ_SIZE, r * SQ_SIZE + INFO_PANEL_HEIGHT, SQ_SIZE, SQ_SIZE))
 
 def highlight_squares(screen, gs, valid_moves, sq_selected):
     if len(gs.move_log) > 0:
@@ -204,8 +209,8 @@ def highlight_squares(screen, gs, valid_moves, sq_selected):
         s = p.Surface((SQ_SIZE, SQ_SIZE))
         s.set_alpha(100)
         s.fill(p.Color("yellow"))
-        screen.blit(s, (last_move.start_col * SQ_SIZE, last_move.start_row * SQ_SIZE))
-        screen.blit(s, (last_move.end_col * SQ_SIZE, last_move.end_row * SQ_SIZE))
+        screen.blit(s, (last_move.start_col * SQ_SIZE, last_move.start_row * SQ_SIZE + INFO_PANEL_HEIGHT))
+        screen.blit(s, (last_move.end_col * SQ_SIZE, last_move.end_row * SQ_SIZE + INFO_PANEL_HEIGHT))
 
     if sq_selected != ():
         r, c = sq_selected
@@ -214,12 +219,12 @@ def highlight_squares(screen, gs, valid_moves, sq_selected):
             s = p.Surface((SQ_SIZE, SQ_SIZE))
             s.set_alpha(100)
             s.fill(p.Color("blue"))
-            screen.blit(s, (c * SQ_SIZE, r * SQ_SIZE))
+            screen.blit(s, (c * SQ_SIZE, r * SQ_SIZE + INFO_PANEL_HEIGHT))
             # Highlight các nước đi hợp lệ
             s.fill(p.Color("yellow"))
             for move in valid_moves:
                 if move.start_row == r and move.start_col == c:
-                    screen.blit(s, (move.end_col * SQ_SIZE, move.end_row * SQ_SIZE))
+                    screen.blit(s, (move.end_col * SQ_SIZE, move.end_row * SQ_SIZE + INFO_PANEL_HEIGHT))
 
 def draw_pieces(screen, board_grid, images, dragged_sq):
     for r in range(DIMENSION):
@@ -228,7 +233,46 @@ def draw_pieces(screen, board_grid, images, dragged_sq):
                 continue
             piece = board_grid[r][c]
             if piece:
-                screen.blit(images[piece.id], p.Rect(c * SQ_SIZE, r * SQ_SIZE, SQ_SIZE, SQ_SIZE))
+                screen.blit(images[piece.id], p.Rect(c * SQ_SIZE, r * SQ_SIZE + INFO_PANEL_HEIGHT, SQ_SIZE, SQ_SIZE))
+
+def draw_info_panels(screen, gs, images, font):
+    # Top Panel (Black info)
+    p.draw.rect(screen, p.Color("#2f2f2f"), p.Rect(0, 0, WIDTH, INFO_PANEL_HEIGHT))
+    # Bottom Panel (White info)
+    p.draw.rect(screen, p.Color("#2f2f2f"), p.Rect(0, HEIGHT - INFO_PANEL_HEIGHT, WIDTH, INFO_PANEL_HEIGHT))
+    
+    score = gs.get_material_advantage()
+    white_captured, black_captured = gs.get_captured_pieces()
+    
+    mini_size = 24
+    
+    # Draw Top Panel (Player 2 / Black)
+    name_text_b = font.render("Player 2", True, p.Color("white"))
+    screen.blit(name_text_b, (10, 10))
+    
+    cx = 10
+    cy = 32
+    for piece in black_captured:
+        img = p.transform.scale(images[piece], (mini_size, mini_size))
+        screen.blit(img, (cx, cy))
+        cx += mini_size // 2
+    if score < 0:
+        score_text = font.render(f"+{-score}", True, p.Color("white"))
+        screen.blit(score_text, (cx + 10, cy + 2))
+        
+    # Draw Bottom Panel (Player 1 / White)
+    name_text_w = font.render("Player 1", True, p.Color("white"))
+    screen.blit(name_text_w, (10, HEIGHT - INFO_PANEL_HEIGHT + 10))
+    
+    cx = 10
+    cy = HEIGHT - INFO_PANEL_HEIGHT + 32
+    for piece in white_captured:
+        img = p.transform.scale(images[piece], (mini_size, mini_size))
+        screen.blit(img, (cx, cy))
+        cx += mini_size // 2
+    if score > 0:
+        score_text = font.render(f"+{score}", True, p.Color("white"))
+        screen.blit(score_text, (cx + 10, cy + 2))
 
 if __name__ == "__main__":
     main()

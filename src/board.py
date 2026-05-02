@@ -239,3 +239,48 @@ class GameState:
                              (piece.color == 'b' and not self.white_to_move)):
                     moves.extend(piece.get_possible_moves(self, include_castle))
         return moves
+
+    def get_captured_pieces(self):
+        # Starting pieces: 8 Pawns, 2 Rooks, 2 Knights, 2 Bishops, 1 Queen
+        starting_counts = {'p': 8, 'R': 2, 'N': 2, 'B': 2, 'Q': 1}
+        current_white = {'p': 0, 'R': 0, 'N': 0, 'B': 0, 'Q': 0}
+        current_black = {'p': 0, 'R': 0, 'N': 0, 'B': 0, 'Q': 0}
+        
+        for r in range(8):
+            for c in range(8):
+                piece = self.board.grid[r][c]
+                if piece and piece.id[1] != 'K':
+                    if piece.color == 'w':
+                        current_white[piece.id[1]] += 1
+                    else:
+                        current_black[piece.id[1]] += 1
+                        
+        white_captured = [] # Black pieces that White captured
+        black_captured = [] # White pieces that Black captured
+        
+        piece_order = ['Q', 'R', 'B', 'N', 'p']
+        for pt in piece_order:
+            # White captures black pieces -> difference between starting black and current black
+            missing_black = max(0, starting_counts[pt] - current_black[pt])
+            white_captured.extend(['b' + pt] * missing_black)
+            
+            # Black captures white pieces -> difference between starting white and current white
+            missing_white = max(0, starting_counts[pt] - current_white[pt])
+            black_captured.extend(['w' + pt] * missing_white)
+            
+        return white_captured, black_captured
+
+    def get_material_advantage(self):
+        PIECE_VALUES = {'p': 1, 'N': 3, 'B': 3, 'R': 5, 'Q': 9, 'K': 0}
+        white_score = 0
+        black_score = 0
+        for r in range(8):
+            for c in range(8):
+                piece = self.board.grid[r][c]
+                if piece:
+                    val = PIECE_VALUES.get(piece.id[1], 0)
+                    if piece.color == 'w':
+                        white_score += val
+                    else:
+                        black_score += val
+        return white_score - black_score
