@@ -9,11 +9,10 @@ This document outlines the design and mechanics for the "Advanced Mode" in OnlyC
 Players can fuse pieces through combat. When a piece captures an enemy piece, the player may optionally trigger a fusion — transforming the capturing piece into a powerful hybrid.
 
 **How to Fuse:**
-- Fusion is triggered when a friendly piece captures an enemy piece.
-- After the capture, the player is prompted: **Fuse** or **Normal Capture?**
-- Fusion is optional — the player can always decline.
+- Fusion triggers automatically when a friendly piece captures an enemy piece that forms a valid fusion pair.
+- Fusion is **forced** — the player cannot decline.
 - A piece can only be part of one fusion at a time (no chaining fusions).
-- Fusion cannot be performed before **Turn 5** to prevent early-game exploits.
+- Fusion cannot be triggered before **Turn 5** to prevent early-game exploits.
 - When a fused piece is captured, **both component pieces are permanently removed** from the game.
 
 **Possible Fusions:**
@@ -65,5 +64,5 @@ To implement this mode in Pygame, the following architecture changes will be req
 1.  **State Tracking**: `GameState` will need new variables for `white_ap`, `black_ap`, `turn_counter`, `active_mines[]`, `mine_expiry_turn`, and `fused_pieces[]`.
 2.  **UI Overlays**: We will need a right-click context menu for abilities, AP display per player in the sidebar, and a "Turn Counter / Next Event" countdown display.
 3.  **Custom Piece Classes**: Creating classes like `Archbishop(Piece)` and `Chancellor(Piece)` with combined move validation logic.
-4.  **Fusion Prompt**: A post-capture modal asking the player to choose Fuse or Normal Capture, triggered only when a valid fusion pair is detected.
+4.  **Fusion Detection**: After each capture, automatically check if the capturing and captured piece form a valid fusion pair. If so, immediately transform the capturing piece into the hybrid.
 5.  **Event System**: Event queue resolved at the end of every 10th turn. Warning flag triggers on turns 9, 19, 29, etc.
