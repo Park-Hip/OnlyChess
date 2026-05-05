@@ -1,5 +1,6 @@
 # src/board.py
 from .piece import Pawn, Knight, Bishop, Rook, Queen, King
+from .events import EventManager
 
 class Board:
     def __init__(self):
@@ -42,8 +43,9 @@ class GameState:
         self.enpassant_possible = () # Tọa độ ô có thể bắt tốt qua đường
         self.current_castle_rights = CastleRights(True, True, True, True)
         self.castle_rights_log = [CastleRights(True, True, True, True)]
+        self.event_manager = EventManager(self) # Khởi tạo hệ thống quản lý sự kiện
 
-    def make_move(self, move, promotion_choice='Q'):
+    def make_move(self, move, promotion_choice='Q', is_real_move=False):
         # Lưu trạng thái cũ vào Move object trước khi thay đổi
         move.enpassant_possible_prev = self.enpassant_possible
         
@@ -107,6 +109,10 @@ class GameState:
                 self.white_king_pos = (move.end_row, move.end_col)
             else:
                 self.black_king_pos = (move.end_row, move.end_col)
+                
+        # Kích hoạt kiểm tra sự kiện sau khi Đen đi xong (kết thúc 1 turn đầy đủ)
+        if is_real_move and self.white_to_move:
+            self.event_manager.update()
 
     def undo_move(self):
         if len(self.move_log) != 0:

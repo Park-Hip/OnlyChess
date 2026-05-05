@@ -40,7 +40,7 @@ def main():
                         index = (location[0] - start_x) // SQ_SIZE
                         pieces = ['Q', 'R', 'B', 'N']
                         choice = pieces[index]
-                        gs.make_move(promotion_move_pending, choice)
+                        gs.make_move(promotion_move_pending, choice, is_real_move=True) # is_real_move=True báo hiệu nước đi thật để kích hoạt sự kiện
                         move_made = True
                     promotion_move_pending = None
                     sq_selected = ()
@@ -109,7 +109,7 @@ def main():
                         if valid_moves[i].is_pawn_promotion:
                             promotion_move_pending = valid_moves[i]
                         else:
-                            gs.make_move(valid_moves[i])
+                            gs.make_move(valid_moves[i], is_real_move=True) # Truyền cờ is_real_move để phân biệt với lúc get_valid_moves giả lập
                             move_made = True
                             sq_selected = ()
                             player_clicks = []
@@ -128,10 +128,11 @@ def main():
                             player_clicks = []
                             sq_selected = ()
             
-            # Xử lý phím (Undo)
             elif e.type == p.KEYDOWN:
                 if e.key == p.K_z:
+                    gs.event_manager.handle_undo() # Khôi phục trạng thái bàn cờ nếu nước đi vừa Undo có liên quan đến sự kiện
                     gs.undo_move()
+                    gs.event_manager.sync_state() # Đồng bộ lại bộ đếm turn và UI cảnh báo sau khi Undo
                     move_made = True
 
         if move_made:
@@ -143,6 +144,10 @@ def main():
         if promotion_move_pending:
             color = 'w' if gs.white_to_move else 'b'
             draw_promotion_menu(screen, color, images)
+            
+        # Vẽ các hiệu ứng UI của sự kiện (ví dụ: dòng cảnh báo đỏ của Gia Xang Tang)
+        for event in gs.event_manager.active_events:
+            event.draw(screen, font_panel, WIDTH, HEIGHT, INFO_PANEL_HEIGHT)
 
         if gs.checkmate:
             draw_text(screen, "CHECKMATE! " + ("Black" if gs.white_to_move else "White") + " wins")
@@ -273,6 +278,13 @@ def draw_info_panels(screen, gs, images, font):
     if score > 0:
         score_text = font.render(f"+{score}", True, p.Color("white"))
         screen.blit(score_text, (cx + 10, cy + 2))
+        
+    # Event UI: Tính toán và hiển thị thời gian diễn ra sự kiện tiếp theo
+    turn_text = font.render(f"Turn: {gs.event_manager.turn_counter + 1}", True, p.Color("white"))
+    turns_to_event = 10 - (gs.event_manager.turn_counter % 10)
+    event_text = font.render(f"Next Event in: {turns_to_event}", True, p.Color("yellow"))
+    screen.blit(turn_text, (WIDTH - 150, HEIGHT - INFO_PANEL_HEIGHT + 10))
+    screen.blit(event_text, (WIDTH - 150, HEIGHT - INFO_PANEL_HEIGHT + 30))
 
 if __name__ == "__main__":
     main()
