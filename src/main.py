@@ -1,7 +1,10 @@
+"""Pygame entry point for the chess application."""
+
 import pygame as p
-from .board import GameState
-from .move import Move
+
 from .constants import *
+from .game.board import GameState
+from .game.move import Move
 
 def main():
     p.init()

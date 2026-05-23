@@ -1,6 +1,11 @@
-import pygame as p
+"""Special event definitions and event manager."""
+
 import copy
-from .piece import Knight
+
+import pygame as p
+
+from .constants import BOARD_COLS, BOARD_ROWS, ROOK_CODE
+from .pieces.piece import Knight
 
 class EventStateSnapshot:
     # Lưu trữ trạng thái bàn cờ trước khi sự kiện xảy ra để hỗ trợ tính năng Undo
@@ -40,10 +45,10 @@ class GiaXangTang(ChessEvent):
     def execute(self):
         self.warning_active = False
         # Transform all Rooks into Knights
-        for r in range(8):
-            for c in range(8):
+        for r in range(BOARD_ROWS):
+            for c in range(BOARD_COLS):
                 piece = self.gs.board.grid[r][c]
-                if piece and piece.id[1] == 'R':
+                if piece and piece.id[1] == ROOK_CODE:
                     new_knight = Knight(piece.color, (r, c))
                     new_knight.has_moved = piece.has_moved
                     self.gs.board.grid[r][c] = new_knight

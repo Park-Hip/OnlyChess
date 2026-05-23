@@ -1,6 +1,11 @@
-# src/move.py
+"""Move object for representing chess actions."""
+
+from ..constants import LAST_BOARD_INDEX, PAWN_CODE
+
 
 class Move:
+    """Represent one chess move together with undo snapshot data."""
+
     # Bản đồ chuyển đổi tọa độ cờ vua sang chỉ số mảng
     ranks_to_rows = {"1": 7, "2": 6, "3": 5, "4": 4, "5": 3, "6": 2, "7": 1, "8": 0}
     rows_to_ranks = {v: k for k, v in ranks_to_rows.items()}
@@ -27,13 +32,24 @@ class Move:
         # Phong cấp
         self.is_pawn_promotion = False
         if self.piece_moved is not None:
-            self.is_pawn_promotion = (self.piece_moved.name == 'p' and (self.end_row == 0 or self.end_row == 7))
+            self.is_pawn_promotion = (
+                self.piece_moved.name == PAWN_CODE and (self.end_row == 0 or self.end_row == LAST_BOARD_INDEX)
+            )
         
         # Move ID để so sánh dễ dàng
         self.move_id = self.start_row * 1000 + self.start_col * 100 + self.end_row * 10 + self.end_col
         
         # Lưu lại trạng thái trước đó để Undo
-        self.enpassant_possible_prev = () 
+        self.enpassant_possible_prev = ()
+        self.moved_piece_prev_pos = None
+        self.moved_piece_prev_has_moved = None
+        self.captured_piece_prev_pos = None
+        self.captured_piece_prev_has_moved = None
+        self.promoted_to_piece = None
+        self.rook_moved = None
+        self.rook_start_pos = None
+        self.rook_end_pos = None
+        self.rook_prev_has_moved = None
 
     def __eq__(self, other):
         if isinstance(other, Move):

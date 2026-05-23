@@ -1,6 +1,23 @@
-from .move import Move
+"""Piece classes and move generation."""
+
+from ..constants import (
+    BISHOP_CODE,
+    BLACK,
+    BOARD_COLS,
+    BOARD_ROWS,
+    KING_CODE,
+    KNIGHT_CODE,
+    PAWN_CODE,
+    QUEEN_CODE,
+    ROOK_CODE,
+    WHITE,
+)
+from ..game.state_helpers import is_inside_board
+from ..game.move import Move
 
 class Piece:
+    """Base class for all chess pieces."""
+
     def __init__(self, color, name, pos):
         """
         Khởi tạo quân cờ.
@@ -33,18 +50,17 @@ class Piece:
         moves = []
         r, c = self.pos
         for dr, dc in directions:
-            for i in range(1, 8):
+            for i in range(1, BOARD_ROWS):
                 end_row = r + dr * i
                 end_col = c + dc * i
-                if 0 <= end_row < 8 and 0 <= end_col < 8:
-                    target = gs.board.grid[end_row][end_col]
-                    if target is None:
-                        moves.append(Move((r, c), (end_row, end_col), gs.board.grid))
-                    elif target.color != self.color:
-                        moves.append(Move((r, c), (end_row, end_col), gs.board.grid))
-                        break
-                    else:
-                        break
+                if not gs.board.is_inside_board(end_row, end_col):
+                    break
+                target = gs.board.get_piece_at(end_row, end_col)
+                if target is None:
+                    moves.append(Move((r, c), (end_row, end_col), gs.board.grid))
+                elif target.color != self.color:
+                    moves.append(Move((r, c), (end_row, end_col), gs.board.grid))
+                    break
                 else:
                     break
         return moves
@@ -53,27 +69,32 @@ class Piece:
         return f"{self.id}({self.pos[0]},{self.pos[1]})"
 
 class Pawn(Piece):
+    """Standard pawn movement rules."""
+
     def __init__(self, color, pos):
-        super().__init__(color, 'p', pos)
-        self.direction = -1 if color == 'w' else 1
+        super().__init__(color, PAWN_CODE, pos)
+        self.direction = -1 if color == WHITE else 1
 
     def _calculate_moves(self, gs, include_castle=True):
         moves = []
         r, c = self.pos
+        one_step_row = r + self.direction
+
         # Đi thẳng
-        if gs.board.grid[r + self.direction][c] is None:
-            moves.append(Move((r, c), (r + self.direction, c), gs.board.grid))
+        if is_inside_board(one_step_row, c) and gs.board.get_piece_at(one_step_row, c) is None:
+            moves.append(Move((r, c), (one_step_row, c), gs.board.grid))
             # Đi 2 ô nếu ở vị trí xuất phát
-            if (self.color == 'w' and r == 6) or (self.color == 'b' and r == 1):
-                if gs.board.grid[r + 2 * self.direction][c] is None:
-                    moves.append(Move((r, c), (r + 2 * self.direction, c), gs.board.grid))
+            if (self.color == WHITE and r == BOARD_ROWS - 2) or (self.color == BLACK and r == 1):
+                two_step_row = r + 2 * self.direction
+                if is_inside_board(two_step_row, c) and gs.board.get_piece_at(two_step_row, c) is None:
+                    moves.append(Move((r, c), (two_step_row, c), gs.board.grid))
         
         # Ăn chéo
         for dc in [-1, 1]:
             nc = c + dc
             nr = r + self.direction
-            if 0 <= nc < 8 and 0 <= nr < 8:
-                target = gs.board.grid[nr][nc]
+            if is_inside_board(nr, nc):
+                target = gs.board.get_piece_at(nr, nc)
                 if target is not None and target.color != self.color:
                     moves.append(Move((r, c), (nr, nc), gs.board.grid))
                 elif (nr, nc) == gs.enpassant_possible:
@@ -81,8 +102,10 @@ class Pawn(Piece):
         return moves
 
 class Knight(Piece):
+    """Standard knight movement rules."""
+
     def __init__(self, color, pos):
-        super().__init__(color, 'N', pos)
+        super().__init__(color, KNIGHT_CODE, pos)
 
     def _calculate_moves(self, gs, include_castle=True):
         moves = []
@@ -93,39 +116,47 @@ class Knight(Piece):
         ]
         for dr, dc in knight_moves:
             nr, nc = r + dr, c + dc
-            if 0 <= nr < 8 and 0 <= nc < 8:
-                target = gs.board.grid[nr][nc]
+            if is_inside_board(nr, nc):
+                target = gs.board.get_piece_at(nr, nc)
                 if target is None or target.color != self.color:
                     moves.append(Move((r, c), (nr, nc), gs.board.grid))
         return moves
 
 class Bishop(Piece):
+    """Standard bishop movement rules."""
+
     def __init__(self, color, pos):
-        super().__init__(color, 'B', pos)
+        super().__init__(color, BISHOP_CODE, pos)
 
     def _calculate_moves(self, gs, include_castle=True):
         directions = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
         return self._get_sliding_moves(gs, directions)
 
 class Rook(Piece):
+    """Standard rook movement rules."""
+
     def __init__(self, color, pos):
-        super().__init__(color, 'R', pos)
+        super().__init__(color, ROOK_CODE, pos)
 
     def _calculate_moves(self, gs, include_castle=True):
         directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
         return self._get_sliding_moves(gs, directions)
 
 class Queen(Piece):
+    """Standard queen movement rules."""
+
     def __init__(self, color, pos):
-        super().__init__(color, 'Q', pos)
+        super().__init__(color, QUEEN_CODE, pos)
 
     def _calculate_moves(self, gs, include_castle=True):
         directions = [(-1, -1), (-1, 1), (1, -1), (1, 1), (-1, 0), (1, 0), (0, -1), (0, 1)]
         return self._get_sliding_moves(gs, directions)
 
 class King(Piece):
+    """Standard king movement rules including castling."""
+
     def __init__(self, color, pos):
-        super().__init__(color, 'K', pos)
+        super().__init__(color, KING_CODE, pos)
 
     def _calculate_moves(self, gs, include_castle=True):
         moves = []
@@ -133,8 +164,8 @@ class King(Piece):
         directions = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
         for dr, dc in directions:
             nr, nc = r + dr, c + dc
-            if 0 <= nr < 8 and 0 <= nc < 8:
-                target = gs.board.grid[nr][nc]
+            if is_inside_board(nr, nc):
+                target = gs.board.get_piece_at(nr, nc)
                 if target is None or target.color != self.color:
                     moves.append(Move((r, c), (nr, nc), gs.board.grid))
         
@@ -149,15 +180,19 @@ class King(Piece):
             return moves # Không thể nhập thành khi đang bị chiếu
         
         r, c = self.pos
-        if (self.color == 'w' and gs.current_castle_rights.wks) or (self.color == 'b' and gs.current_castle_rights.bks):
+        if (self.color == WHITE and gs.current_castle_rights.wks) or (self.color == BLACK and gs.current_castle_rights.bks):
             # King side castle
-            if gs.board.grid[r][c+1] is None and gs.board.grid[r][c+2] is None:
+            if gs.board.get_piece_at(r, c + 1) is None and gs.board.get_piece_at(r, c + 2) is None:
                 if not gs.square_under_attack(r, c+1) and not gs.square_under_attack(r, c+2):
                     moves.append(Move((r, c), (r, c+2), gs.board.grid, is_castle_move=True))
         
-        if (self.color == 'w' and gs.current_castle_rights.wqs) or (self.color == 'b' and gs.current_castle_rights.bqs):
+        if (self.color == WHITE and gs.current_castle_rights.wqs) or (self.color == BLACK and gs.current_castle_rights.bqs):
             # Queen side castle
-            if gs.board.grid[r][c-1] is None and gs.board.grid[r][c-2] is None and gs.board.grid[r][c-3] is None:
+            if (
+                gs.board.get_piece_at(r, c - 1) is None
+                and gs.board.get_piece_at(r, c - 2) is None
+                and gs.board.get_piece_at(r, c - 3) is None
+            ):
                 if not gs.square_under_attack(r, c-1) and not gs.square_under_attack(r, c-2):
                     moves.append(Move((r, c), (r, c-2), gs.board.grid, is_castle_move=True))
         return moves
