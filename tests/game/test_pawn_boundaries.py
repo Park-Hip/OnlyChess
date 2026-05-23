@@ -3,7 +3,7 @@
 import unittest
 
 from src.game.board import Board, GameState
-from src.pieces.piece import Pawn
+from src.pieces import Pawn
 
 
 class PawnBoundaryTests(unittest.TestCase):

@@ -1,4 +1,4 @@
-"""Piece classes and move generation."""
+"""Standard chess piece implementations."""
 
 from ..constants import (
     BISHOP_CODE,
@@ -14,68 +14,23 @@ from ..constants import (
 )
 from ..game.state_helpers import is_inside_board
 from ..game.move import Move
-
-class Piece:
-    """Base class for all chess pieces."""
-
-    def __init__(self, color, name, pos):
-        """
-        Khởi tạo quân cờ.
-        color: 'w' (Trắng) hoặc 'b' (Đen)
-        name: 'p', 'N', 'B', 'R', 'Q', 'K'
-        pos: (row, col)
-        """
-        self.color = color
-        self.name = name
-        self.pos = pos
-        self.id = f"{color}{name}" # VD: "bp", "wK"
-        self.has_moved = False
-        self.status = "active" # Có thể là "active", "locked", "disabled", v.v.
-
-    def set_position(self, pos):
-        self.pos = pos
-
-    def get_possible_moves(self, gs, include_castle=True):
-        """
-        Trả về danh sách các Move object hợp lệ (chưa xét chiếu).
-        """
-        if self.status != "active":
-            return []
-        return self._calculate_moves(gs, include_castle)
-
-    def _calculate_moves(self, gs, include_castle=True):
-        return []
-
-    def _get_sliding_moves(self, gs, directions):
-        moves = []
-        r, c = self.pos
-        for dr, dc in directions:
-            for i in range(1, BOARD_ROWS):
-                end_row = r + dr * i
-                end_col = c + dc * i
-                if not gs.board.is_inside_board(end_row, end_col):
-                    break
-                target = gs.board.get_piece_at(end_row, end_col)
-                if target is None:
-                    moves.append(Move((r, c), (end_row, end_col), gs.board.grid))
-                elif target.color != self.color:
-                    moves.append(Move((r, c), (end_row, end_col), gs.board.grid))
-                    break
-                else:
-                    break
-        return moves
-
-    def __repr__(self):
-        return f"{self.id}({self.pos[0]},{self.pos[1]})"
+from .base import Piece
 
 class Pawn(Piece):
     """Standard pawn movement rules."""
+
+    piece_code = PAWN_CODE
+    material_value = 1
 
     def __init__(self, color, pos):
         super().__init__(color, PAWN_CODE, pos)
         self.direction = -1 if color == WHITE else 1
 
-    def _calculate_moves(self, gs, include_castle=True):
+    def is_minor_piece(self):
+        """Pawns are not minor pieces."""
+        return False
+
+    def _calculate_moves(self, gs):
         moves = []
         r, c = self.pos
         one_step_row = r + self.direction
@@ -104,10 +59,17 @@ class Pawn(Piece):
 class Knight(Piece):
     """Standard knight movement rules."""
 
+    piece_code = KNIGHT_CODE
+    material_value = 3
+
     def __init__(self, color, pos):
         super().__init__(color, KNIGHT_CODE, pos)
 
-    def _calculate_moves(self, gs, include_castle=True):
+    def is_minor_piece(self):
+        """Knights count as minor pieces."""
+        return True
+
+    def _calculate_moves(self, gs):
         moves = []
         r, c = self.pos
         knight_moves = [
@@ -125,38 +87,76 @@ class Knight(Piece):
 class Bishop(Piece):
     """Standard bishop movement rules."""
 
+    piece_code = BISHOP_CODE
+    material_value = 3
+
     def __init__(self, color, pos):
         super().__init__(color, BISHOP_CODE, pos)
 
-    def _calculate_moves(self, gs, include_castle=True):
+    def is_minor_piece(self):
+        """Bishops count as minor pieces."""
+        return True
+
+    def _calculate_moves(self, gs):
         directions = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
         return self._get_sliding_moves(gs, directions)
 
 class Rook(Piece):
     """Standard rook movement rules."""
 
+    piece_code = ROOK_CODE
+    material_value = 5
+
     def __init__(self, color, pos):
         super().__init__(color, ROOK_CODE, pos)
 
-    def _calculate_moves(self, gs, include_castle=True):
+    def is_minor_piece(self):
+        """Rooks are not minor pieces."""
+        return False
+
+    def _calculate_moves(self, gs):
         directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
         return self._get_sliding_moves(gs, directions)
 
 class Queen(Piece):
     """Standard queen movement rules."""
 
+    piece_code = QUEEN_CODE
+    material_value = 9
+
     def __init__(self, color, pos):
         super().__init__(color, QUEEN_CODE, pos)
 
-    def _calculate_moves(self, gs, include_castle=True):
+    def is_minor_piece(self):
+        """Queens are not minor pieces."""
+        return False
+
+    def _calculate_moves(self, gs):
         directions = [(-1, -1), (-1, 1), (1, -1), (1, 1), (-1, 0), (1, 0), (0, -1), (0, 1)]
         return self._get_sliding_moves(gs, directions)
 
 class King(Piece):
     """Standard king movement rules including castling."""
 
+    piece_code = KING_CODE
+    material_value = 0
+
     def __init__(self, color, pos):
         super().__init__(color, KING_CODE, pos)
+
+    def can_fuse(self):
+        """Kings are never eligible for fusion."""
+        return False
+
+    def is_minor_piece(self):
+        """Kings are not minor pieces."""
+        return False
+
+    def get_possible_moves(self, gs, include_castle=True):
+        """Return king moves while optionally including castling."""
+        if self.status != "active":
+            return []
+        return self._calculate_moves(gs, include_castle=include_castle)
 
     def _calculate_moves(self, gs, include_castle=True):
         moves = []

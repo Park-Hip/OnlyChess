@@ -5,7 +5,7 @@ import unittest
 from src.constants import BLACK, KNIGHT_CODE, WHITE
 from src.game.board import Board, GameState
 from src.game.move import Move
-from src.pieces.piece import Pawn, Rook
+from src.pieces import Pawn, Rook
 
 
 class MoveAndUndoBaselineTests(unittest.TestCase):

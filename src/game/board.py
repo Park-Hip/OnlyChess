@@ -1,21 +1,19 @@
 """Board and game-state models for the chess domain."""
 
-from ..constants import (
-    BISHOP_CODE,
-    BLACK,
-    BOARD_COLS,
-    BOARD_ROWS,
-    KING_CODE,
-    KNIGHT_CODE,
-    PAWN_CODE,
-    QUEEN_CODE,
-    ROOK_CODE,
-    STANDARD_PIECE_ORDER,
-    WHITE,
-)
-from .state_helpers import is_inside_board, safe_get_piece, set_piece
-from ..pieces.piece import Pawn, Knight, Bishop, Rook, Queen, King
+from ..constants import BISHOP_CODE, BLACK, BOARD_COLS, BOARD_ROWS, KING_CODE, KNIGHT_CODE, PAWN_CODE, QUEEN_CODE, ROOK_CODE, STANDARD_PIECE_ORDER, WHITE
 from ..events import EventManager
+from ..pieces import Pawn, create_piece
+from .capture_tracker import CaptureTracker
+from .castling import (
+    copy_castle_rights,
+    create_initial_castle_rights,
+    get_piece_moves,
+    restore_castle_rights_from_log,
+    update_castle_rights_for_move,
+)
+from .rules import run_post_move_systems
+from .scoring import calculate_material_advantage
+from .state_helpers import is_inside_board, safe_get_piece, set_piece
 
 class Board:
     """Mutable board grid and starting-piece placement."""
@@ -33,12 +31,8 @@ class Board:
             self.grid[BOARD_ROWS - 1][c] = self.create_piece(WHITE, STANDARD_PIECE_ORDER[c], (BOARD_ROWS - 1, c))
             
     def create_piece(self, color, name, pos):
-        if name == ROOK_CODE: return Rook(color, pos)
-        if name == KNIGHT_CODE: return Knight(color, pos)
-        if name == BISHOP_CODE: return Bishop(color, pos)
-        if name == QUEEN_CODE: return Queen(color, pos)
-        if name == KING_CODE: return King(color, pos)
-        return None
+        """Create a board piece through the shared piece registry."""
+        return create_piece(name, color, pos)
 
     def is_inside_board(self, row, col):
         """Return True when the square is on the board."""
@@ -52,15 +46,6 @@ class Board:
         """Set a piece on a valid board square."""
         set_piece(self.grid, row, col, piece)
 
-class CastleRights:
-    """Track castling availability for both sides."""
-
-    def __init__(self, wks, bks, wqs, bqs):
-        self.wks = wks
-        self.bks = bks
-        self.wqs = wqs
-        self.bqs = bqs
-
 class GameState:
     """Coordinate board state, legal move generation, and turn flow."""
 
@@ -73,8 +58,9 @@ class GameState:
         self.checkmate = False
         self.stalemate = False
         self.enpassant_possible = () # Tọa độ ô có thể bắt tốt qua đường
-        self.current_castle_rights = CastleRights(True, True, True, True)
-        self.castle_rights_log = [CastleRights(True, True, True, True)]
+        self.current_castle_rights = create_initial_castle_rights()
+        self.castle_rights_log = [copy_castle_rights(self.current_castle_rights)]
+        self.capture_tracker = CaptureTracker()
         self.event_manager = EventManager(self) # Khởi tạo hệ thống quản lý sự kiện
 
     def make_move(self, move, promotion_choice='Q', is_real_move=False):
@@ -112,17 +98,11 @@ class GameState:
     def _resolve_pawn_promotion(self, move, promotion_choice):
         """Replace a promoted pawn with the selected piece type."""
         if move.is_pawn_promotion:
-            from ..pieces.piece import Queen, Rook, Bishop, Knight
-            if promotion_choice == QUEEN_CODE:
-                promoted_piece = Queen(move.piece_moved.color, (move.end_row, move.end_col))
-            elif promotion_choice == ROOK_CODE:
-                promoted_piece = Rook(move.piece_moved.color, (move.end_row, move.end_col))
-            elif promotion_choice == BISHOP_CODE:
-                promoted_piece = Bishop(move.piece_moved.color, (move.end_row, move.end_col))
-            elif promotion_choice == KNIGHT_CODE:
-                promoted_piece = Knight(move.piece_moved.color, (move.end_row, move.end_col))
-            else:
-                promoted_piece = Queen(move.piece_moved.color, (move.end_row, move.end_col))
+            promoted_piece_code = promotion_choice
+            if promoted_piece_code not in (QUEEN_CODE, ROOK_CODE, BISHOP_CODE, KNIGHT_CODE):
+                promoted_piece_code = QUEEN_CODE
+
+            promoted_piece = create_piece(promoted_piece_code, move.piece_moved.color, (move.end_row, move.end_col))
 
             promoted_piece.has_moved = True
             move.promoted_to_piece = promoted_piece
@@ -159,19 +139,19 @@ class GameState:
 
     def _update_castle_state(self, move):
         """Update castling rights and persist them to the rights log."""
-        self.update_castle_rights(move)
-        self.castle_rights_log.append(CastleRights(self.current_castle_rights.wks, self.current_castle_rights.bks,
-                                                  self.current_castle_rights.wqs, self.current_castle_rights.bqs))
+        update_castle_rights_for_move(self.current_castle_rights, move)
+        self.castle_rights_log.append(copy_castle_rights(self.current_castle_rights))
 
     def _finalize_move(self, move, is_real_move):
         """Log the move, switch turns, and update king/event state."""
         self.move_log.append(move)
         self.white_to_move = not self.white_to_move
         self._update_king_position(move)
+        move.is_real_move = is_real_move
+        if is_real_move:
+            run_post_move_systems(self, move)
 
         # Kích hoạt kiểm tra sự kiện sau khi Đen đi xong (kết thúc 1 turn đầy đủ)
-        if is_real_move and self.white_to_move:
-            self.event_manager.update()
 
     def _update_king_position(self, move):
         """Update the cached king location after a king move."""
@@ -185,6 +165,8 @@ class GameState:
         """Undo the most recent move and restore prior game state."""
         if len(self.move_log) != 0:
             move = self.move_log.pop()
+            if move.is_real_move:
+                self.capture_tracker.undo_move(move)
             self._restore_base_piece_positions(move)
             self._restore_en_passant_capture(move)
             self._restore_turn_state(move)
@@ -220,8 +202,7 @@ class GameState:
     def _restore_castling_state(self):
         """Restore castling rights from the rights log."""
         self.castle_rights_log.pop()
-        new_rights = self.castle_rights_log[-1]
-        self.current_castle_rights = CastleRights(new_rights.wks, new_rights.bks, new_rights.wqs, new_rights.bqs)
+        self.current_castle_rights = restore_castle_rights_from_log(self.castle_rights_log)
 
     def _restore_castle_rook_position(self, move):
         """Move a rook back if the undone move was castling."""
@@ -238,35 +219,6 @@ class GameState:
                 self.white_king_pos = (move.start_row, move.start_col)
             else:
                 self.black_king_pos = (move.start_row, move.start_col)
-
-    def update_castle_rights(self, move):
-        if move.piece_moved.name == KING_CODE:
-            if move.piece_moved.color == WHITE:
-                self.current_castle_rights.wks = False
-                self.current_castle_rights.wqs = False
-            else:
-                self.current_castle_rights.bks = False
-                self.current_castle_rights.bqs = False
-        elif move.piece_moved.name == ROOK_CODE:
-            if move.piece_moved.color == WHITE:
-                if move.start_row == BOARD_ROWS - 1:
-                    if move.start_col == 0: self.current_castle_rights.wqs = False
-                    elif move.start_col == BOARD_COLS - 1: self.current_castle_rights.wks = False
-            else:
-                if move.start_row == 0:
-                    if move.start_col == 0: self.current_castle_rights.bqs = False
-                    elif move.start_col == BOARD_COLS - 1: self.current_castle_rights.bks = False
-        
-        # Nếu xe bị ăn
-        if move.piece_captured and move.piece_captured.name == ROOK_CODE:
-            if move.piece_captured.color == WHITE:
-                if move.end_row == BOARD_ROWS - 1:
-                    if move.end_col == 0: self.current_castle_rights.wqs = False
-                    elif move.end_col == BOARD_COLS - 1: self.current_castle_rights.wks = False
-            else:
-                if move.end_row == 0:
-                    if move.end_col == 0: self.current_castle_rights.bqs = False
-                    elif move.end_col == BOARD_COLS - 1: self.current_castle_rights.bks = False
 
     def get_valid_moves(self):
         # 1. Lấy tất cả các nước đi pseudo-legal
@@ -318,50 +270,13 @@ class GameState:
                 piece = self.board.grid[r][c]
                 if piece and ((piece.color == WHITE and self.white_to_move) or \
                              (piece.color == BLACK and not self.white_to_move)):
-                    moves.extend(piece.get_possible_moves(self, include_castle))
+                    moves.extend(get_piece_moves(piece, self, include_castle=include_castle))
         return moves
 
     def get_captured_pieces(self):
-        # Starting pieces: 8 Pawns, 2 Rooks, 2 Knights, 2 Bishops, 1 Queen
-        starting_counts = {PAWN_CODE: 8, ROOK_CODE: 2, KNIGHT_CODE: 2, BISHOP_CODE: 2, QUEEN_CODE: 1}
-        current_white = {PAWN_CODE: 0, ROOK_CODE: 0, KNIGHT_CODE: 0, BISHOP_CODE: 0, QUEEN_CODE: 0}
-        current_black = {PAWN_CODE: 0, ROOK_CODE: 0, KNIGHT_CODE: 0, BISHOP_CODE: 0, QUEEN_CODE: 0}
-        
-        for r in range(BOARD_ROWS):
-            for c in range(BOARD_COLS):
-                piece = self.board.grid[r][c]
-                if piece and piece.id[1] != KING_CODE:
-                    if piece.color == WHITE:
-                        current_white[piece.id[1]] += 1
-                    else:
-                        current_black[piece.id[1]] += 1
-                        
-        white_captured = [] # Black pieces that White captured
-        black_captured = [] # White pieces that Black captured
-        
-        piece_order = [QUEEN_CODE, ROOK_CODE, BISHOP_CODE, KNIGHT_CODE, PAWN_CODE]
-        for pt in piece_order:
-            # White captures black pieces -> difference between starting black and current black
-            missing_black = max(0, starting_counts[pt] - current_black[pt])
-            white_captured.extend([BLACK + pt] * missing_black)
-            
-            # Black captures white pieces -> difference between starting white and current white
-            missing_white = max(0, starting_counts[pt] - current_white[pt])
-            black_captured.extend([WHITE + pt] * missing_white)
-            
-        return white_captured, black_captured
+        """Return captured-piece summaries for both players."""
+        return self.capture_tracker.get_captured_pieces()
 
     def get_material_advantage(self):
-        PIECE_VALUES = {PAWN_CODE: 1, KNIGHT_CODE: 3, BISHOP_CODE: 3, ROOK_CODE: 5, QUEEN_CODE: 9, KING_CODE: 0}
-        white_score = 0
-        black_score = 0
-        for r in range(BOARD_ROWS):
-            for c in range(BOARD_COLS):
-                piece = self.board.grid[r][c]
-                if piece:
-                    val = PIECE_VALUES.get(piece.id[1], 0)
-                    if piece.color == WHITE:
-                        white_score += val
-                    else:
-                        black_score += val
-        return white_score - black_score
+        """Return white material minus black material."""
+        return calculate_material_advantage(self.board.grid)

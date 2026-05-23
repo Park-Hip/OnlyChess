@@ -50,6 +50,7 @@ class Move:
         self.rook_start_pos = None
         self.rook_end_pos = None
         self.rook_prev_has_moved = None
+        self.is_real_move = False
 
     def __eq__(self, other):
         if isinstance(other, Move):

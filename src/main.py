@@ -201,7 +201,7 @@ def draw_game_state(screen, gs, valid_moves, sq_selected, images, dragging, mous
         r, c = sq_selected
         piece = gs.board.grid[r][c]
         if piece:
-            image = images[piece.id]
+            image = images[piece.get_sprite_key()]
             screen.blit(image, p.Rect(mouse_pos[0] - SQ_SIZE//2, mouse_pos[1] - SQ_SIZE//2, SQ_SIZE, SQ_SIZE))
 
 def draw_board(screen):
@@ -241,7 +241,7 @@ def draw_pieces(screen, board_grid, images, dragged_sq):
                 continue
             piece = board_grid[r][c]
             if piece:
-                screen.blit(images[piece.id], p.Rect(c * SQ_SIZE, r * SQ_SIZE + INFO_PANEL_HEIGHT, SQ_SIZE, SQ_SIZE))
+                screen.blit(images[piece.get_sprite_key()], p.Rect(c * SQ_SIZE, r * SQ_SIZE + INFO_PANEL_HEIGHT, SQ_SIZE, SQ_SIZE))
 
 def draw_info_panels(screen, gs, images, font):
     # Top Panel (Black info)
