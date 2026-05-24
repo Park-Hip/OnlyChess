@@ -46,6 +46,18 @@ class Board:
         """Set a piece on a valid board square."""
         set_piece(self.grid, row, col, piece)
 
+    def remove_piece_at(self, row, col):
+        """Remove and return the piece from a square if one exists."""
+        piece = self.get_piece_at(row, col)
+        self.set_piece_at(row, col, None)
+        return piece
+
+    def replace_piece_at(self, row, col, piece):
+        """Replace the piece on a square and sync the new piece position."""
+        self.set_piece_at(row, col, piece)
+        if piece is not None:
+            piece.set_position((row, col))
+
 class GameState:
     """Coordinate board state, legal move generation, and turn flow."""
 
@@ -150,8 +162,6 @@ class GameState:
         move.is_real_move = is_real_move
         if is_real_move:
             run_post_move_systems(self, move)
-
-        # Kích hoạt kiểm tra sự kiện sau khi Đen đi xong (kết thúc 1 turn đầy đủ)
 
     def _update_king_position(self, move):
         """Update the cached king location after a king move."""
