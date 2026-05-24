@@ -290,3 +290,11 @@ class GameState:
     def get_material_advantage(self):
         """Return white material minus black material."""
         return calculate_material_advantage(self.board.grid)
+
+    def get_turn_number(self):
+        """Return the human-readable turn number shown in the UI."""
+        return self.event_manager.turn_counter + 1
+
+    def get_turns_to_next_event(self):
+        """Return the number of turns remaining before the next event."""
+        return 10 - (self.event_manager.turn_counter % 10)
