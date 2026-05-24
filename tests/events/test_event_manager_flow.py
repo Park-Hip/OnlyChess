@@ -40,7 +40,7 @@ class EventManagerFlowTests(unittest.TestCase):
         self.assertEqual(game_state.board.grid[7][0].get_piece_code(), KNIGHT_CODE)
         self.assertEqual(len(manager.active_events), 0)
         self.assertEqual(manager.queued_event_key, "gia_xang_tang")
-        self.assertEqual(len(manager.snapshots), 1)
+        self.assertIsNotNone(manager.queued_event)
 
     def test_real_black_move_pipeline_can_still_reach_event_manager(self):
         game_state = GameState()

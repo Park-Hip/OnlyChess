@@ -92,14 +92,6 @@ def main():
                 handle_mouse_motion(input_state, p.mouse.get_pos())
             elif event.type == p.MOUSEBUTTONUP:
                 handle_board_mouse_up(input_state, p.mouse.get_pos())
-            elif event.type == p.KEYDOWN and event.key == p.K_z:
-                game_state.event_manager.handle_undo()
-                game_state.undo_move()
-                game_state.event_manager.sync_state()
-                clear_promotion_pending(input_state)
-                reset_selection_state(input_state)
-                move_made = True
-
             if move_attempt_ready(input_state):
                 move_made = process_move_attempt(input_state, game_state, valid_moves) or move_made
 

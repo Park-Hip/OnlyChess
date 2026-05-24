@@ -1,4 +1,4 @@
-"""Regression tests for move bookkeeping and undo behavior."""
+"""Regression tests for move bookkeeping and internal rollback behavior."""
 
 import unittest
 
@@ -9,7 +9,7 @@ from src.pieces import Pawn, Rook
 
 
 class MoveAndUndoBaselineTests(unittest.TestCase):
-    """Lock in current move and undo behavior before deeper refactors."""
+    """Lock in move-state bookkeeping used by internal rollback."""
 
     def test_double_pawn_move_sets_en_passant_square(self):
         game_state = GameState()
@@ -19,7 +19,7 @@ class MoveAndUndoBaselineTests(unittest.TestCase):
 
         self.assertEqual(game_state.enpassant_possible, (5, 4))
 
-    def test_move_then_undo_restores_turn_and_piece_position(self):
+    def test_move_then_rollback_restores_turn_and_piece_position(self):
         game_state = GameState()
         move = Move((6, 4), (4, 4), game_state.board.grid)
 
@@ -30,7 +30,7 @@ class MoveAndUndoBaselineTests(unittest.TestCase):
         self.assertIsNotNone(game_state.board.grid[6][4])
         self.assertIsNone(game_state.board.grid[4][4])
 
-    def test_move_records_previous_piece_state_for_undo(self):
+    def test_move_records_previous_piece_state_for_rollback(self):
         game_state = GameState()
         pawn = game_state.board.grid[6][4]
         move = Move((6, 4), (4, 4), game_state.board.grid)
@@ -56,7 +56,7 @@ class MoveAndUndoBaselineTests(unittest.TestCase):
         self.assertEqual(move.captured_piece_prev_pos, (4, 6))
         self.assertFalse(move.captured_piece_prev_has_moved)
 
-    def test_en_passant_undo_restores_both_pawns(self):
+    def test_en_passant_rollback_restores_both_pawns(self):
         game_state = GameState()
         game_state.board = Board()
         game_state.board.grid = [[None for _ in range(8)] for _ in range(8)]
@@ -90,7 +90,7 @@ class MoveAndUndoBaselineTests(unittest.TestCase):
         self.assertIsNotNone(move.promoted_to_piece)
         self.assertEqual(move.promoted_to_piece.name, KNIGHT_CODE)
 
-    def test_undo_restores_has_moved_flag(self):
+    def test_rollback_restores_has_moved_flag(self):
         game_state = GameState()
         pawn = game_state.board.grid[6][4]
         move = Move((6, 4), (4, 4), game_state.board.grid)

@@ -1,10 +1,10 @@
-"""Move object for representing chess actions."""
+"""Move object for representing chess actions and rollback state."""
 
 from ..constants import LAST_BOARD_INDEX, PAWN_CODE
 
 
 class Move:
-    """Represent one chess move together with undo snapshot data."""
+    """Represent one chess move together with rollback state."""
 
     # Bản đồ chuyển đổi tọa độ cờ vua sang chỉ số mảng
     ranks_to_rows = {"1": 7, "2": 6, "3": 5, "4": 4, "5": 3, "6": 2, "7": 1, "8": 0}

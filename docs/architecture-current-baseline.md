@@ -7,7 +7,7 @@ It is the current verified project structure **before** any Fusion, AP, or advan
 
 - `src/game/`
   - Owns the main gameplay state and turn flow.
-  - `GameState` is the coordinator for move execution, undo, legal-move generation, capture summaries, scoring access, and event-manager integration.
+  - `GameState` is the coordinator for move execution, internal legal-move simulation rollback, capture summaries, scoring access, and event-manager integration.
   - Smaller helpers support focused responsibilities such as castling, capture tracking, scoring, and post-move systems.
 
 - `src/pieces/`
@@ -18,7 +18,7 @@ It is the current verified project structure **before** any Fusion, AP, or advan
 - `src/events/`
   - Owns the event lifecycle and orchestration.
   - `ChessEvent` defines the common event contract.
-  - `EventManager` handles warning timing, execution timing, queueing, and undo-related event restoration.
+  - `EventManager` handles warning timing, execution timing, and queueing.
   - Concrete events, such as `GiaXangTang`, contain only their own warning, execution, and drawing behavior.
 
 - `src/ui/`

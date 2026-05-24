@@ -1,4 +1,4 @@
-"""Regression tests for explicit captured-piece summaries."""
+"""Regression tests for explicit captured-piece summaries on real moves."""
 
 import unittest
 
@@ -21,18 +21,6 @@ class CaptureTrackerTests(unittest.TestCase):
         game_state.make_move(move, is_real_move=True)
 
         self.assertEqual(game_state.get_captured_pieces(), ([BLACK + ROOK_CODE], []))
-
-    def test_undo_real_capture_removes_summary_entry(self):
-        game_state = GameState()
-        game_state.board.grid = [[None for _ in range(BOARD_COLS)] for _ in range(BOARD_ROWS)]
-        game_state.board.grid[4][4] = Rook(WHITE, (4, 4))
-        game_state.board.grid[4][6] = Rook(BLACK, (4, 6))
-        move = Move((4, 4), (4, 6), game_state.board.grid)
-
-        game_state.make_move(move, is_real_move=True)
-        game_state.undo_move()
-
-        self.assertEqual(game_state.get_captured_pieces(), ([], []))
 
     def test_en_passant_capture_is_tracked_for_real_moves(self):
         game_state = GameState()

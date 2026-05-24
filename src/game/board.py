@@ -1,7 +1,7 @@
 """Board and game-state models for the chess domain."""
 
 from ..constants import BISHOP_CODE, BLACK, BOARD_COLS, BOARD_ROWS, KING_CODE, KNIGHT_CODE, PAWN_CODE, QUEEN_CODE, ROOK_CODE, STANDARD_PIECE_ORDER, WHITE
-from ..events import EventManager
+from ..events.manager import EventManager
 from ..pieces import Pawn, create_piece
 from .capture_tracker import CaptureTracker
 from .castling import (
@@ -87,7 +87,7 @@ class GameState:
         self._finalize_move(move, is_real_move)
 
     def _record_move_state(self, move):
-        """Store the state needed to undo the move exactly."""
+        """Store the state needed to roll back a simulated move exactly."""
         move.enpassant_possible_prev = self.enpassant_possible
         move.moved_piece_prev_pos = move.piece_moved.pos
         move.moved_piece_prev_has_moved = move.piece_moved.has_moved
@@ -172,11 +172,9 @@ class GameState:
                 self.black_king_pos = (move.end_row, move.end_col)
 
     def undo_move(self):
-        """Undo the most recent move and restore prior game state."""
+        """Roll back the most recent move for internal move simulation."""
         if len(self.move_log) != 0:
             move = self.move_log.pop()
-            if move.is_real_move:
-                self.capture_tracker.undo_move(move)
             self._restore_base_piece_positions(move)
             self._restore_en_passant_capture(move)
             self._restore_turn_state(move)
@@ -223,7 +221,7 @@ class GameState:
             move.rook_moved.has_moved = move.rook_prev_has_moved
 
     def _restore_king_position(self, move):
-        """Restore the cached king location after undo."""
+        """Restore the cached king location after rollback."""
         if move.piece_moved.name == KING_CODE:
             if move.piece_moved.color == WHITE:
                 self.white_king_pos = (move.start_row, move.start_col)

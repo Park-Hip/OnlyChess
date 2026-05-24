@@ -6,7 +6,6 @@ The current codebase is the **stable classic-plus-events baseline after Phase 5*
 It includes:
 
 - standard chess movement and rule handling
-- undo support
 - extracted event lifecycle/orchestration
 - extracted UI rendering and input helpers
 
@@ -33,7 +32,7 @@ Both wrappers forward to `src.main.main()`, but `run.py` should be treated as th
 Canonical command:
 
 ```bash
-uv run python -m unittest tests.ui.test_assets tests.ui.test_promotion_menu tests.ui.test_input_handler tests.ui.test_render_board tests.ui.test_render_panels tests.events.test_event_base_contract tests.events.test_event_registry tests.events.test_gia_xang_tang_event tests.events.test_event_manager_flow tests.events.test_event_snapshot_restore tests.game.test_castling_helpers tests.game.test_capture_tracker tests.game.test_material_scoring tests.game.test_game_rules_pipeline tests.game.test_board_helpers tests.game.test_board_piece_creation tests.game.test_move_and_undo tests.game.test_pawn_boundaries tests.pieces.test_piece_metadata tests.pieces.test_piece_registry tests.pieces.test_piece_extension_hooks -v
+uv run python -m unittest tests.ui.test_assets tests.ui.test_promotion_menu tests.ui.test_input_handler tests.ui.test_render_board tests.ui.test_render_panels tests.events.test_event_base_contract tests.events.test_event_registry tests.events.test_gia_xang_tang_event tests.events.test_event_manager_flow tests.game.test_castling_helpers tests.game.test_capture_tracker tests.game.test_material_scoring tests.game.test_game_rules_pipeline tests.game.test_board_helpers tests.game.test_board_piece_creation tests.game.test_move_and_undo tests.game.test_pawn_boundaries tests.pieces.test_piece_metadata tests.pieces.test_piece_registry tests.pieces.test_piece_extension_hooks -v
 ```
 
 ## Smoke Test

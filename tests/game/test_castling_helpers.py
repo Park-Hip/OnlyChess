@@ -63,7 +63,7 @@ class CastlingHelperTests(unittest.TestCase):
         self.assertFalse(restored.wks)
         self.assertTrue(restored.wqs)
 
-    def test_game_state_undo_restores_castling_rights(self):
+    def test_game_state_rollback_restores_castling_rights_for_simulation(self):
         game_state = GameState()
         move = Move((7, 7), (6, 7), game_state.board.grid)
 
