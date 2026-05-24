@@ -3,10 +3,10 @@
 import pygame as p
 
 from ..constants import HEIGHT, INFO_PANEL_HEIGHT, WIDTH
+from .ui_constants import PANEL_BACKGROUND
 
 
 MINI_PIECE_SIZE = 24
-PANEL_BACKGROUND = "#2f2f2f"
 
 
 def get_material_text(score, is_top_panel):

@@ -35,16 +35,16 @@ class Pawn(Piece):
         r, c = self.pos
         one_step_row = r + self.direction
 
-        # Đi thẳng
+        # Single-step forward move.
         if is_inside_board(one_step_row, c) and gs.board.get_piece_at(one_step_row, c) is None:
             moves.append(Move((r, c), (one_step_row, c), gs.board.grid))
-            # Đi 2 ô nếu ở vị trí xuất phát
+            # Two-step forward move from the starting rank.
             if (self.color == WHITE and r == BOARD_ROWS - 2) or (self.color == BLACK and r == 1):
                 two_step_row = r + 2 * self.direction
                 if is_inside_board(two_step_row, c) and gs.board.get_piece_at(two_step_row, c) is None:
                     moves.append(Move((r, c), (two_step_row, c), gs.board.grid))
         
-        # Ăn chéo
+        # Diagonal capture and en passant checks.
         for dc in [-1, 1]:
             nc = c + dc
             nr = r + self.direction
@@ -154,7 +154,7 @@ class King(Piece):
 
     def get_possible_moves(self, gs, include_castle=True):
         """Return king moves while optionally including castling."""
-        if self.status != "active":
+        if not self.is_active:
             return []
         return self._calculate_moves(gs, include_castle=include_castle)
 
@@ -169,7 +169,7 @@ class King(Piece):
                 if target is None or target.color != self.color:
                     moves.append(Move((r, c), (nr, nc), gs.board.grid))
         
-        # Thêm các nước đi nhập thành nếu được phép
+        # Add castling moves when castling generation is enabled.
         if include_castle:
             moves.extend(self.get_castle_moves(gs))
         return moves
@@ -177,7 +177,7 @@ class King(Piece):
     def get_castle_moves(self, gs):
         moves = []
         if gs.in_check():
-            return moves # Không thể nhập thành khi đang bị chiếu
+            return moves  # Castling is illegal while the king is in check.
         
         r, c = self.pos
         if (self.color == WHITE and gs.current_castle_rights.wks) or (self.color == BLACK and gs.current_castle_rights.bks):
@@ -207,3 +207,4 @@ class King(Piece):
                 if not gs.square_under_attack(r, c-1) and not gs.square_under_attack(r, c-2):
                     moves.append(Move((r, c), (r, c-2), gs.board.grid, is_castle_move=True))
         return moves
+

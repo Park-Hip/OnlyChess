@@ -5,14 +5,13 @@ import pygame as p
 from ..constants import (
     BOARD_HEIGHT,
     BOARD_WIDTH,
-    COLOR_DARK,
-    COLOR_LIGHT,
     DIMENSION,
     HEIGHT,
     INFO_PANEL_HEIGHT,
     SQ_SIZE,
     WIDTH,
 )
+from .ui_constants import COLOR_DARK, COLOR_LIGHT
 
 
 def get_board_colors():

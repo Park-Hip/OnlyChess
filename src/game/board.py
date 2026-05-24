@@ -69,11 +69,11 @@ class GameState:
         self.black_king_pos = (0, 4)
         self.checkmate = False
         self.stalemate = False
-        self.enpassant_possible = () # Tọa độ ô có thể bắt tốt qua đường
+        self.enpassant_possible = ()  # Target square where en passant is legal next turn.
         self.current_castle_rights = create_initial_castle_rights()
         self.castle_rights_log = [copy_castle_rights(self.current_castle_rights)]
         self.capture_tracker = CaptureTracker()
-        self.event_manager = EventManager(self) # Khởi tạo hệ thống quản lý sự kiện
+        self.event_manager = EventManager(self)
 
     def make_move(self, move, promotion_choice='Q', is_real_move=False):
         """Apply a move and update all related game-state fields."""
@@ -229,19 +229,19 @@ class GameState:
                 self.black_king_pos = (move.start_row, move.start_col)
 
     def get_valid_moves(self):
-        # 1. Lấy tất cả các nước đi pseudo-legal
+        # Generate pseudo-legal moves first.
         moves = self.get_all_possible_moves()
         
-        # 2. Với mỗi nước đi, giả định thực hiện nó
+        # Temporarily apply each move and remove those that expose own king.
         for i in range(len(moves) - 1, -1, -1):
             move = moves[i]
             self.make_move(move)
             
-            # 3. Sau khi di chuyển, kiểm tra xem Vua của mình có bị chiếu không
-            self.white_to_move = not self.white_to_move # Đổi lại lượt tạm thời để kiểm tra Vua của mình
+            # Flip turn so in_check() evaluates the side that moved.
+            self.white_to_move = not self.white_to_move
             if self.in_check():
                 moves.remove(move)
-            self.white_to_move = not self.white_to_move # Đổi lại lượt
+            self.white_to_move = not self.white_to_move
             self._rollback_last_move()
             
         if len(moves) == 0:
@@ -262,7 +262,7 @@ class GameState:
             return self.square_under_attack(self.black_king_pos[0], self.black_king_pos[1])
 
     def square_under_attack(self, r, c):
-        # Đổi lượt để xem các nước đi của đối phương
+        # Flip turn to generate opponent pseudo-legal moves.
         self.white_to_move = not self.white_to_move
         opp_moves = self.get_all_possible_moves(include_castle=False)
         self.white_to_move = not self.white_to_move
@@ -308,3 +308,4 @@ class GameState:
     def get_turns_to_next_event(self):
         """Return the number of turns remaining before the next event."""
         return 10 - (self.event_manager.turn_counter % 10)
+

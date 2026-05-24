@@ -12,7 +12,7 @@ It is the current verified project structure **before** any Fusion, AP, or advan
 
 - `src/pieces/`
   - Owns piece behavior and metadata.
-  - Each piece class defines its own movement rules, sprite key, material value, and small extension hooks such as `can_fuse()` and `is_minor_piece()`.
+  - Each piece class defines its own movement rules, sprite key, material value, active-state flag, and small extension hooks such as `can_fuse()` and `is_minor_piece()`.
   - The piece registry creates piece instances from stable piece codes.
 
 - `src/events/`
@@ -23,7 +23,7 @@ It is the current verified project structure **before** any Fusion, AP, or advan
 
 - `src/ui/`
   - Owns rendering and transient input state.
-  - The UI package handles board rendering, player panels, promotion menu behavior, sprite loading, and click/drag interaction state.
+  - The UI package handles board rendering, player panels, promotion menu behavior, sprite loading, click/drag interaction state, and UI-only constants.
   - UI helpers consume public game state and package user intent; they do not enforce chess rules.
 
 ## Current Runtime Flow

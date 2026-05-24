@@ -1,6 +1,4 @@
-"""Shared constants for board rules and UI rendering."""
-
-import pygame
+"""Shared constants for board rules and game-domain values."""
 
 # Screen sizing
 BOARD_WIDTH = 512
@@ -40,8 +38,3 @@ STANDARD_PIECE_ORDER = [
 WHITE = "w"
 BLACK = "b"
 
-# UI colors
-COLOR_LIGHT = pygame.Color("white")
-COLOR_DARK = pygame.Color("gray")
-COLOR_HIGHLIGHT = pygame.Color("yellow")
-COLOR_CHECK = pygame.Color("red")

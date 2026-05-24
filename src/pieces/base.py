@@ -20,9 +20,9 @@ class Piece:
         self.color = color
         self.name = name
         self.pos = pos
-        self.id = f"{color}{name}"
+        self.id = f"{color}{self.get_piece_code()}"
         self.has_moved = False
-        self.status = "active"
+        self.is_active = True
 
     def set_position(self, pos):
         """Update the piece position."""
@@ -30,7 +30,7 @@ class Piece:
 
     def get_possible_moves(self, gs):
         """Return pseudo-legal moves for this piece."""
-        if self.status != "active":
+        if not self.is_active:
             return []
         return self._calculate_moves(gs)
 
