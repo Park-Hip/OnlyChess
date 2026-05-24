@@ -6,6 +6,7 @@ The current codebase is the **stable classic-plus-events baseline after Phase 5*
 It includes:
 
 - standard chess movement and rule handling
+- internal move-simulation rollback for legal move validation
 - extracted event lifecycle/orchestration
 - extracted UI rendering and input helpers
 

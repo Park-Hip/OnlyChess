@@ -22,6 +22,13 @@ class DummyEventManager:
 class GameRulesPipelineTests(unittest.TestCase):
     """Verify real moves trigger side systems while simulated ones do not."""
 
+    def test_turn_helpers_report_half_turns_and_full_turns(self):
+        game_state = GameState()
+
+        self.assertEqual(game_state.get_half_turn_count(), 0)
+        self.assertEqual(game_state.get_full_turn_count(), 0)
+        self.assertTrue(game_state.just_finished_full_turn())
+
     def test_white_real_move_updates_tracker_but_not_end_of_turn_event(self):
         game_state = GameState()
         game_state.event_manager = DummyEventManager()
@@ -34,6 +41,9 @@ class GameRulesPipelineTests(unittest.TestCase):
 
         self.assertEqual(game_state.get_captured_pieces(), ([BLACK + ROOK_CODE], []))
         self.assertEqual(game_state.event_manager.update_calls, 0)
+        self.assertEqual(game_state.get_half_turn_count(), 1)
+        self.assertEqual(game_state.get_full_turn_count(), 0)
+        self.assertFalse(game_state.just_finished_full_turn())
 
     def test_black_real_move_triggers_end_of_turn_event_update(self):
         game_state = GameState()
@@ -48,6 +58,9 @@ class GameRulesPipelineTests(unittest.TestCase):
 
         self.assertEqual(game_state.get_captured_pieces(), ([], [WHITE + ROOK_CODE]))
         self.assertEqual(game_state.event_manager.update_calls, 1)
+        self.assertEqual(game_state.get_half_turn_count(), 1)
+        self.assertEqual(game_state.get_full_turn_count(), 0)
+        self.assertTrue(game_state.just_finished_full_turn())
 
     def test_simulated_move_generation_does_not_trigger_real_side_systems(self):
         game_state = GameState()

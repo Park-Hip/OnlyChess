@@ -37,9 +37,19 @@ def clear_promotion_pending(input_state):
     input_state.promotion_move_pending = None
 
 
-def is_board_click(location, info_panel_height=INFO_PANEL_HEIGHT, board_height=BOARD_HEIGHT):
+def is_board_click(
+    location,
+    square_size=SQ_SIZE,
+    info_panel_height=INFO_PANEL_HEIGHT,
+    board_height=BOARD_HEIGHT,
+    board_size=BOARD_SIZE,
+):
     """Return whether a mouse click lands inside the playable board area."""
-    return info_panel_height <= location[1] < info_panel_height + board_height
+    board_width = board_size * square_size
+    return (
+        0 <= location[0] < board_width
+        and info_panel_height <= location[1] < info_panel_height + board_height
+    )
 
 
 def get_board_square(location, square_size=SQ_SIZE, info_panel_height=INFO_PANEL_HEIGHT):
@@ -73,7 +83,7 @@ def handle_board_mouse_down(input_state, game_state, location):
         input_state.click_type = "second_click"
         return
 
-    piece = game_state.board.grid[row][col]
+    piece = game_state.board.get_piece_at(row, col)
     if len(input_state.player_clicks) == 0:
         if piece is not None and piece.color == get_active_color(game_state):
             input_state.sq_selected = (row, col)
@@ -128,7 +138,7 @@ def retain_origin_after_invalid_drag(input_state):
 def resolve_invalid_click_selection(input_state, game_state):
     """Resolve selection state after an invalid click-based move attempt."""
     row, col = input_state.player_clicks[1]
-    piece = game_state.board.grid[row][col]
+    piece = game_state.board.get_piece_at(row, col)
     if piece is not None and piece.color == get_active_color(game_state):
         input_state.player_clicks = [(row, col)]
         input_state.sq_selected = (row, col)

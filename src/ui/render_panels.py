@@ -9,11 +9,6 @@ MINI_PIECE_SIZE = 24
 PANEL_BACKGROUND = "#2f2f2f"
 
 
-def calculate_turns_to_event(turn_counter):
-    """Return the number of turns remaining before the next event."""
-    return 10 - (turn_counter % 10)
-
-
 def get_material_text(score, is_top_panel):
     """Return the score text that should appear on a player panel."""
     if is_top_panel and score < 0:

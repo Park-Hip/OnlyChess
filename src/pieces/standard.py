@@ -182,14 +182,25 @@ class King(Piece):
         r, c = self.pos
         if (self.color == WHITE and gs.current_castle_rights.wks) or (self.color == BLACK and gs.current_castle_rights.bks):
             # King side castle
-            if gs.board.get_piece_at(r, c + 1) is None and gs.board.get_piece_at(r, c + 2) is None:
+            corner_piece = gs.board.get_piece_at(r, BOARD_COLS - 1)
+            if (
+                corner_piece is not None
+                and corner_piece.color == self.color
+                and corner_piece.get_piece_code() == ROOK_CODE
+                and gs.board.get_piece_at(r, c + 1) is None
+                and gs.board.get_piece_at(r, c + 2) is None
+            ):
                 if not gs.square_under_attack(r, c+1) and not gs.square_under_attack(r, c+2):
                     moves.append(Move((r, c), (r, c+2), gs.board.grid, is_castle_move=True))
         
         if (self.color == WHITE and gs.current_castle_rights.wqs) or (self.color == BLACK and gs.current_castle_rights.bqs):
             # Queen side castle
+            corner_piece = gs.board.get_piece_at(r, 0)
             if (
-                gs.board.get_piece_at(r, c - 1) is None
+                corner_piece is not None
+                and corner_piece.color == self.color
+                and corner_piece.get_piece_code() == ROOK_CODE
+                and gs.board.get_piece_at(r, c - 1) is None
                 and gs.board.get_piece_at(r, c - 2) is None
                 and gs.board.get_piece_at(r, c - 3) is None
             ):

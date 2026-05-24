@@ -8,7 +8,7 @@ from src.game.move import Move
 from src.pieces import Pawn, Rook
 
 
-class MoveAndUndoBaselineTests(unittest.TestCase):
+class MoveRollbackTests(unittest.TestCase):
     """Lock in move-state bookkeeping used by internal rollback."""
 
     def test_double_pawn_move_sets_en_passant_square(self):
@@ -24,7 +24,7 @@ class MoveAndUndoBaselineTests(unittest.TestCase):
         move = Move((6, 4), (4, 4), game_state.board.grid)
 
         game_state.make_move(move)
-        game_state.undo_move()
+        game_state._rollback_last_move()
 
         self.assertTrue(game_state.white_to_move)
         self.assertIsNotNone(game_state.board.grid[6][4])
@@ -71,7 +71,7 @@ class MoveAndUndoBaselineTests(unittest.TestCase):
 
         en_passant = Move((3, 4), (2, 5), game_state.board.grid, is_enpassant_move=True)
         game_state.make_move(en_passant)
-        game_state.undo_move()
+        game_state._rollback_last_move()
 
         self.assertIs(game_state.board.grid[3][4], white_pawn)
         self.assertIs(game_state.board.grid[3][5], black_pawn)
@@ -96,7 +96,7 @@ class MoveAndUndoBaselineTests(unittest.TestCase):
         move = Move((6, 4), (4, 4), game_state.board.grid)
 
         game_state.make_move(move)
-        game_state.undo_move()
+        game_state._rollback_last_move()
 
         self.assertFalse(pawn.has_moved)
 

@@ -31,6 +31,13 @@ class EventBaseContractTests(unittest.TestCase):
         event.execute()
         self.assertFalse(event.warning_active)
 
+    def test_tick_is_a_safe_no_op_by_default(self):
+        event = DummyEvent(GameState())
+
+        event.tick()
+
+        self.assertFalse(event.warning_active)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -4,6 +4,7 @@ import unittest
 
 from src.constants import BLACK, BOARD_COLS, BOARD_ROWS, KNIGHT_CODE, PAWN_CODE, ROOK_CODE, WHITE
 from src.game.board import Board, GameState
+from src.game.capture_tracker import CapturedPieceRecord
 from src.game.move import Move
 from src.pieces import Pawn, Rook
 
@@ -21,6 +22,7 @@ class CaptureTrackerTests(unittest.TestCase):
         game_state.make_move(move, is_real_move=True)
 
         self.assertEqual(game_state.get_captured_pieces(), ([BLACK + ROOK_CODE], []))
+        self.assertEqual(game_state.capture_tracker.white_captured, [CapturedPieceRecord(BLACK, ROOK_CODE)])
 
     def test_en_passant_capture_is_tracked_for_real_moves(self):
         game_state = GameState()

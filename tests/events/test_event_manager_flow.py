@@ -11,6 +11,14 @@ from src.game.move import Move
 class EventManagerFlowTests(unittest.TestCase):
     """Verify warning, execution, and next-event queueing still work."""
 
+    def test_empty_event_pool_remains_empty(self):
+        game_state = GameState()
+        manager = EventManager(game_state, event_pool=[])
+
+        self.assertEqual(manager.event_pool, [])
+        self.assertIsNone(manager.queued_event)
+        self.assertIsNone(manager.queued_event_key)
+
     def test_turn_nine_triggers_warning_for_queued_event(self):
         game_state = GameState()
         manager = EventManager(game_state, event_pool=["gia_xang_tang"])
@@ -20,6 +28,7 @@ class EventManagerFlowTests(unittest.TestCase):
         manager.update()
 
         self.assertEqual(manager.turn_counter, 9)
+        self.assertEqual(game_state.get_full_turn_count(), 9)
         self.assertIsNotNone(manager.queued_event)
         self.assertTrue(manager.queued_event.warning_active)
         self.assertIn(manager.queued_event, manager.active_events)
@@ -37,6 +46,7 @@ class EventManagerFlowTests(unittest.TestCase):
         manager.update()
 
         self.assertEqual(manager.turn_counter, 10)
+        self.assertEqual(game_state.get_full_turn_count(), 10)
         self.assertEqual(game_state.board.grid[7][0].get_piece_code(), KNIGHT_CODE)
         self.assertEqual(len(manager.active_events), 0)
         self.assertEqual(manager.queued_event_key, "gia_xang_tang")

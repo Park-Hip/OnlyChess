@@ -51,15 +51,13 @@ def handle_promotion_click(input_state, game_state, mouse_pos):
         return False
 
     choice = resolve_promotion_click(mouse_pos)
-    if choice is not None:
-        game_state.make_move(input_state.promotion_move_pending, choice, is_real_move=True)
-        clear_promotion_pending(input_state)
-        reset_selection_state(input_state)
-        return True
+    if choice is None:
+        return False
 
+    game_state.make_move(input_state.promotion_move_pending, choice, is_real_move=True)
     clear_promotion_pending(input_state)
     reset_selection_state(input_state)
-    return False
+    return True
 
 
 def main():

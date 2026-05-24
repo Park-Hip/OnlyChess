@@ -23,5 +23,8 @@ class ChessEvent:
     def cleanup(self):
         """Clean up event state after it resolves."""
 
+    def tick(self):
+        """Advance any per-turn event state."""
+
     def draw(self, screen, font, width, height, info_panel_height):
         """Draw event-specific UI feedback when needed."""

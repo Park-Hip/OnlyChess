@@ -47,6 +47,17 @@ class GiaXangTangEventTests(unittest.TestCase):
         self.assertEqual(game_state.board.grid[7][0].get_piece_code(), KNIGHT_CODE)
         self.assertNotEqual(game_state.board.grid[7][0].get_piece_code(), ROOK_CODE)
 
+    def test_gia_xang_tang_prevents_future_castling_from_transformed_corner(self):
+        game_state = GameState()
+        for col in (5, 6):
+            game_state.board.set_piece_at(7, col, None)
+
+        event = GiaXangTang(game_state)
+        event.execute()
+
+        king = game_state.board.get_piece_at(7, 4)
+        self.assertEqual(king.get_castle_moves(game_state), [])
+
 
 if __name__ == "__main__":
     unittest.main()

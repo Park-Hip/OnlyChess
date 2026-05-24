@@ -11,17 +11,30 @@ class EventManager:
         self.active_events = []
         self.queued_event = None
         self.queued_event_key = None
-        self.event_pool = list(event_pool or ["gia_xang_tang"])
-        self._queue_next_event()
+        self.event_pool = ["gia_xang_tang"] if event_pool is None else list(event_pool)
+        if self.event_pool:
+            self._queue_next_event()
 
     def _queue_next_event(self):
         """Choose and instantiate the next event in the pool."""
+        if not self.event_pool:
+            self.queued_event = None
+            self.queued_event_key = None
+            return
         self.queued_event_key = choose_random_event_key(self.event_pool)
         self.queued_event = create_event(self.queued_event_key, self.gs)
 
+    def _tick_active_events(self):
+        """Advance any active event state before warning/execution checks."""
+        for event in list(self.active_events):
+            event.tick()
+
     def update(self):
         """Advance warning and execution flow based on full-turn count."""
-        self.turn_counter = len(self.gs.move_log) // 2
+        self.turn_counter = self.gs.get_full_turn_count()
+
+        if self.turn_counter > 0:
+            self._tick_active_events()
 
         if self.turn_counter > 0 and self.turn_counter % 10 == 9:
             if self.queued_event and self.queued_event not in self.active_events:

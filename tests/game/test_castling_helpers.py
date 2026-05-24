@@ -12,7 +12,7 @@ from src.game.castling import (
     update_castle_rights_for_move,
 )
 from src.game.move import Move
-from src.pieces import King, Rook
+from src.pieces import King, Knight, Rook
 
 
 class CastlingHelperTests(unittest.TestCase):
@@ -68,7 +68,7 @@ class CastlingHelperTests(unittest.TestCase):
         move = Move((7, 7), (6, 7), game_state.board.grid)
 
         game_state.make_move(move)
-        game_state.undo_move()
+        game_state._rollback_last_move()
 
         self.assertTrue(game_state.current_castle_rights.wks)
         self.assertTrue(game_state.current_castle_rights.wqs)
@@ -100,6 +100,19 @@ class CastlingHelperTests(unittest.TestCase):
         self.assertTrue(all(not move.is_castle_move for move in rook_moves))
         self.assertEqual(rook.get_piece_code(), ROOK_CODE)
         self.assertEqual(king.get_piece_code(), KING_CODE)
+
+    def test_castle_requires_actual_rook_on_corner(self):
+        game_state = GameState()
+        game_state.board.grid = [[None for _ in range(BOARD_COLS)] for _ in range(BOARD_ROWS)]
+        king = King(WHITE, (7, 4))
+        fake_corner_piece = Knight(WHITE, (7, 7))
+        game_state.board.grid[7][4] = king
+        game_state.board.grid[7][7] = fake_corner_piece
+        game_state.white_king_pos = (7, 4)
+
+        moves = king.get_castle_moves(game_state)
+
+        self.assertEqual(moves, [])
 
 
 if __name__ == "__main__":

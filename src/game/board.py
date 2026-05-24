@@ -171,8 +171,8 @@ class GameState:
             else:
                 self.black_king_pos = (move.end_row, move.end_col)
 
-    def undo_move(self):
-        """Roll back the most recent move for internal move simulation."""
+    def _rollback_last_move(self):
+        """Roll back the most recent simulated move."""
         if len(self.move_log) != 0:
             move = self.move_log.pop()
             self._restore_base_piece_positions(move)
@@ -242,7 +242,7 @@ class GameState:
             if self.in_check():
                 moves.remove(move)
             self.white_to_move = not self.white_to_move # Đổi lại lượt
-            self.undo_move()
+            self._rollback_last_move()
             
         if len(moves) == 0:
             if self.in_check():
@@ -284,6 +284,18 @@ class GameState:
     def get_captured_pieces(self):
         """Return captured-piece summaries for both players."""
         return self.capture_tracker.get_captured_pieces()
+
+    def get_half_turn_count(self):
+        """Return the number of half-turns recorded in the move log."""
+        return len(self.move_log)
+
+    def get_full_turn_count(self):
+        """Return the number of completed full turns."""
+        return self.get_half_turn_count() // 2
+
+    def just_finished_full_turn(self):
+        """Return whether the latest real move completed a full turn."""
+        return self.white_to_move
 
     def get_material_advantage(self):
         """Return white material minus black material."""

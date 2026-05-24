@@ -3,6 +3,9 @@
 import unittest
 
 from src.constants import BISHOP_CODE, KNIGHT_CODE, QUEEN_CODE, ROOK_CODE
+from src.game.board import GameState
+from src.main import handle_promotion_click
+from src.ui.input_handler import InputState
 from src.ui.promotion_menu import PROMOTION_CHOICES, get_promotion_menu_rect, resolve_promotion_click
 
 
@@ -28,6 +31,15 @@ class PromotionMenuTests(unittest.TestCase):
     def test_resolve_promotion_click_returns_none_outside_menu(self):
         rect = get_promotion_menu_rect()
         self.assertIsNone(resolve_promotion_click((rect.x - 5, rect.y), rect))
+
+    def test_handle_promotion_click_keeps_pending_move_on_outside_click(self):
+        game_state = GameState()
+        input_state = InputState(promotion_move_pending=object())
+
+        result = handle_promotion_click(input_state, game_state, (0, 0))
+
+        self.assertFalse(result)
+        self.assertIsNotNone(input_state.promotion_move_pending)
 
 
 if __name__ == "__main__":

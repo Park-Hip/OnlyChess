@@ -66,7 +66,7 @@ def draw_highlights(screen, game_state, valid_moves, selected_square, square_siz
         return
 
     row, col = selected_square
-    piece = game_state.board.grid[row][col]
+    piece = game_state.board.get_piece_at(row, col)
     if piece is None or piece.color != ("w" if game_state.white_to_move else "b"):
         return
 
@@ -99,7 +99,7 @@ def draw_dragged_piece(screen, game_state, dragged_square, images, mouse_pos, sq
     if not dragged_square:
         return
     row, col = dragged_square
-    piece = game_state.board.grid[row][col]
+    piece = game_state.board.get_piece_at(row, col)
     if piece is None:
         return
     image = images[piece.get_sprite_key()]

@@ -26,6 +26,10 @@ class InputHandlerTests(unittest.TestCase):
         self.assertFalse(is_board_click((10, INFO_PANEL_HEIGHT - 1)))
         self.assertTrue(is_board_click((10, INFO_PANEL_HEIGHT + 1)))
 
+    def test_board_click_rejects_x_positions_outside_board_width(self):
+        self.assertFalse(is_board_click((-1, INFO_PANEL_HEIGHT + 10)))
+        self.assertFalse(is_board_click((BOARD_COLS * SQ_SIZE, INFO_PANEL_HEIGHT + 10)))
+
     def test_board_square_conversion_uses_info_panel_offset(self):
         self.assertEqual(get_board_square((2 * SQ_SIZE + 1, INFO_PANEL_HEIGHT + 3 * SQ_SIZE + 1)), (3, 2))
 
