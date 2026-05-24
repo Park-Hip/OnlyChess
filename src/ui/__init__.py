@@ -1,1 +1,1 @@
-"""UI helpers for rendering, assets, input flow, and promotion handling."""
+"""UI package for rendering, assets, promotion flow, and input-state helpers."""
