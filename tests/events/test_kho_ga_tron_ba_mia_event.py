@@ -3,10 +3,10 @@
 import unittest
 from unittest.mock import patch
 
-from src.constants import BLACK, BOARD_COLS, BOARD_ROWS, BISHOP_CODE, KNIGHT_CODE, ROOK_CODE, WHITE
+from src.constants import ARCHBISHOP_CODE, BLACK, BOARD_COLS, BOARD_ROWS, BISHOP_CODE, CHANCELLOR_CODE, KNIGHT_CODE, ROOK_CODE, WHITE
 from src.events import KhoGaTronBaMia
 from src.game.board import GameState
-from src.pieces import Bishop, King, Knight, Pawn, Queen, Rook
+from src.pieces import Archbishop, Bishop, Chancellor, King, Knight, Pawn, Queen, Rook
 
 
 class KhoGaTronBaMiaEventTests(unittest.TestCase):
@@ -111,6 +111,27 @@ class KhoGaTronBaMiaEventTests(unittest.TestCase):
 
         self.assertFalse(hasattr(white_pawn, "poisoned_turns"))
         self.assertEqual(black_rook.poisoned_turns, 3)
+
+    def test_poison_restricts_fused_piece_movement_by_primary_profile(self):
+        game_state = GameState()
+        game_state.board.grid = [[None for _ in range(BOARD_COLS)] for _ in range(BOARD_ROWS)]
+        archbishop = Archbishop(WHITE, (4, 4))
+        chancellor = Chancellor(BLACK, (2, 2))
+        game_state.board.set_piece_at(4, 4, archbishop)
+        game_state.board.set_piece_at(2, 2, chancellor)
+        game_state.board.set_piece_at(7, 4, King(WHITE, (7, 4)))
+        game_state.board.set_piece_at(0, 4, King(BLACK, (0, 4)))
+
+        archbishop.poisoned_turns = 3
+        chancellor.poisoned_turns = 3
+
+        archbishop_targets = {(move.end_row, move.end_col) for move in archbishop.get_possible_moves(game_state)}
+        chancellor_targets = {(move.end_row, move.end_col) for move in chancellor.get_possible_moves(game_state)}
+
+        self.assertEqual(archbishop.get_piece_code(), ARCHBISHOP_CODE)
+        self.assertEqual(chancellor.get_piece_code(), CHANCELLOR_CODE)
+        self.assertEqual(archbishop_targets, {(3, 3), (3, 5), (5, 3), (5, 5)})
+        self.assertEqual(chancellor_targets, {(1, 2), (3, 2), (2, 1), (2, 3)})
 
 if __name__ == "__main__":
     unittest.main()

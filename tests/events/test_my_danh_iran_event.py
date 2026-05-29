@@ -21,11 +21,12 @@ class MyDanhIranEventTests(unittest.TestCase):
 
         self.assertTrue(event.warning_active)
 
-    def test_execute_removes_pieces_inside_warning_zone(self):
+    def test_execute_removes_non_shielded_pieces_inside_warning_zone(self):
         game_state = GameState()
         game_state.board.grid = [[None for _ in range(BOARD_COLS)] for _ in range(BOARD_ROWS)]
         black_pawn = Pawn(BLACK, (2, 3))
         white_queen = Queen(WHITE, (2, 4))
+        white_queen.is_shielded = True
         black_rook = Rook(BLACK, (3, 3))
         white_king = King(WHITE, (7, 4))
         black_king = King(BLACK, (0, 4))
@@ -42,8 +43,9 @@ class MyDanhIranEventTests(unittest.TestCase):
         event.execute()
 
         self.assertIsNone(game_state.board.get_piece_at(2, 3))
-        self.assertIsNone(game_state.board.get_piece_at(2, 4))
         self.assertIsNone(game_state.board.get_piece_at(3, 3))
+        self.assertEqual(game_state.board.get_piece_at(2, 4).get_piece_code(), QUEEN_CODE)
+        self.assertTrue(game_state.board.get_piece_at(2, 4).is_shielded)
         self.assertEqual(game_state.board.get_piece_at(7, 4).get_piece_code(), KING_CODE)
         self.assertEqual(game_state.board.get_piece_at(0, 4).get_piece_code(), KING_CODE)
 

@@ -33,12 +33,18 @@ class MyDanhIran(ChessEvent):
             for col in range(start_col, start_col + 2):
                 yield row, col
 
+    def _is_piece_shielded(self, piece):
+        """Return whether the piece should survive the strike."""
+        return getattr(piece, "is_shielded", False)
+
     def execute(self):
-        """Destroy every piece inside the warning zone."""
+        """Destroy every non-shielded piece inside the warning zone."""
         super().execute()
         for row, col in self._iter_warning_squares():
             piece = self.gs.board.get_piece_at(row, col)
             if piece is None:
+                continue
+            if self._is_piece_shielded(piece):
                 continue
             self.gs.board.set_piece_at(row, col, None)
 

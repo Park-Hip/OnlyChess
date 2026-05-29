@@ -24,6 +24,8 @@ def get_last_move_squares(game_state):
     if len(game_state.move_log) == 0:
         return []
     last_move = game_state.move_log[-1]
+    if not hasattr(last_move, "start_row") or not hasattr(last_move, "end_row"):
+        return []
     return [
         (last_move.start_row, last_move.start_col),
         (last_move.end_row, last_move.end_col),
@@ -93,6 +95,21 @@ def draw_pieces(screen, board_grid, images, dragged_square=(), dimension=DIMENSI
                 )
 
 
+def draw_shield_overlays(screen, board_grid, dimension=DIMENSION, square_size=SQ_SIZE, info_panel_height=INFO_PANEL_HEIGHT):
+    """Draw a simple outline around shielded pieces."""
+    for row in range(dimension):
+        for col in range(dimension):
+            piece = board_grid[row][col]
+            if piece is not None and getattr(piece, "is_shielded", False):
+                rect = p.Rect(
+                    col * square_size + 4,
+                    row * square_size + info_panel_height + 4,
+                    square_size - 8,
+                    square_size - 8,
+                )
+                p.draw.rect(screen, p.Color("cyan"), rect, 3)
+
+
 def draw_dragged_piece(screen, game_state, dragged_square, images, mouse_pos, square_size=SQ_SIZE):
     """Draw the currently dragged piece under the mouse cursor."""
     if not dragged_square:
@@ -129,5 +146,6 @@ def draw_game_board(screen, game_state, valid_moves, selected_square, images, dr
     draw_board(screen)
     draw_highlights(screen, game_state, valid_moves, selected_square)
     draw_pieces(screen, game_state.board.grid, images, selected_square if dragging else ())
+    draw_shield_overlays(screen, game_state.board.grid)
     if dragging and selected_square:
         draw_dragged_piece(screen, game_state, selected_square, images, mouse_pos)

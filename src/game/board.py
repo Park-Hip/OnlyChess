@@ -2,7 +2,9 @@
 
 from ..constants import BISHOP_CODE, BLACK, BOARD_COLS, BOARD_ROWS, KING_CODE, KNIGHT_CODE, PAWN_CODE, QUEEN_CODE, ROOK_CODE, STANDARD_PIECE_ORDER, WHITE
 from ..events.manager import EventManager
+from ..fusion.manager import FusionManager
 from ..pieces import Pawn, create_piece
+from .action_points import ActionPointTracker
 from .capture_tracker import CaptureTracker
 from .castling import (
     copy_castle_rights,
@@ -73,11 +75,19 @@ class GameState:
         self.current_castle_rights = create_initial_castle_rights()
         self.castle_rights_log = [copy_castle_rights(self.current_castle_rights)]
         self.capture_tracker = CaptureTracker()
+        self.action_points = ActionPointTracker()
         self.event_manager = EventManager(self)
+        self.fusion_manager = FusionManager(self)
+        self.tempo_burst_pending = False
+        self.tempo_burst_piece = None
+        self.tempo_burst_owner = None
+        self.ability_used_this_turn = False
+        self.active_shields = []
 
     def make_move(self, move, promotion_choice='Q', is_real_move=False):
         """Apply a move and update all related game-state fields."""
         self._record_move_state(move)
+        move.is_tempo_burst_move = self._is_tempo_burst_move(move)
         self._apply_base_piece_movement(move)
         self._resolve_en_passant_capture(move)
         self._resolve_pawn_promotion(move, promotion_choice)
@@ -158,10 +168,13 @@ class GameState:
         """Log the move, switch turns, and update king/event state."""
         self.move_log.append(move)
         self.white_to_move = not self.white_to_move
+        self.ability_used_this_turn = False
         self._update_king_position(move)
         move.is_real_move = is_real_move
         if is_real_move:
             run_post_move_systems(self, move)
+        if is_real_move and move.is_tempo_burst_move:
+            self.clear_tempo_burst()
 
     def _update_king_position(self, move):
         """Update the cached king location after a king move."""
@@ -170,6 +183,14 @@ class GameState:
                 self.white_king_pos = (move.end_row, move.end_col)
             else:
                 self.black_king_pos = (move.end_row, move.end_col)
+
+    def _update_king_position_after_piece_relocation(self, piece):
+        """Update cached king position after non-move relocation effects."""
+        if piece is not None and piece.name == KING_CODE:
+            if piece.color == WHITE:
+                self.white_king_pos = piece.pos
+            else:
+                self.black_king_pos = piece.pos
 
     def _rollback_last_move(self):
         """Roll back the most recent simulated move."""
@@ -276,10 +297,51 @@ class GameState:
         for r in range(BOARD_ROWS):
             for c in range(BOARD_COLS):
                 piece = self.board.grid[r][c]
+                if self.tempo_burst_pending and piece is not self.tempo_burst_piece:
+                    continue
                 if piece and ((piece.color == WHITE and self.white_to_move) or \
                              (piece.color == BLACK and not self.white_to_move)):
                     moves.extend(get_piece_moves(piece, self, include_castle=include_castle))
         return moves
+
+    def _is_tempo_burst_move(self, move):
+        """Return whether this move spends the pending Tempo Burst extra move."""
+        return self.tempo_burst_pending and move.piece_moved is self.tempo_burst_piece
+
+    def clear_tempo_burst(self):
+        """Clear pending Tempo Burst extra-move state."""
+        self.tempo_burst_pending = False
+        self.tempo_burst_piece = None
+        self.tempo_burst_owner = None
+
+    def finish_ability_turn(self, color):
+        """Consume the current turn after a successful ability use."""
+        self.ability_used_this_turn = True
+        self.action_points.gain_for_move(color)
+        self.move_log.append({"ability_turn": color})
+        self.white_to_move = color != WHITE
+        self.expire_shields_after_turn(color)
+        if self.just_finished_full_turn():
+            self.event_manager.update()
+        self.ability_used_this_turn = False
+
+    def add_shielded_piece(self, piece, owner_color):
+        """Track a shielded piece until the opponent completes a turn."""
+        piece.is_shielded = True
+        piece.shield_owner = owner_color
+        piece.shield_turns = 1
+        if piece not in self.active_shields:
+            self.active_shields.append(piece)
+
+    def expire_shields_after_turn(self, completed_turn_color):
+        """Remove shields after the protected side's opponent completes a turn."""
+        for piece in list(self.active_shields):
+            if getattr(piece, "shield_owner", None) == completed_turn_color:
+                continue
+            piece.is_shielded = False
+            piece.shield_turns = 0
+            piece.shield_owner = None
+            self.active_shields.remove(piece)
 
     def get_captured_pieces(self):
         """Return captured-piece summaries for both players."""

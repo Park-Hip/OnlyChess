@@ -3,6 +3,7 @@
 import pygame as p
 
 from ..constants import HEIGHT, INFO_PANEL_HEIGHT, WIDTH
+from ..constants import BLACK, WHITE
 from .ui_constants import PANEL_BACKGROUND
 
 
@@ -16,6 +17,23 @@ def get_material_text(score, is_top_panel):
     if not is_top_panel and score > 0:
         return f"+{score}"
     return ""
+
+
+def get_tempo_burst_text(game_state):
+    """Return panel text for a pending Tempo Burst extra move."""
+    if not getattr(game_state, "tempo_burst_pending", False):
+        return ""
+    return "Tempo Burst: extra rook move"
+
+
+def get_ap_text(game_state, color):
+    """Return AP text for one player panel."""
+    return f"AP: {game_state.action_points.get_ap(color)}"
+
+
+def get_ability_error_text(input_state):
+    """Return transient ability error text."""
+    return getattr(input_state, "ability_error", "")
 
 
 def draw_captured_pieces_row(screen, captured_pieces, images, start_x, start_y, mini_size=MINI_PIECE_SIZE):
@@ -38,6 +56,8 @@ def draw_info_panels(screen, game_state, images, font):
 
     name_text_black = font.render("Player 2", True, p.Color("white"))
     screen.blit(name_text_black, (10, 10))
+    black_ap_text = font.render(get_ap_text(game_state, BLACK), True, p.Color("cyan"))
+    screen.blit(black_ap_text, (110, 10))
 
     next_x = draw_captured_pieces_row(screen, black_captured, images, 10, 32)
     black_score_text = get_material_text(score, is_top_panel=True)
@@ -47,6 +67,8 @@ def draw_info_panels(screen, game_state, images, font):
 
     name_text_white = font.render("Player 1", True, p.Color("white"))
     screen.blit(name_text_white, (10, HEIGHT - INFO_PANEL_HEIGHT + 10))
+    white_ap_text = font.render(get_ap_text(game_state, WHITE), True, p.Color("cyan"))
+    screen.blit(white_ap_text, (110, HEIGHT - INFO_PANEL_HEIGHT + 10))
 
     next_x = draw_captured_pieces_row(screen, white_captured, images, 10, HEIGHT - INFO_PANEL_HEIGHT + 32)
     white_score_text = get_material_text(score, is_top_panel=False)
@@ -62,3 +84,8 @@ def draw_info_panels(screen, game_state, images, font):
     )
     screen.blit(turn_text, (WIDTH - 150, HEIGHT - INFO_PANEL_HEIGHT + 10))
     screen.blit(event_text, (WIDTH - 150, HEIGHT - INFO_PANEL_HEIGHT + 30))
+
+    tempo_text = get_tempo_burst_text(game_state)
+    if tempo_text:
+        rendered_tempo_text = font.render(tempo_text, True, p.Color("orange"))
+        screen.blit(rendered_tempo_text, (WIDTH - 260, INFO_PANEL_HEIGHT - 25))

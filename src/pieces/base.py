@@ -23,6 +23,9 @@ class Piece:
         self.id = f"{color}{self.get_piece_code()}"
         self.has_moved = False
         self.is_active = True
+        self.has_fused = False
+        self.fusion_components = [self.get_piece_code()]
+        self.primary_component_code = self.get_piece_code()
 
     def set_position(self, pos):
         """Update the piece position."""
@@ -51,7 +54,7 @@ class Piece:
                 target = gs.board.get_piece_at(end_row, end_col)
                 if target is None:
                     moves.append(Move((r, c), (end_row, end_col), gs.board.grid))
-                elif target.color != self.color:
+                elif self.can_capture_target(target):
                     moves.append(Move((r, c), (end_row, end_col), gs.board.grid))
                     break
                 else:
@@ -68,9 +71,17 @@ class Piece:
             if not gs.board.is_inside_board(end_row, end_col):
                 continue
             target = gs.board.get_piece_at(end_row, end_col)
-            if target is None or target.color != self.color:
+            if target is None or self.can_capture_target(target):
                 moves.append(Move((r, c), (end_row, end_col), gs.board.grid))
         return moves
+
+    def can_capture_target(self, target):
+        """Return whether this piece can capture a target piece."""
+        if target is None:
+            return False
+        if target.color == self.color:
+            return False
+        return not getattr(target, "is_shielded", False)
 
     def get_piece_code(self):
         """Return the stable piece code for registry and rules."""
@@ -90,7 +101,7 @@ class Piece:
 
     def can_fuse(self):
         """Return whether the piece is eligible for future fusion rules."""
-        return True
+        return not self.has_fused
 
     def is_minor_piece(self):
         """Return whether the piece counts as a minor piece."""

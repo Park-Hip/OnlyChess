@@ -50,7 +50,7 @@ class Pawn(Piece):
             nr = r + self.direction
             if is_inside_board(nr, nc):
                 target = gs.board.get_piece_at(nr, nc)
-                if target is not None and target.color != self.color:
+                if target is not None and self.can_capture_target(target):
                     moves.append(Move((r, c), (nr, nc), gs.board.grid))
                 elif (nr, nc) == gs.enpassant_possible:
                     moves.append(Move((r, c), (nr, nc), gs.board.grid, is_enpassant_move=True))
@@ -83,7 +83,7 @@ class Knight(Piece):
             nr, nc = r + dr, c + dc
             if is_inside_board(nr, nc):
                 target = gs.board.get_piece_at(nr, nc)
-                if target is None or target.color != self.color:
+                if target is None or self.can_capture_target(target):
                     moves.append(Move((r, c), (nr, nc), gs.board.grid))
         return moves
 
@@ -173,7 +173,7 @@ class King(Piece):
             nr, nc = r + dr, c + dc
             if is_inside_board(nr, nc):
                 target = gs.board.get_piece_at(nr, nc)
-                if target is None or target.color != self.color:
+                if target is None or self.can_capture_target(target):
                     moves.append(Move((r, c), (nr, nc), gs.board.grid))
         
         # Add castling moves when castling generation is enabled.

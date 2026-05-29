@@ -4,7 +4,17 @@ import random
 
 import pygame as p
 
-from ..constants import BISHOP_CODE, BLACK, BOARD_COLS, BOARD_ROWS, KNIGHT_CODE, ROOK_CODE, WHITE
+from ..constants import (
+    ARCHBISHOP_CODE,
+    BISHOP_CODE,
+    BLACK,
+    BOARD_COLS,
+    BOARD_ROWS,
+    CHANCELLOR_CODE,
+    KNIGHT_CODE,
+    ROOK_CODE,
+    WHITE,
+)
 from .base import ChessEvent
 from .registry import register_event
 
@@ -15,7 +25,7 @@ class KhoGaTronBaMia(ChessEvent):
 
     event_key = "kho_ga_tron_ba_mia"
     POISON_DURATION = 3
-    ELIGIBLE_CODES = (ROOK_CODE, KNIGHT_CODE, BISHOP_CODE)
+    ELIGIBLE_CODES = (ROOK_CODE, KNIGHT_CODE, BISHOP_CODE, ARCHBISHOP_CODE, CHANCELLOR_CODE)
 
     def __init__(self, game_state):
         super().__init__(game_state)

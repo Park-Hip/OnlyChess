@@ -2,15 +2,18 @@
 
 Chess Fusion is a university-level Object-Oriented Programming project built with Python and Pygame.
 
-The current codebase is the **stable event-complete baseline** after the full `mode.md` global event pool has been implemented. It includes:
+The current codebase is the **stable advanced-mode baseline** after the event, fusion, Action Points, and active ability implementation phases. It includes:
 
 - standard chess movement and rule handling
 - internal move-simulation rollback for legal move validation
 - extracted event lifecycle/orchestration
-- the full 10-event `mode.md` global event pool
+- the full `mode.md` global event pool
+- capture-based Fusion resolution with Archbishop, Chancellor, and Tempo Burst
+- Action Points tracked separately for both players and displayed on the player panels
+- active abilities: Knight Swap, Bishop Snipe, Rook Shield, and Pawn Sprint
 - extracted UI rendering and input helpers
 
-Fusion, Action Points, and active piece abilities are not part of this checkpoint.
+Future work can focus on gameplay polish, custom art for fused pieces, and additional UI feedback.
 
 ## Run the Game
 
@@ -33,6 +36,8 @@ Both wrappers forward to `src.main.main()`, but `run.py` should be treated as th
 Canonical command:
 
 ```bash
+uv run python -m unittest discover -s tests/fusion -p "test_*.py" -v
+uv run python -m unittest discover -s tests/abilities -p "test_*.py" -v
 uv run python -m unittest discover -s tests/pieces -p "test_*.py" -v
 uv run python -m unittest discover -s tests/game -p "test_*.py" -v
 uv run python -m unittest discover -s tests/events -p "test_*event*.py" -v
@@ -55,4 +60,4 @@ For the current project structure and package responsibilities, see:
 
 - [docs/architecture-current-baseline.md](docs/architecture-current-baseline.md)
 
-That document describes the verified event-complete baseline.
+That document describes the verified advanced-mode baseline.
