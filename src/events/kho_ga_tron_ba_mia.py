@@ -1,0 +1,85 @@
+"""Kho Ga Tron Ba Mia event implementation."""
+
+import random
+
+import pygame as p
+
+from ..constants import BISHOP_CODE, BLACK, BOARD_COLS, BOARD_ROWS, KNIGHT_CODE, ROOK_CODE, WHITE
+from .base import ChessEvent
+from .registry import register_event
+
+
+@register_event
+class KhoGaTronBaMia(ChessEvent):
+    """Poison one rook, knight, or bishop for each side."""
+
+    event_key = "kho_ga_tron_ba_mia"
+    POISON_DURATION = 3
+    ELIGIBLE_CODES = (ROOK_CODE, KNIGHT_CODE, BISHOP_CODE)
+
+    def __init__(self, game_state):
+        super().__init__(game_state)
+        self.name = "Kho Ga Tron Ba Mia"
+        self.duration = self.POISON_DURATION
+        self.poisoned_pieces = []
+
+    def _collect_eligible_pieces(self, target_color):
+        """Return pieces that can be poisoned for one side."""
+        pieces = []
+        for row in range(BOARD_ROWS):
+            for col in range(BOARD_COLS):
+                piece = self.gs.board.get_piece_at(row, col)
+                if piece is None:
+                    continue
+                if piece.color != target_color:
+                    continue
+                if piece.get_piece_code() in self.ELIGIBLE_CODES:
+                    pieces.append(piece)
+        return pieces
+
+    def _is_piece_on_board(self, target_piece):
+        """Return whether a piece object is still present on the board."""
+        for row in range(BOARD_ROWS):
+            for col in range(BOARD_COLS):
+                if self.gs.board.get_piece_at(row, col) is target_piece:
+                    return True
+        return False
+
+    def execute(self):
+        """Poison one eligible piece for each player if available."""
+        super().execute()
+        self.duration = self.POISON_DURATION
+        self.poisoned_pieces = []
+        for color in (WHITE, BLACK):
+            eligible_pieces = self._collect_eligible_pieces(color)
+            if not eligible_pieces:
+                continue
+            piece = random.choice(eligible_pieces)
+            piece.poisoned_turns = self.duration
+            self.poisoned_pieces.append(piece)
+
+    def tick(self):
+        """Reduce poison duration and clear it when it expires."""
+        if not self.poisoned_pieces or self.duration == 0:
+            return
+
+        self.duration -= 1
+        for piece in self.poisoned_pieces:
+            if self._is_piece_on_board(piece):
+                piece.poisoned_turns = self.duration
+
+        if self.duration == 0:
+            self.cleanup()
+
+    def cleanup(self):
+        """Clear poison from affected pieces that are still on the board."""
+        for piece in self.poisoned_pieces:
+            if self._is_piece_on_board(piece):
+                piece.poisoned_turns = 0
+
+    def draw(self, screen, font, width, height, info_panel_height):
+        """Draw warning text before the event executes."""
+        if self.warning_active:
+            text = "WARNING: KHO GA TRON BA MIA INCOMING! SOME PIECES WILL BE POISONED."
+            text_object = font.render(text, True, p.Color("red"))
+            screen.blit(text_object, (10, info_panel_height + 10))

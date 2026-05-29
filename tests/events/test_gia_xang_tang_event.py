@@ -58,6 +58,5 @@ class GiaXangTangEventTests(unittest.TestCase):
         king = game_state.board.get_piece_at(7, 4)
         self.assertEqual(king.get_castle_moves(game_state), [])
 
-
 if __name__ == "__main__":
     unittest.main()

@@ -2,7 +2,16 @@
 
 import unittest
 
-from src.constants import BISHOP_CODE, BLACK, KING_CODE, KNIGHT_CODE, PAWN_CODE, QUEEN_CODE, ROOK_CODE, WHITE
+from src.constants import (
+    BISHOP_CODE,
+    BLACK,
+    KING_CODE,
+    KNIGHT_CODE,
+    PAWN_CODE,
+    QUEEN_CODE,
+    ROOK_CODE,
+    WHITE,
+)
 from src.pieces import Bishop, King, Knight, Pawn, Queen, Rook, create_piece, get_registered_piece_codes
 
 
@@ -20,7 +29,14 @@ class PieceRegistryTests(unittest.TestCase):
     def test_registry_reports_registered_piece_codes(self):
         self.assertEqual(
             set(get_registered_piece_codes()),
-            {PAWN_CODE, KNIGHT_CODE, BISHOP_CODE, ROOK_CODE, QUEEN_CODE, KING_CODE},
+            {
+                PAWN_CODE,
+                KNIGHT_CODE,
+                BISHOP_CODE,
+                ROOK_CODE,
+                QUEEN_CODE,
+                KING_CODE,
+            },
         )
 
     def test_registry_rejects_unknown_codes(self):

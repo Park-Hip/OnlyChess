@@ -27,6 +27,5 @@ class RenderPanelHelperTests(unittest.TestCase):
         self.assertEqual(get_material_text(0, is_top_panel=True), "")
         self.assertEqual(get_material_text(-1, is_top_panel=False), "")
 
-
 if __name__ == "__main__":
     unittest.main()

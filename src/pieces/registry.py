@@ -1,6 +1,13 @@
 """Simple registry for creating chess pieces by code."""
 
-from ..constants import BISHOP_CODE, KING_CODE, KNIGHT_CODE, PAWN_CODE, QUEEN_CODE, ROOK_CODE
+from ..constants import (
+    BISHOP_CODE,
+    KING_CODE,
+    KNIGHT_CODE,
+    PAWN_CODE,
+    QUEEN_CODE,
+    ROOK_CODE,
+)
 from .standard import Bishop, King, Knight, Pawn, Queen, Rook
 
 

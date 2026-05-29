@@ -2,6 +2,20 @@
 from .registry import choose_random_event_key, create_event
 
 
+DEFAULT_EVENT_POOL = [
+    "gia_xang_tang",
+    "umamusume",
+    "my_danh_iran",
+    "tai_xiu",
+    "comeout",
+    "viec_nhe_vol_cao",
+    "nguoi_chong_bat_luc",
+    "kho_ga_tron_ba_mia",
+    "long_toi_tan_nat_khi_nhan_ra_toi_la_gay",
+    "mat_quyen_cong_dan",
+]
+
+
 class EventManager:
     """Coordinate event timing while concrete events own their behavior."""
 
@@ -11,7 +25,7 @@ class EventManager:
         self.active_events = []
         self.queued_event = None
         self.queued_event_key = None
-        self.event_pool = ["gia_xang_tang"] if event_pool is None else list(event_pool)
+        self.event_pool = list(DEFAULT_EVENT_POOL) if event_pool is None else list(event_pool)
         if self.event_pool:
             self._queue_next_event()
 
@@ -28,6 +42,9 @@ class EventManager:
         """Advance any active event state before warning/execution checks."""
         for event in list(self.active_events):
             event.tick()
+            if event.duration == 0 and not event.warning_active and event is not self.queued_event:
+                event.cleanup()
+                self.active_events.remove(event)
 
     def update(self):
         """Advance warning and execution flow based on full-turn count."""

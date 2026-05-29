@@ -58,6 +58,20 @@ class Piece:
                     break
         return moves
 
+    def _get_one_step_moves(self, gs, directions):
+        """Generate one-square moves for temporary movement limits."""
+        moves = []
+        r, c = self.pos
+        for dr, dc in directions:
+            end_row = r + dr
+            end_col = c + dc
+            if not gs.board.is_inside_board(end_row, end_col):
+                continue
+            target = gs.board.get_piece_at(end_row, end_col)
+            if target is None or target.color != self.color:
+                moves.append(Move((r, c), (end_row, end_col), gs.board.grid))
+        return moves
+
     def get_piece_code(self):
         """Return the stable piece code for registry and rules."""
         return self.piece_code or self.name

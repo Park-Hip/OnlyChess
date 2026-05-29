@@ -70,6 +70,9 @@ class Knight(Piece):
         return True
 
     def _calculate_moves(self, gs):
+        if getattr(self, "poisoned_turns", 0) > 0:
+            return []
+
         moves = []
         r, c = self.pos
         knight_moves = [
@@ -99,6 +102,8 @@ class Bishop(Piece):
 
     def _calculate_moves(self, gs):
         directions = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
+        if getattr(self, "poisoned_turns", 0) > 0:
+            return self._get_one_step_moves(gs, directions)
         return self._get_sliding_moves(gs, directions)
 
 class Rook(Piece):
@@ -116,6 +121,8 @@ class Rook(Piece):
 
     def _calculate_moves(self, gs):
         directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+        if getattr(self, "poisoned_turns", 0) > 0:
+            return self._get_one_step_moves(gs, directions)
         return self._get_sliding_moves(gs, directions)
 
 class Queen(Piece):

@@ -78,12 +78,13 @@ def handle_board_mouse_down(input_state, game_state, location):
         return
 
     row, col = get_board_square(location)
+    piece = game_state.board.get_piece_at(row, col)
+
     if input_state.sq_selected == (row, col):
         input_state.dragging = True
         input_state.click_type = "second_click"
         return
 
-    piece = game_state.board.get_piece_at(row, col)
     if len(input_state.player_clicks) == 0:
         if piece is not None and piece.color == get_active_color(game_state):
             input_state.sq_selected = (row, col)
