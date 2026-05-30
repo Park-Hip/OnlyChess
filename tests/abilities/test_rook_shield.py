@@ -37,6 +37,7 @@ class RookShieldTests(unittest.TestCase):
         self.assertTrue(pawn.is_shielded)
         self.assertFalse(getattr(enemy, "is_shielded", False))
         self.assertEqual(game_state.action_points.get_ap(WHITE), 0)
+        self.assertEqual(len(game_state.shield_tracker.active_pieces), 2)
 
     def test_shield_blocks_standard_capture_generation_and_event_damage(self):
         game_state = self._state()
