@@ -6,8 +6,8 @@ This document describes the **stable advanced-mode baseline** after the event, f
 
 - `src/game/`
   - Owns the main gameplay state and turn flow.
-  - `GameState` coordinates move execution, internal legal-move simulation rollback, capture summaries, scoring access, AP state, fusion state, and event-manager integration.
-  - Smaller helpers support focused responsibilities such as castling, capture tracking, scoring, action-point tracking, and post-move systems.
+  - `GameState` coordinates move execution, internal legal-move simulation rollback, capture summaries, scoring access, AP state, fusion state, shield tracking, and event-manager integration.
+  - Smaller helpers support focused responsibilities such as castling, capture tracking, scoring, action-point tracking, post-move systems, and mode configuration.
 
 - `src/pieces/`
   - Owns piece behavior and metadata.
@@ -18,7 +18,7 @@ This document describes the **stable advanced-mode baseline** after the event, f
 - `src/fusion/`
   - Owns capture-based fusion rules and resolution.
   - `rules.py` maps valid capture pairs to fusion results.
-  - `FusionManager` applies fusion only after real eligible captures, keeps simulated move generation side-effect free, and tracks Tempo Burst state.
+  - `FusionManager` applies fusion only after real eligible captures, keeps simulated move generation side-effect free, and uses a dedicated Tempo Burst state helper.
 
 - `src/events/`
   - Owns the event lifecycle and orchestration.
@@ -43,6 +43,7 @@ This document describes the **stable advanced-mode baseline** after the event, f
 2. UI input helpers collect selection, drag/click intent, promotion choices, and ability target intent.
 3. `GameState` validates and executes legal moves, while the ability registry validates and executes active abilities.
 4. Post-move systems update capture summaries, resolve eligible fusion captures, award AP for real moves, expire shields, and update timed events.
+5. Runtime helpers and configuration objects keep subsystem-specific state and default advanced-mode setup out of the main post-move function.
 5. UI render helpers draw the board, panels, overlays, ability menu, and promotion menu.
 
 ## Why This Baseline Matters
@@ -53,6 +54,7 @@ This document describes the **stable advanced-mode baseline** after the event, f
   - fusion rules are separated from move execution
   - active ability behavior is separated from the UI loop
   - UI logic is separated from the main game loop
+  - post-move side effects are separated into ordered systems instead of one hardcoded function
 
 ## Out of Scope for This Baseline
 

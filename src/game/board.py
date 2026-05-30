@@ -3,6 +3,7 @@
 from ..constants import BISHOP_CODE, BLACK, BOARD_COLS, BOARD_ROWS, KING_CODE, KNIGHT_CODE, PAWN_CODE, QUEEN_CODE, ROOK_CODE, STANDARD_PIECE_ORDER, WHITE
 from ..events.manager import EventManager
 from ..fusion.manager import FusionManager
+from ..fusion.tempo_burst_state import TempoBurstState
 from ..pieces import Pawn, create_piece
 from .action_points import ActionPointTracker
 from .capture_tracker import CaptureTracker
@@ -82,9 +83,7 @@ class GameState:
         self.fusion_manager = FusionManager(self)
         self.shield_tracker = ShieldTracker()
         self.post_move_systems = create_default_post_move_systems(self)
-        self.tempo_burst_pending = False
-        self.tempo_burst_piece = None
-        self.tempo_burst_owner = None
+        self.tempo_burst_state = TempoBurstState()
         self.ability_used_this_turn = False
 
     def make_move(self, move, promotion_choice='Q', is_real_move=False):
@@ -300,7 +299,7 @@ class GameState:
         for r in range(BOARD_ROWS):
             for c in range(BOARD_COLS):
                 piece = self.board.grid[r][c]
-                if self.tempo_burst_pending and piece is not self.tempo_burst_piece:
+                if self.tempo_burst_state.pending and piece is not self.tempo_burst_state.piece:
                     continue
                 if piece and ((piece.color == WHITE and self.white_to_move) or \
                              (piece.color == BLACK and not self.white_to_move)):
@@ -309,13 +308,38 @@ class GameState:
 
     def _is_tempo_burst_move(self, move):
         """Return whether this move spends the pending Tempo Burst extra move."""
-        return self.tempo_burst_pending and move.piece_moved is self.tempo_burst_piece
+        return self.tempo_burst_state.pending and move.piece_moved is self.tempo_burst_state.piece
 
     def clear_tempo_burst(self):
         """Clear pending Tempo Burst extra-move state."""
-        self.tempo_burst_pending = False
-        self.tempo_burst_piece = None
-        self.tempo_burst_owner = None
+        self.tempo_burst_state.clear()
+
+    @property
+    def tempo_burst_pending(self):
+        """Compatibility access for pending Tempo Burst state."""
+        return self.tempo_burst_state.pending
+
+    @tempo_burst_pending.setter
+    def tempo_burst_pending(self, value):
+        self.tempo_burst_state.pending = value
+
+    @property
+    def tempo_burst_piece(self):
+        """Compatibility access for the Tempo Burst piece."""
+        return self.tempo_burst_state.piece
+
+    @tempo_burst_piece.setter
+    def tempo_burst_piece(self, value):
+        self.tempo_burst_state.piece = value
+
+    @property
+    def tempo_burst_owner(self):
+        """Compatibility access for the Tempo Burst owner."""
+        return self.tempo_burst_state.owner
+
+    @tempo_burst_owner.setter
+    def tempo_burst_owner(self, value):
+        self.tempo_burst_state.owner = value
 
     def finish_ability_turn(self, color):
         """Consume the current turn after a successful ability use."""

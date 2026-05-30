@@ -21,7 +21,7 @@ def get_material_text(score, is_top_panel):
 
 def get_tempo_burst_text(game_state):
     """Return panel text for a pending Tempo Burst extra move."""
-    if not getattr(game_state, "tempo_burst_pending", False):
+    if not game_state.tempo_burst_state.pending:
         return ""
     return "Tempo Burst: extra rook move"
 

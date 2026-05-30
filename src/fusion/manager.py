@@ -53,6 +53,4 @@ class FusionManager:
 
     def _start_tempo_burst(self, rook):
         """Grant one immediate extra move to the capturing rook."""
-        self.gs.tempo_burst_pending = True
-        self.gs.tempo_burst_piece = rook
-        self.gs.tempo_burst_owner = rook.color
+        self.gs.tempo_burst_state.start(rook)

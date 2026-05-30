@@ -5,6 +5,7 @@ import unittest
 from src.constants import KNIGHT_CODE, ROOK_CODE
 from src.events.manager import DEFAULT_EVENT_POOL, EventManager
 from src.game.board import GameState
+from src.game.mode_config import DEFAULT_ADVANCED_EVENT_POOL
 from src.game.move import Move
 
 
@@ -24,6 +25,7 @@ class EventManagerFlowTests(unittest.TestCase):
         manager = EventManager(game_state)
 
         self.assertEqual(manager.event_pool, DEFAULT_EVENT_POOL)
+        self.assertEqual(DEFAULT_EVENT_POOL, DEFAULT_ADVANCED_EVENT_POOL)
         self.assertEqual(len(manager.event_pool), 10)
 
     def test_turn_nine_triggers_warning_for_queued_event(self):
