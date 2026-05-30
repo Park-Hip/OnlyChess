@@ -67,18 +67,20 @@ The documentation set should contain the following files:
 
 1. `docs/system-overview.md`
 2. `docs/oop-design.md`
-3. `docs/file-map.md`
-4. `docs/game-domain.md`
-5. `docs/events-system.md`
-6. `docs/fusion-system.md`
-7. `docs/abilities-system.md`
-8. `docs/ui-and-input.md`
-9. `docs/presentation-summary.md`
+3. `docs/extensibility-and-change-impact.md`
+4. `docs/file-map.md`
+5. `docs/game-domain.md`
+6. `docs/events-system.md`
+7. `docs/fusion-system.md`
+8. `docs/abilities-system.md`
+9. `docs/ui-and-input.md`
+10. `docs/presentation-summary.md`
 
 These files should work together as a layered set:
 
 - one entry point
 - one OOP-focused explanation
+- one explicit change-impact and extensibility evaluation
 - one file navigation guide
 - one document per major subsystem
 - one presentation-oriented summary
@@ -130,7 +132,32 @@ This document should answer:
 
 This is one of the highest-priority docs for the team presentation.
 
-### 3. `docs/file-map.md`
+### 3. `docs/extensibility-and-change-impact.md`
+
+Purpose:
+
+- directly answer the critical architecture question: how easy is it to add or change features without modifying core files?
+
+This document should include:
+
+- definition of what counts as a core file in this project
+- main extension seams in the current architecture
+- feature-change scenarios with exact files touched
+- examples of changes that are low-impact
+- examples of changes that still require core edits
+- honest assessment of where the design is strong and where it is still coupled
+- conclusion on whether the project satisfies the team's extensibility goal
+
+This document should answer:
+
+- if we add a new feature, do we mostly extend or do we modify the core?
+- which kinds of features are easy to add?
+- which kinds of features still create change pressure in `GameState` or other core modules?
+- what should we say if a lecturer asks whether the code is open for extension?
+
+This is another highest-priority doc for the team presentation because it turns an abstract OOP claim into concrete evidence.
+
+### 4. `docs/file-map.md`
 
 Purpose:
 
@@ -150,7 +177,7 @@ This document should answer:
 - which file should I read first?
 - which files are safe to change for a given subsystem?
 
-### 4. `docs/game-domain.md`
+### 5. `docs/game-domain.md`
 
 Purpose:
 
@@ -172,7 +199,7 @@ This document should answer:
 - what does `GameState` coordinate versus own directly?
 - how does the engine remain side-effect safe during move validation?
 
-### 5. `docs/events-system.md`
+### 6. `docs/events-system.md`
 
 Purpose:
 
@@ -195,7 +222,7 @@ This document should answer:
 - how does a concrete event work?
 - which files are involved when building or debugging an event?
 
-### 6. `docs/fusion-system.md`
+### 7. `docs/fusion-system.md`
 
 Purpose:
 
@@ -217,7 +244,7 @@ This document should answer:
 - how are fused pieces represented?
 - what files must be updated to add or change fusion rules?
 
-### 7. `docs/abilities-system.md`
+### 8. `docs/abilities-system.md`
 
 Purpose:
 
@@ -238,7 +265,7 @@ This document should answer:
 - where is AP tracked?
 - how do new abilities plug into the current design?
 
-### 8. `docs/ui-and-input.md`
+### 9. `docs/ui-and-input.md`
 
 Purpose:
 
@@ -259,7 +286,7 @@ This document should answer:
 - where is rendering separated from rules?
 - how does this design support maintainability?
 
-### 9. `docs/presentation-summary.md`
+### 10. `docs/presentation-summary.md`
 
 Purpose:
 
@@ -291,7 +318,8 @@ Each subsystem document should use a consistent internal structure where possibl
 5. Interactions with other subsystems
 6. OOP design notes
 7. Extension points
-8. Risks, limitations, or cautions
+8. Change impact
+9. Risks, limitations, or cautions
 
 This consistency will make the documentation easier to scan and easier to present as a coherent design.
 
@@ -333,6 +361,14 @@ Examples that should be documented:
 - UI code using public game state rather than embedding rule logic
 - domain systems interacting through controlled methods rather than random global mutation
 
+### Honest change-cost evaluation
+
+Examples that should be documented:
+
+- some subsystems are extension-friendly because they use registries and focused classes
+- some new features still require edits to core orchestration in `GameState` or post-move pipelines
+- the project should present both strengths and limits honestly rather than claiming full Open/Closed compliance
+
 ### Testability
 
 Examples that should be documented:
@@ -355,6 +391,28 @@ The docs should map concepts to the real source tree, especially:
 - `src/constants.py`
 
 The docs do not need to document every private helper equally, but they should mention the most important files and class-level responsibilities inside each subsystem.
+
+## Required Extensibility Analysis
+
+The documentation set must not stop at saying the architecture is "extensible." It must prove that claim with concrete change scenarios.
+
+At minimum, the documentation should analyze these scenarios:
+
+1. Add a new global event.
+2. Add a new active ability for an existing piece type.
+3. Add a new fusion pair that produces an existing fused result.
+4. Add a brand-new fused piece.
+5. Add a new persistent gameplay mechanic that lasts across turns.
+6. Change only the UI presentation of an existing mechanic.
+
+For each scenario, the docs should state:
+
+- which files must change
+- whether the change stays mostly inside one subsystem
+- whether `GameState`, `run_post_move_systems()`, or other core files must change
+- whether the current design helps or resists that change
+
+This analysis is important because it directly supports the project's OOP and clean-code claims.
 
 ## Relationship to Existing Docs
 
@@ -382,6 +440,7 @@ The final documentation work based on this spec should produce:
 
 - one documentation entry point
 - one OOP-focused design explanation
+- one explicit extensibility and core-change-impact evaluation
 - one file navigation guide
 - five subsystem-focused technical documents
 - one presentation support document
@@ -394,8 +453,9 @@ This documentation set is successful if:
 2. A teammate can explain the responsibilities of the main packages and classes.
 3. The team can use the docs to prepare architecture and OOP presentation slides.
 4. The docs clearly show how the design supports adding new features.
-5. The docs make system boundaries explicit, especially between game logic and UI.
-6. The documentation remains grounded in the actual implemented code.
+5. The docs clearly show which features still require modifying core files.
+6. The docs make system boundaries explicit, especially between game logic and UI.
+7. The documentation remains grounded in the actual implemented code.
 
 ## Recommended Writing Order
 
@@ -403,15 +463,16 @@ To produce the docs efficiently, the recommended order is:
 
 1. `docs/system-overview.md`
 2. `docs/oop-design.md`
-3. `docs/file-map.md`
-4. `docs/game-domain.md`
-5. `docs/events-system.md`
-6. `docs/fusion-system.md`
-7. `docs/abilities-system.md`
-8. `docs/ui-and-input.md`
-9. `docs/presentation-summary.md`
+3. `docs/extensibility-and-change-impact.md`
+4. `docs/file-map.md`
+5. `docs/game-domain.md`
+6. `docs/events-system.md`
+7. `docs/fusion-system.md`
+8. `docs/abilities-system.md`
+9. `docs/ui-and-input.md`
+10. `docs/presentation-summary.md`
 
-This order builds the shared mental model first, then adds subsystem detail, then finishes with presentation support.
+This order builds the shared mental model first, then documents the key teacher-facing extensibility question, then adds subsystem detail, then finishes with presentation support.
 
 ## Recommended Next Step
 
