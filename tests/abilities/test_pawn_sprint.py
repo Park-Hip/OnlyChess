@@ -18,7 +18,7 @@ class PawnSprintTests(unittest.TestCase):
         game_state.board.set_piece_at(0, 4, King(BLACK, (0, 4)))
         return game_state
 
-    def test_pawn_sprint_moves_three_clear_squares(self):
+    def test_pawn_sprint_moves_exactly_three_squares(self):
         game_state = self._state()
         pawn = Pawn(WHITE, (6, 3))
         game_state.board.set_piece_at(6, 3, pawn)
@@ -32,7 +32,7 @@ class PawnSprintTests(unittest.TestCase):
         self.assertTrue(pawn.has_moved)
         self.assertEqual(game_state.action_points.get_ap(WHITE), 0)
 
-    def test_pawn_sprint_rejects_blocked_path(self):
+    def test_pawn_sprint_jumps_over_blocked_path(self):
         game_state = self._state()
         pawn = Pawn(WHITE, (6, 3))
         blocker = Pawn(WHITE, (5, 3))
@@ -42,7 +42,24 @@ class PawnSprintTests(unittest.TestCase):
 
         used = use_ability("pawn_sprint", game_state, (6, 3), (3, 3))
 
-        self.assertFalse(used)
+        self.assertTrue(used)
+        self.assertIs(game_state.board.get_piece_at(3, 3), pawn)
+        self.assertIs(game_state.board.get_piece_at(5, 3), blocker)
+
+    def test_pawn_sprint_rejects_short_move_landing_piece_and_stun(self):
+        game_state = self._state()
+        pawn = Pawn(WHITE, (6, 3))
+        landing_blocker = Pawn(BLACK, (3, 3))
+        game_state.board.set_piece_at(6, 3, pawn)
+        game_state.board.set_piece_at(3, 3, landing_blocker)
+        game_state.action_points.ap_by_color[WHITE] = 1
+
+        self.assertFalse(use_ability("pawn_sprint", game_state, (6, 3), (4, 3)))
+        self.assertFalse(use_ability("pawn_sprint", game_state, (6, 3), (3, 3)))
+
+        game_state.board.set_piece_at(3, 3, None)
+        pawn.stunned_turns = 2
+        self.assertFalse(use_ability("pawn_sprint", game_state, (6, 3), (3, 3)))
         self.assertEqual(game_state.action_points.get_ap(WHITE), 1)
 
     def test_pawn_sprint_promotes_on_final_rank(self):

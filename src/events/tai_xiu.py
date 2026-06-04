@@ -20,7 +20,7 @@ class TaiXiu(ChessEvent):
         self.name = "Tai Xiu"
 
     def _collect_eligible_piece_positions(self, target_color):
-        """Return board positions of non-king pieces for the target side."""
+        """Return board positions of removable non-king pieces for the target side."""
         positions = []
         for row in range(BOARD_ROWS):
             for col in range(BOARD_COLS):
@@ -30,6 +30,8 @@ class TaiXiu(ChessEvent):
                 if piece.color != target_color:
                     continue
                 if piece.get_piece_code() == KING_CODE:
+                    continue
+                if getattr(piece, "is_shielded", False):
                     continue
                 positions.append((row, col))
         return positions

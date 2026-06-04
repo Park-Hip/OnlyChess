@@ -167,7 +167,8 @@ class GameState:
     def _finalize_move(self, move, is_real_move):
         """Log the move, switch turns, and update king/event state."""
         self.move_log.append(move)
-        self.white_to_move = not self.white_to_move
+        if not move.is_tempo_burst_move:
+            self.white_to_move = not self.white_to_move
         self.ability_used_this_turn = False
         self._update_king_position(move)
         move.is_real_move = is_real_move
@@ -297,7 +298,9 @@ class GameState:
         for r in range(BOARD_ROWS):
             for c in range(BOARD_COLS):
                 piece = self.board.grid[r][c]
-                if self.tempo_burst_pending and piece is not self.tempo_burst_piece:
+                if self.tempo_burst_pending:
+                    if piece is self.tempo_burst_piece:
+                        moves.extend(get_piece_moves(piece, self, include_castle=include_castle))
                     continue
                 if piece and ((piece.color == WHITE and self.white_to_move) or \
                              (piece.color == BLACK and not self.white_to_move)):
@@ -316,6 +319,11 @@ class GameState:
 
     def finish_ability_turn(self, color):
         """Consume the current turn after a successful ability use."""
+        if self.tempo_burst_pending:
+            self.move_log.append({"ability_turn": color, "tempo_burst": True})
+            self.clear_tempo_burst()
+            return
+
         self.ability_used_this_turn = True
         self.action_points.gain_for_move(color)
         self.move_log.append({"ability_turn": color})
@@ -369,5 +377,7 @@ class GameState:
 
     def get_turns_to_next_event(self):
         """Return the number of turns remaining before the next event."""
-        return 10 - (self.event_manager.turn_counter % 10)
+        current_turn_number = self.get_turn_number()
+        turns_until_event = 10 - (current_turn_number % 10)
+        return 10 if turns_until_event == 0 else turns_until_event
 

@@ -20,6 +20,14 @@ class Comeout(ChessEvent):
         super().__init__(game_state)
         self.name = "Comeout"
 
+    def _copy_status_state(self, source_piece, target_piece):
+        """Preserve dynamic status fields while changing the piece identity."""
+        preserved_attrs = {"color", "name", "pos", "id", "direction"}
+        for attr, value in source_piece.__dict__.items():
+            if attr in preserved_attrs:
+                continue
+            setattr(target_piece, attr, value)
+
     def execute(self):
         """Transform a random pawn into a queen on the same square."""
         super().execute()
@@ -35,7 +43,7 @@ class Comeout(ChessEvent):
 
         row, col, pawn = random.choice(pawn_positions)
         promoted_queen = create_piece(QUEEN_CODE, pawn.color, (row, col))
-        promoted_queen.has_moved = pawn.has_moved
+        self._copy_status_state(pawn, promoted_queen)
         self.gs.board.replace_piece_at(row, col, promoted_queen)
 
     def draw(self, screen, font, width, height, info_panel_height):

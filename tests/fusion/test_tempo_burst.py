@@ -3,6 +3,7 @@
 import unittest
 
 from src.constants import BLACK, BOARD_COLS, BOARD_ROWS, WHITE
+from src.abilities import use_ability
 from src.game.board import GameState
 from src.game.move import Move
 from src.pieces import Bishop, King, Rook
@@ -64,6 +65,40 @@ class TempoBurstTests(unittest.TestCase):
         self.assertIsNone(game_state.tempo_burst_piece)
         self.assertIsNone(game_state.tempo_burst_owner)
         self.assertEqual(get_tempo_burst_text(game_state), "")
+
+    def test_tempo_burst_extra_move_keeps_turn_with_opponent_after_resolving(self):
+        game_state = self._empty_state()
+        rook = Rook(WHITE, (4, 4))
+        game_state.board.set_piece_at(4, 4, rook)
+        game_state.white_to_move = False
+        game_state.tempo_burst_pending = True
+        game_state.tempo_burst_piece = rook
+        game_state.tempo_burst_owner = WHITE
+
+        game_state.make_move(Move((4, 4), (4, 5), game_state.board.grid), is_real_move=True)
+
+        self.assertFalse(game_state.white_to_move)
+        self.assertFalse(game_state.tempo_burst_pending)
+
+    def test_tempo_burst_rook_can_use_affordable_ability_and_then_clears(self):
+        game_state = self._empty_state()
+        rook = Rook(WHITE, (4, 4))
+        friend = Rook(WHITE, (4, 5))
+        game_state.board.set_piece_at(4, 4, rook)
+        game_state.board.set_piece_at(4, 5, friend)
+        game_state.white_to_move = False
+        game_state.action_points.ap_by_color[WHITE] = 3
+        game_state.tempo_burst_pending = True
+        game_state.tempo_burst_piece = rook
+        game_state.tempo_burst_owner = WHITE
+
+        used = use_ability("rook_shield", game_state, (4, 4), (4, 4))
+
+        self.assertTrue(used)
+        self.assertTrue(rook.is_shielded)
+        self.assertTrue(friend.is_shielded)
+        self.assertFalse(game_state.tempo_burst_pending)
+        self.assertFalse(game_state.white_to_move)
 
 
 if __name__ == "__main__":

@@ -20,7 +20,7 @@ class MatQuyenCongDan(ChessEvent):
         super().__init__(game_state)
         self.name = "Mat Quyen Cong Dan"
 
-    def _collect_pawn_entries(self, target_color):
+    def _collect_pawn_entries(self, target_color, include_shielded=True):
         """Return board entries for pawns that match the target color."""
         entries = []
         for row in range(BOARD_ROWS):
@@ -31,6 +31,8 @@ class MatQuyenCongDan(ChessEvent):
                 if piece.color != target_color:
                     continue
                 if piece.get_piece_code() != PAWN_CODE:
+                    continue
+                if not include_shielded and getattr(piece, "is_shielded", False):
                     continue
                 entries.append((row, col, piece))
         return entries
@@ -47,7 +49,7 @@ class MatQuyenCongDan(ChessEvent):
         """Remove one black pawn and transform one white pawn into a black pawn."""
         super().execute()
 
-        black_pawns = self._collect_pawn_entries(BLACK)
+        black_pawns = self._collect_pawn_entries(BLACK, include_shielded=False)
         if black_pawns:
             row, col, _ = random.choice(black_pawns)
             self.gs.board.set_piece_at(row, col, None)

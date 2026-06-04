@@ -88,6 +88,27 @@ class MatQuyenCongDanEventTests(unittest.TestCase):
         self.assertEqual(game_state.board.get_piece_at(7, 4).get_piece_code(), KING_CODE)
         self.assertEqual(game_state.board.get_piece_at(0, 4).get_piece_code(), KING_CODE)
 
+    def test_shielded_black_pawn_is_not_eliminated(self):
+        game_state = GameState()
+        game_state.board.grid = [[None for _ in range(BOARD_COLS)] for _ in range(BOARD_ROWS)]
+        shielded_black_pawn = Pawn(BLACK, (2, 2))
+        shielded_black_pawn.is_shielded = True
+        white_pawn = Pawn(WHITE, (5, 5))
+        game_state.board.set_piece_at(2, 2, shielded_black_pawn)
+        game_state.board.set_piece_at(5, 5, white_pawn)
+        game_state.board.set_piece_at(7, 4, King(WHITE, (7, 4)))
+        game_state.board.set_piece_at(0, 4, King(BLACK, (0, 4)))
+        event = MatQuyenCongDan(game_state)
+
+        with patch(
+            "src.events.mat_quyen_cong_dan.random.choice",
+            return_value=(5, 5, white_pawn),
+        ):
+            event.execute()
+
+        self.assertIs(game_state.board.get_piece_at(2, 2), shielded_black_pawn)
+        self.assertEqual(game_state.board.get_piece_at(5, 5).color, BLACK)
+
     def test_execute_is_no_op_when_no_pawns_exist(self):
         game_state = GameState()
         game_state.board.grid = [[None for _ in range(BOARD_COLS)] for _ in range(BOARD_ROWS)]

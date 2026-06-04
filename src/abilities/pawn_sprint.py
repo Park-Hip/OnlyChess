@@ -8,7 +8,7 @@ from .registry import register_ability
 
 @register_ability
 class PawnSprint(Ability):
-    """Move a pawn up to three clear forward squares."""
+    """Move a pawn exactly three forward squares, jumping over blockers."""
 
     ability_key = "pawn_sprint"
     display_name = "Pawn Sprint"
@@ -18,17 +18,15 @@ class PawnSprint(Ability):
     def is_valid_target(self, game_state, piece, target_square):
         if piece.get_piece_code() != PAWN_CODE:
             return False
+        if getattr(piece, "stunned_turns", 0) > 0:
+            return False
         direction = -1 if piece.color == WHITE else 1
         row_delta = target_square[0] - piece.pos[0]
         if target_square[1] != piece.pos[1]:
             return False
-        if row_delta == 0 or row_delta // direction not in (1, 2, 3):
+        if row_delta != direction * 3:
             return False
-        for step in range(1, abs(row_delta) + 1):
-            row = piece.pos[0] + direction * step
-            if game_state.board.get_piece_at(row, piece.pos[1]) is not None:
-                return False
-        return True
+        return game_state.board.get_piece_at(target_square[0], target_square[1]) is None
 
     def apply(self, game_state, piece, target_square):
         source_row, source_col = piece.pos

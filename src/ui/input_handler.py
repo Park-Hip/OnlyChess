@@ -88,6 +88,8 @@ def clamp_drag_square(location, square_size=SQ_SIZE, info_panel_height=INFO_PANE
 
 def get_active_color(game_state):
     """Return the color string for the side whose turn it is."""
+    if getattr(game_state, "tempo_burst_pending", False):
+        return game_state.tempo_burst_owner
     return WHITE if game_state.white_to_move else BLACK
 
 

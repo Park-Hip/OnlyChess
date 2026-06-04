@@ -30,12 +30,13 @@ class EventManagerFlowTests(unittest.TestCase):
         game_state = GameState()
         manager = EventManager(game_state, event_pool=["gia_xang_tang"])
         game_state.event_manager = manager
-        game_state.move_log = [object()] * 18
+        game_state.move_log = [object()] * 16
 
         manager.update()
 
-        self.assertEqual(manager.turn_counter, 9)
-        self.assertEqual(game_state.get_full_turn_count(), 9)
+        self.assertEqual(manager.turn_counter, 8)
+        self.assertEqual(game_state.get_full_turn_count(), 8)
+        self.assertEqual(game_state.get_turn_number(), 9)
         self.assertIsNotNone(manager.queued_event)
         self.assertTrue(manager.queued_event.warning_active)
         self.assertIn(manager.queued_event, manager.active_events)
@@ -45,15 +46,16 @@ class EventManagerFlowTests(unittest.TestCase):
         manager = EventManager(game_state, event_pool=["gia_xang_tang"])
         game_state.event_manager = manager
         manager.update()
-        game_state.move_log = [object()] * 18
+        game_state.move_log = [object()] * 16
         manager.update()
-        game_state.move_log = [object()] * 20
+        game_state.move_log = [object()] * 18
 
         self.assertEqual(game_state.board.grid[7][0].get_piece_code(), ROOK_CODE)
         manager.update()
 
-        self.assertEqual(manager.turn_counter, 10)
-        self.assertEqual(game_state.get_full_turn_count(), 10)
+        self.assertEqual(manager.turn_counter, 9)
+        self.assertEqual(game_state.get_full_turn_count(), 9)
+        self.assertEqual(game_state.get_turn_number(), 10)
         self.assertEqual(game_state.board.grid[7][0].get_piece_code(), KNIGHT_CODE)
         self.assertEqual(len(manager.active_events), 0)
         self.assertEqual(manager.queued_event_key, "gia_xang_tang")
@@ -63,18 +65,18 @@ class EventManagerFlowTests(unittest.TestCase):
         game_state = GameState()
         manager = EventManager(game_state, event_pool=["viec_nhe_vol_cao"])
         game_state.event_manager = manager
+        game_state.move_log = [object()] * 16
+        manager.update()
         game_state.move_log = [object()] * 18
         manager.update()
+
+        self.assertEqual(len(manager.active_events), 1)
+
         game_state.move_log = [object()] * 20
         manager.update()
-
         self.assertEqual(len(manager.active_events), 1)
 
         game_state.move_log = [object()] * 22
-        manager.update()
-        self.assertEqual(len(manager.active_events), 1)
-
-        game_state.move_log = [object()] * 24
         manager.update()
 
         self.assertEqual(len(manager.active_events), 0)
@@ -82,14 +84,15 @@ class EventManagerFlowTests(unittest.TestCase):
     def test_real_black_move_pipeline_can_still_reach_event_manager(self):
         game_state = GameState()
         game_state.event_manager = EventManager(game_state, event_pool=["gia_xang_tang"])
-        game_state.move_log = [object()] * 19
+        game_state.move_log = [object()] * 17
         game_state.event_manager.update()
         game_state.white_to_move = False
         move = Move((1, 0), (2, 0), game_state.board.grid)
 
         game_state.make_move(move, is_real_move=True)
 
-        self.assertEqual(game_state.event_manager.turn_counter, 10)
+        self.assertEqual(game_state.event_manager.turn_counter, 9)
+        self.assertEqual(game_state.get_turn_number(), 10)
 
 
 if __name__ == "__main__":

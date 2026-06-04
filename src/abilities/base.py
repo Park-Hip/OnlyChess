@@ -18,6 +18,8 @@ class Ability:
         """Return whether this ability can currently be used."""
         if piece is None:
             return False
+        if game_state.tempo_burst_pending and piece is not game_state.tempo_burst_piece:
+            return False
         if game_state.ability_used_this_turn:
             return False
         if not game_state.action_points.can_spend(piece.color, self.ap_cost):
