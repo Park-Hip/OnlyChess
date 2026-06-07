@@ -61,3 +61,24 @@ For the current project structure and package responsibilities, see:
 - [docs/architecture-current-baseline.md](docs/architecture-current-baseline.md)
 
 That document describes the verified advanced-mode baseline.
+
+## Technical Documentation
+
+The focused technical documentation set starts here:
+
+- [docs/system-overview.md](docs/system-overview.md)
+- [docs/oop-design.md](docs/oop-design.md)
+- [docs/extensibility-and-change-impact.md](docs/extensibility-and-change-impact.md)
+- [docs/file-map.md](docs/file-map.md)
+
+Subsystem guides:
+
+- [docs/game-domain.md](docs/game-domain.md)
+- [docs/events-system.md](docs/events-system.md)
+- [docs/fusion-system.md](docs/fusion-system.md)
+- [docs/abilities-system.md](docs/abilities-system.md)
+- [docs/ui-and-input.md](docs/ui-and-input.md)
+
+Presentation support:
+
+- [docs/presentation-summary.md](docs/presentation-summary.md)
