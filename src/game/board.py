@@ -2,7 +2,10 @@
 
 from ..constants import BISHOP_CODE, BLACK, BOARD_COLS, BOARD_ROWS, KING_CODE, KNIGHT_CODE, PAWN_CODE, QUEEN_CODE, ROOK_CODE, STANDARD_PIECE_ORDER, WHITE
 from ..events.manager import EventManager
+from ..fusion.manager import FusionManager
+from ..fusion.tempo_burst_state import TempoBurstState
 from ..pieces import Pawn, create_piece
+from .action_points import ActionPointTracker
 from .capture_tracker import CaptureTracker
 from .castling import (
     copy_castle_rights,
@@ -11,8 +14,10 @@ from .castling import (
     restore_castle_rights_from_log,
     update_castle_rights_for_move,
 )
+from .post_move_systems import create_default_post_move_systems
 from .rules import run_post_move_systems
 from .scoring import calculate_material_advantage
+from .shield_tracker import ShieldTracker
 from .state_helpers import is_inside_board, safe_get_piece, set_piece
 
 class Board:
@@ -69,15 +74,22 @@ class GameState:
         self.black_king_pos = (0, 4)
         self.checkmate = False
         self.stalemate = False
-        self.enpassant_possible = () # Tọa độ ô có thể bắt tốt qua đường
+        self.enpassant_possible = ()  # Target square where en passant is legal next turn.
         self.current_castle_rights = create_initial_castle_rights()
         self.castle_rights_log = [copy_castle_rights(self.current_castle_rights)]
         self.capture_tracker = CaptureTracker()
-        self.event_manager = EventManager(self) # Khởi tạo hệ thống quản lý sự kiện
+        self.action_points = ActionPointTracker()
+        self.event_manager = EventManager(self)
+        self.fusion_manager = FusionManager(self)
+        self.shield_tracker = ShieldTracker()
+        self.post_move_systems = create_default_post_move_systems(self)
+        self.tempo_burst_state = TempoBurstState()
+        self.ability_used_this_turn = False
 
     def make_move(self, move, promotion_choice='Q', is_real_move=False):
         """Apply a move and update all related game-state fields."""
         self._record_move_state(move)
+        move.is_tempo_burst_move = self._is_tempo_burst_move(move)
         self._apply_base_piece_movement(move)
         self._resolve_en_passant_capture(move)
         self._resolve_pawn_promotion(move, promotion_choice)
@@ -158,10 +170,13 @@ class GameState:
         """Log the move, switch turns, and update king/event state."""
         self.move_log.append(move)
         self.white_to_move = not self.white_to_move
+        self.ability_used_this_turn = False
         self._update_king_position(move)
         move.is_real_move = is_real_move
         if is_real_move:
             run_post_move_systems(self, move)
+        if is_real_move and move.is_tempo_burst_move:
+            self.clear_tempo_burst()
 
     def _update_king_position(self, move):
         """Update the cached king location after a king move."""
@@ -170,6 +185,14 @@ class GameState:
                 self.white_king_pos = (move.end_row, move.end_col)
             else:
                 self.black_king_pos = (move.end_row, move.end_col)
+
+    def _update_king_position_after_piece_relocation(self, piece):
+        """Update cached king position after non-move relocation effects."""
+        if piece is not None and piece.name == KING_CODE:
+            if piece.color == WHITE:
+                self.white_king_pos = piece.pos
+            else:
+                self.black_king_pos = piece.pos
 
     def _rollback_last_move(self):
         """Roll back the most recent simulated move."""
@@ -229,19 +252,19 @@ class GameState:
                 self.black_king_pos = (move.start_row, move.start_col)
 
     def get_valid_moves(self):
-        # 1. Lấy tất cả các nước đi pseudo-legal
+        # Generate pseudo-legal moves first.
         moves = self.get_all_possible_moves()
         
-        # 2. Với mỗi nước đi, giả định thực hiện nó
+        # Temporarily apply each move and remove those that expose own king.
         for i in range(len(moves) - 1, -1, -1):
             move = moves[i]
             self.make_move(move)
             
-            # 3. Sau khi di chuyển, kiểm tra xem Vua của mình có bị chiếu không
-            self.white_to_move = not self.white_to_move # Đổi lại lượt tạm thời để kiểm tra Vua của mình
+            # Flip turn so in_check() evaluates the side that moved.
+            self.white_to_move = not self.white_to_move
             if self.in_check():
                 moves.remove(move)
-            self.white_to_move = not self.white_to_move # Đổi lại lượt
+            self.white_to_move = not self.white_to_move
             self._rollback_last_move()
             
         if len(moves) == 0:
@@ -262,7 +285,7 @@ class GameState:
             return self.square_under_attack(self.black_king_pos[0], self.black_king_pos[1])
 
     def square_under_attack(self, r, c):
-        # Đổi lượt để xem các nước đi của đối phương
+        # Flip turn to generate opponent pseudo-legal moves.
         self.white_to_move = not self.white_to_move
         opp_moves = self.get_all_possible_moves(include_castle=False)
         self.white_to_move = not self.white_to_move
@@ -276,10 +299,66 @@ class GameState:
         for r in range(BOARD_ROWS):
             for c in range(BOARD_COLS):
                 piece = self.board.grid[r][c]
+                if self.tempo_burst_state.pending and piece is not self.tempo_burst_state.piece:
+                    continue
                 if piece and ((piece.color == WHITE and self.white_to_move) or \
                              (piece.color == BLACK and not self.white_to_move)):
                     moves.extend(get_piece_moves(piece, self, include_castle=include_castle))
         return moves
+
+    def _is_tempo_burst_move(self, move):
+        """Return whether this move spends the pending Tempo Burst extra move."""
+        return self.tempo_burst_state.pending and move.piece_moved is self.tempo_burst_state.piece
+
+    def clear_tempo_burst(self):
+        """Clear pending Tempo Burst extra-move state."""
+        self.tempo_burst_state.clear()
+
+    @property
+    def tempo_burst_pending(self):
+        """Compatibility access for pending Tempo Burst state."""
+        return self.tempo_burst_state.pending
+
+    @tempo_burst_pending.setter
+    def tempo_burst_pending(self, value):
+        self.tempo_burst_state.pending = value
+
+    @property
+    def tempo_burst_piece(self):
+        """Compatibility access for the Tempo Burst piece."""
+        return self.tempo_burst_state.piece
+
+    @tempo_burst_piece.setter
+    def tempo_burst_piece(self, value):
+        self.tempo_burst_state.piece = value
+
+    @property
+    def tempo_burst_owner(self):
+        """Compatibility access for the Tempo Burst owner."""
+        return self.tempo_burst_state.owner
+
+    @tempo_burst_owner.setter
+    def tempo_burst_owner(self, value):
+        self.tempo_burst_state.owner = value
+
+    def finish_ability_turn(self, color):
+        """Consume the current turn after a successful ability use."""
+        self.ability_used_this_turn = True
+        self.action_points.gain_for_move(color)
+        self.move_log.append({"ability_turn": color})
+        self.white_to_move = color != WHITE
+        self.expire_shields_after_turn(color)
+        if self.just_finished_full_turn():
+            self.event_manager.update()
+        self.ability_used_this_turn = False
+
+    def add_shielded_piece(self, piece, owner_color):
+        """Track a shielded piece until the opponent completes a turn."""
+        self.shield_tracker.add(piece, owner_color)
+
+    def expire_shields_after_turn(self, completed_turn_color):
+        """Remove shields after the protected side's opponent completes a turn."""
+        self.shield_tracker.expire_after_turn(completed_turn_color)
 
     def get_captured_pieces(self):
         """Return captured-piece summaries for both players."""
@@ -308,3 +387,4 @@ class GameState:
     def get_turns_to_next_event(self):
         """Return the number of turns remaining before the next event."""
         return 10 - (self.event_manager.turn_counter % 10)
+

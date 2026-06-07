@@ -35,22 +35,22 @@ class Pawn(Piece):
         r, c = self.pos
         one_step_row = r + self.direction
 
-        # Đi thẳng
+        # Single-step forward move.
         if is_inside_board(one_step_row, c) and gs.board.get_piece_at(one_step_row, c) is None:
             moves.append(Move((r, c), (one_step_row, c), gs.board.grid))
-            # Đi 2 ô nếu ở vị trí xuất phát
+            # Two-step forward move from the starting rank.
             if (self.color == WHITE and r == BOARD_ROWS - 2) or (self.color == BLACK and r == 1):
                 two_step_row = r + 2 * self.direction
                 if is_inside_board(two_step_row, c) and gs.board.get_piece_at(two_step_row, c) is None:
                     moves.append(Move((r, c), (two_step_row, c), gs.board.grid))
         
-        # Ăn chéo
+        # Diagonal capture and en passant checks.
         for dc in [-1, 1]:
             nc = c + dc
             nr = r + self.direction
             if is_inside_board(nr, nc):
                 target = gs.board.get_piece_at(nr, nc)
-                if target is not None and target.color != self.color:
+                if target is not None and self.can_capture_target(target):
                     moves.append(Move((r, c), (nr, nc), gs.board.grid))
                 elif (nr, nc) == gs.enpassant_possible:
                     moves.append(Move((r, c), (nr, nc), gs.board.grid, is_enpassant_move=True))
@@ -70,6 +70,9 @@ class Knight(Piece):
         return True
 
     def _calculate_moves(self, gs):
+        if getattr(self, "poisoned_turns", 0) > 0:
+            return []
+
         moves = []
         r, c = self.pos
         knight_moves = [
@@ -80,7 +83,7 @@ class Knight(Piece):
             nr, nc = r + dr, c + dc
             if is_inside_board(nr, nc):
                 target = gs.board.get_piece_at(nr, nc)
-                if target is None or target.color != self.color:
+                if target is None or self.can_capture_target(target):
                     moves.append(Move((r, c), (nr, nc), gs.board.grid))
         return moves
 
@@ -99,6 +102,8 @@ class Bishop(Piece):
 
     def _calculate_moves(self, gs):
         directions = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
+        if getattr(self, "poisoned_turns", 0) > 0:
+            return self._get_one_step_moves(gs, directions)
         return self._get_sliding_moves(gs, directions)
 
 class Rook(Piece):
@@ -116,6 +121,8 @@ class Rook(Piece):
 
     def _calculate_moves(self, gs):
         directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+        if getattr(self, "poisoned_turns", 0) > 0:
+            return self._get_one_step_moves(gs, directions)
         return self._get_sliding_moves(gs, directions)
 
 class Queen(Piece):
@@ -154,7 +161,7 @@ class King(Piece):
 
     def get_possible_moves(self, gs, include_castle=True):
         """Return king moves while optionally including castling."""
-        if self.status != "active":
+        if not self.is_active:
             return []
         return self._calculate_moves(gs, include_castle=include_castle)
 
@@ -166,10 +173,10 @@ class King(Piece):
             nr, nc = r + dr, c + dc
             if is_inside_board(nr, nc):
                 target = gs.board.get_piece_at(nr, nc)
-                if target is None or target.color != self.color:
+                if target is None or self.can_capture_target(target):
                     moves.append(Move((r, c), (nr, nc), gs.board.grid))
         
-        # Thêm các nước đi nhập thành nếu được phép
+        # Add castling moves when castling generation is enabled.
         if include_castle:
             moves.extend(self.get_castle_moves(gs))
         return moves
@@ -177,7 +184,7 @@ class King(Piece):
     def get_castle_moves(self, gs):
         moves = []
         if gs.in_check():
-            return moves # Không thể nhập thành khi đang bị chiếu
+            return moves  # Castling is illegal while the king is in check.
         
         r, c = self.pos
         if (self.color == WHITE and gs.current_castle_rights.wks) or (self.color == BLACK and gs.current_castle_rights.bks):
@@ -207,3 +214,4 @@ class King(Piece):
                 if not gs.square_under_attack(r, c-1) and not gs.square_under_attack(r, c-2):
                     moves.append(Move((r, c), (r, c-2), gs.board.grid, is_castle_move=True))
         return moves
+

@@ -19,6 +19,17 @@ class DummyEventManager:
         self.update_calls += 1
 
 
+class SpySystem:
+    """Small spy object for ordered post-move system assertions."""
+
+    def __init__(self):
+        self.calls = 0
+
+    def apply(self, game_state, move):
+        """Record that this post-move system ran."""
+        self.calls += 1
+
+
 class GameRulesPipelineTests(unittest.TestCase):
     """Verify real moves trigger side systems while simulated ones do not."""
 
@@ -77,6 +88,22 @@ class GameRulesPipelineTests(unittest.TestCase):
 
         self.assertEqual(game_state.get_captured_pieces(), ([], []))
         self.assertEqual(game_state.event_manager.update_calls, 0)
+
+    def test_real_move_runs_post_move_system_objects(self):
+        game_state = GameState()
+        spy_system = SpySystem()
+        game_state.post_move_systems = [spy_system]
+        game_state.board.grid = [[None for _ in range(BOARD_COLS)] for _ in range(BOARD_ROWS)]
+        game_state.board.grid[7][4] = game_state.board.create_piece(WHITE, KING_CODE, (7, 4))
+        game_state.board.grid[0][4] = game_state.board.create_piece(BLACK, KING_CODE, (0, 4))
+        game_state.board.grid[4][4] = Rook(WHITE, (4, 4))
+        game_state.board.grid[4][6] = Rook(BLACK, (4, 6))
+        game_state.white_king_pos = (7, 4)
+        game_state.black_king_pos = (0, 4)
+
+        game_state.make_move(Move((4, 4), (4, 6), game_state.board.grid), is_real_move=True)
+
+        self.assertEqual(spy_system.calls, 1)
 
 
 if __name__ == "__main__":

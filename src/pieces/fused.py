@@ -1,0 +1,69 @@
+"""Fused chess piece classes."""
+
+from ..constants import ARCHBISHOP_CODE, BISHOP_CODE, CHANCELLOR_CODE, KNIGHT_CODE, ROOK_CODE
+from .base import Piece
+from .standard import Bishop, Knight, Rook
+
+
+class FusedPiece:
+    """Mixin for pieces made from a fusion capture."""
+
+    component_codes = ()
+
+    def __init__(self, color, name, pos):
+        Piece.__init__(self, color, name, pos)
+        self.has_fused = True
+        self.fusion_components = list(self.component_codes)
+        self.primary_component_code = self.component_codes[0]
+
+    def can_fuse(self):
+        """Fused pieces cannot trigger another fusion."""
+        return False
+
+    def get_fusion_tags(self):
+        """Return the component codes that grant abilities."""
+        return list(self.fusion_components)
+
+    def get_sprite_key(self):
+        """Use an existing sprite until custom fused-piece art is available."""
+        return f"{self.color}{self.primary_component_code}"
+
+    def _get_knight_moves(self, gs):
+        """Generate knight-style moves for fused pieces."""
+        return Knight._calculate_moves(self, gs)
+
+    def _get_bishop_moves(self, gs):
+        """Generate bishop-style moves for fused pieces."""
+        return Bishop._calculate_moves(self, gs)
+
+    def _get_rook_moves(self, gs):
+        """Generate rook-style moves for fused pieces."""
+        return Rook._calculate_moves(self, gs)
+
+
+class Archbishop(FusedPiece, Bishop):
+    """Fused Knight + Bishop piece."""
+
+    piece_code = ARCHBISHOP_CODE
+    material_value = 6
+    component_codes = (KNIGHT_CODE, BISHOP_CODE)
+
+    def __init__(self, color, pos):
+        super().__init__(color, ARCHBISHOP_CODE, pos)
+
+    def _calculate_moves(self, gs):
+        return self._get_bishop_moves(gs) + self._get_knight_moves(gs)
+
+
+class Chancellor(FusedPiece, Rook):
+    """Fused Rook + Knight piece."""
+
+    piece_code = CHANCELLOR_CODE
+    material_value = 8
+    component_codes = (ROOK_CODE, KNIGHT_CODE)
+
+    def __init__(self, color, pos):
+        super().__init__(color, CHANCELLOR_CODE, pos)
+
+    def _calculate_moves(self, gs):
+        return self._get_rook_moves(gs) + self._get_knight_moves(gs)

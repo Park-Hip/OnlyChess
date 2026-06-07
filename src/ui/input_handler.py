@@ -16,6 +16,10 @@ class InputState:
     mouse_pos: tuple = (0, 0)
     move_attempt_type: str = "click"
     click_type: str = "first_click"
+    ability_menu_square: tuple = ()
+    selected_ability_key: str | None = None
+    ability_source_square: tuple = ()
+    ability_error: str = ""
 
 
 def reset_selection_state(input_state):
@@ -25,6 +29,22 @@ def reset_selection_state(input_state):
     input_state.dragging = False
     input_state.move_attempt_type = "click"
     input_state.click_type = "first_click"
+    input_state.ability_error = ""
+
+
+def clear_ability_state(input_state):
+    """Clear current ability menu and target selection state."""
+    input_state.ability_menu_square = ()
+    input_state.selected_ability_key = None
+    input_state.ability_source_square = ()
+    input_state.ability_error = ""
+
+
+def select_ability(input_state, ability_key, source_square):
+    """Store the chosen ability and source square."""
+    input_state.selected_ability_key = ability_key
+    input_state.ability_source_square = source_square
+    input_state.ability_menu_square = ()
 
 
 def set_promotion_pending(input_state, move):
@@ -71,19 +91,29 @@ def get_active_color(game_state):
     return WHITE if game_state.white_to_move else BLACK
 
 
-def handle_board_mouse_down(input_state, game_state, location):
+def handle_board_mouse_down(input_state, game_state, location, button=1):
     """Update selection state for a board mouse-down event."""
     input_state.mouse_pos = location
     if not is_board_click(location):
         return
 
     row, col = get_board_square(location)
+    piece = game_state.board.get_piece_at(row, col)
+    if button == 3:
+        clear_ability_state(input_state)
+        if piece is not None and piece.color == get_active_color(game_state):
+            input_state.ability_menu_square = (row, col)
+        return
+
+    if input_state.selected_ability_key is not None:
+        input_state.player_clicks = [(row, col)]
+        return
+
     if input_state.sq_selected == (row, col):
         input_state.dragging = True
         input_state.click_type = "second_click"
         return
 
-    piece = game_state.board.get_piece_at(row, col)
     if len(input_state.player_clicks) == 0:
         if piece is not None and piece.color == get_active_color(game_state):
             input_state.sq_selected = (row, col)
@@ -127,6 +157,11 @@ def handle_board_mouse_up(input_state, location):
 def move_attempt_ready(input_state):
     """Return whether the current input state contains a full move attempt."""
     return len(input_state.player_clicks) == 2
+
+
+def ability_attempt_ready(input_state):
+    """Return whether the current input state contains an ability target."""
+    return input_state.selected_ability_key is not None and len(input_state.player_clicks) == 1
 
 
 def retain_origin_after_invalid_drag(input_state):

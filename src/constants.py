@@ -1,6 +1,4 @@
-"""Shared constants for board rules and UI rendering."""
-
-import pygame
+"""Shared constants for board rules and game-domain values."""
 
 # Screen sizing
 BOARD_WIDTH = 512
@@ -25,6 +23,8 @@ BISHOP_CODE = "B"
 ROOK_CODE = "R"
 QUEEN_CODE = "Q"
 KING_CODE = "K"
+ARCHBISHOP_CODE = "A"
+CHANCELLOR_CODE = "C"
 STANDARD_PIECE_ORDER = [
     ROOK_CODE,
     KNIGHT_CODE,
@@ -40,8 +40,12 @@ STANDARD_PIECE_ORDER = [
 WHITE = "w"
 BLACK = "b"
 
-# UI colors
-COLOR_LIGHT = pygame.Color("white")
-COLOR_DARK = pygame.Color("gray")
-COLOR_HIGHLIGHT = pygame.Color("yellow")
-COLOR_CHECK = pygame.Color("red")
+# Fusion rules
+MIN_FUSION_HALF_TURNS = 8
+TEMPO_BURST_KEY = "tempo_burst"
+
+# Action Points
+STARTING_AP = 0
+MAX_AP = 5
+AP_GAIN_MOVE_INTERVAL = 2
+

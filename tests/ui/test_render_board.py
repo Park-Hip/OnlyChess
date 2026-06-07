@@ -24,6 +24,12 @@ class RenderBoardHelperTests(unittest.TestCase):
 
         self.assertEqual(get_last_move_squares(game_state), [(6, 4), (4, 4)])
 
+    def test_get_last_move_squares_ignores_ability_turn_records(self):
+        game_state = GameState()
+        game_state.move_log.append({"ability_turn": "w"})
+
+        self.assertEqual(get_last_move_squares(game_state), [])
+
     def test_get_highlight_targets_filters_moves_by_origin(self):
         game_state = GameState()
         valid_moves = game_state.get_valid_moves()

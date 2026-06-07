@@ -1,6 +1,16 @@
 """Simple registry for creating chess pieces by code."""
 
-from ..constants import BISHOP_CODE, KING_CODE, KNIGHT_CODE, PAWN_CODE, QUEEN_CODE, ROOK_CODE
+from ..constants import (
+    ARCHBISHOP_CODE,
+    BISHOP_CODE,
+    CHANCELLOR_CODE,
+    KING_CODE,
+    KNIGHT_CODE,
+    PAWN_CODE,
+    QUEEN_CODE,
+    ROOK_CODE,
+)
+from .fused import Archbishop, Chancellor
 from .standard import Bishop, King, Knight, Pawn, Queen, Rook
 
 
@@ -11,6 +21,8 @@ PIECE_CLASS_BY_CODE = {
     ROOK_CODE: Rook,
     QUEEN_CODE: Queen,
     KING_CODE: King,
+    ARCHBISHOP_CODE: Archbishop,
+    CHANCELLOR_CODE: Chancellor,
 }
 
 

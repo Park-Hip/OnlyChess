@@ -29,18 +29,25 @@ class CaptureTracker:
         if move.piece_captured is None:
             return
 
-        if move.piece_moved.color == WHITE:
+        self.record_capture(move.piece_moved.color, move.piece_captured)
+
+    def record_capture(self, capturing_color, captured_piece):
+        """Record a captured piece from a move or ability."""
+        if captured_piece is None:
+            return
+
+        if capturing_color == WHITE:
             self.white_captured.append(
                 CapturedPieceRecord(
-                    move.piece_captured.color,
-                    move.piece_captured.get_piece_code(),
+                    captured_piece.color,
+                    captured_piece.get_piece_code(),
                 )
             )
         else:
             self.black_captured.append(
                 CapturedPieceRecord(
-                    move.piece_captured.color,
-                    move.piece_captured.get_piece_code(),
+                    captured_piece.color,
+                    captured_piece.get_piece_code(),
                 )
             )
 

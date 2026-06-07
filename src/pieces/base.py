@@ -20,9 +20,12 @@ class Piece:
         self.color = color
         self.name = name
         self.pos = pos
-        self.id = f"{color}{name}"
+        self.id = f"{color}{self.get_piece_code()}"
         self.has_moved = False
-        self.status = "active"
+        self.is_active = True
+        self.has_fused = False
+        self.fusion_components = [self.get_piece_code()]
+        self.primary_component_code = self.get_piece_code()
 
     def set_position(self, pos):
         """Update the piece position."""
@@ -30,7 +33,7 @@ class Piece:
 
     def get_possible_moves(self, gs):
         """Return pseudo-legal moves for this piece."""
-        if self.status != "active":
+        if not self.is_active:
             return []
         return self._calculate_moves(gs)
 
@@ -51,12 +54,34 @@ class Piece:
                 target = gs.board.get_piece_at(end_row, end_col)
                 if target is None:
                     moves.append(Move((r, c), (end_row, end_col), gs.board.grid))
-                elif target.color != self.color:
+                elif self.can_capture_target(target):
                     moves.append(Move((r, c), (end_row, end_col), gs.board.grid))
                     break
                 else:
                     break
         return moves
+
+    def _get_one_step_moves(self, gs, directions):
+        """Generate one-square moves for temporary movement limits."""
+        moves = []
+        r, c = self.pos
+        for dr, dc in directions:
+            end_row = r + dr
+            end_col = c + dc
+            if not gs.board.is_inside_board(end_row, end_col):
+                continue
+            target = gs.board.get_piece_at(end_row, end_col)
+            if target is None or self.can_capture_target(target):
+                moves.append(Move((r, c), (end_row, end_col), gs.board.grid))
+        return moves
+
+    def can_capture_target(self, target):
+        """Return whether this piece can capture a target piece."""
+        if target is None:
+            return False
+        if target.color == self.color:
+            return False
+        return not getattr(target, "is_shielded", False)
 
     def get_piece_code(self):
         """Return the stable piece code for registry and rules."""
@@ -76,7 +101,7 @@ class Piece:
 
     def can_fuse(self):
         """Return whether the piece is eligible for future fusion rules."""
-        return True
+        return not self.has_fused
 
     def is_minor_piece(self):
         """Return whether the piece counts as a minor piece."""

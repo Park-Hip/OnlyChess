@@ -6,7 +6,7 @@ from ..constants import LAST_BOARD_INDEX, PAWN_CODE
 class Move:
     """Represent one chess move together with internal rollback state."""
 
-    # Bản đồ chuyển đổi tọa độ cờ vua sang chỉ số mảng
+    # Maps between chess notation and board-array indices.
     ranks_to_rows = {"1": 7, "2": 6, "3": 5, "4": 4, "5": 3, "6": 2, "7": 1, "8": 0}
     rows_to_ranks = {v: k for k, v in ranks_to_rows.items()}
     files_to_cols = {"a": 0, "b": 1, "c": 2, "d": 3, "e": 4, "f": 5, "g": 6, "h": 7}
@@ -21,25 +21,25 @@ class Move:
         self.piece_moved = board_grid[self.start_row][self.start_col]
         self.piece_captured = board_grid[self.end_row][self.end_col]
         
-        # Đánh dấu nước đi đặc biệt
+        # Special move flags.
         self.is_enpassant_move = is_enpassant_move
         if self.is_enpassant_move:
-            # Quân bị ăn trong En Passant nằm ở hàng của quân đi, nhưng ở cột đích
+            # In en passant, the captured pawn sits beside the destination square.
             self.piece_captured = board_grid[self.start_row][self.end_col]
             
         self.is_castle_move = is_castle_move
         
-        # Phong cấp
+        # Pawn promotion.
         self.is_pawn_promotion = False
         if self.piece_moved is not None:
             self.is_pawn_promotion = (
                 self.piece_moved.name == PAWN_CODE and (self.end_row == 0 or self.end_row == LAST_BOARD_INDEX)
             )
         
-        # Move ID để so sánh dễ dàng
+        # Deterministic move id used for comparisons.
         self.move_id = self.start_row * 1000 + self.start_col * 100 + self.end_row * 10 + self.end_col
         
-        # Lưu lại trạng thái trước đó để Undo
+        # Snapshot fields used for internal rollback only.
         self.enpassant_possible_prev = ()
         self.moved_piece_prev_pos = None
         self.moved_piece_prev_has_moved = None
@@ -51,6 +51,8 @@ class Move:
         self.rook_end_pos = None
         self.rook_prev_has_moved = None
         self.is_real_move = False
+        self.fused_to_piece = None
+        self.is_tempo_burst_move = False
 
     def __eq__(self, other):
         if isinstance(other, Move):
@@ -58,7 +60,7 @@ class Move:
         return False
 
     def get_chess_notation(self):
-        # Ví dụ: "e2e4"
+        # Example: "e2e4".
         return self.get_rank_file(self.start_row, self.start_col) + self.get_rank_file(self.end_row, self.end_col)
 
     def get_rank_file(self, r, c):
@@ -66,3 +68,5 @@ class Move:
 
     def __repr__(self):
         return f"Move({self.get_chess_notation()})"
+
+

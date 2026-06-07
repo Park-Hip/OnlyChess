@@ -3,8 +3,9 @@
 import unittest
 
 from src.constants import KNIGHT_CODE, ROOK_CODE
-from src.events import EventManager
+from src.events.manager import DEFAULT_EVENT_POOL, EventManager
 from src.game.board import GameState
+from src.game.mode_config import DEFAULT_ADVANCED_EVENT_POOL
 from src.game.move import Move
 
 
@@ -18,6 +19,14 @@ class EventManagerFlowTests(unittest.TestCase):
         self.assertEqual(manager.event_pool, [])
         self.assertIsNone(manager.queued_event)
         self.assertIsNone(manager.queued_event_key)
+
+    def test_default_event_pool_contains_all_implemented_events(self):
+        game_state = GameState()
+        manager = EventManager(game_state)
+
+        self.assertEqual(manager.event_pool, DEFAULT_EVENT_POOL)
+        self.assertEqual(DEFAULT_EVENT_POOL, DEFAULT_ADVANCED_EVENT_POOL)
+        self.assertEqual(len(manager.event_pool), 10)
 
     def test_turn_nine_triggers_warning_for_queued_event(self):
         game_state = GameState()
@@ -51,6 +60,26 @@ class EventManagerFlowTests(unittest.TestCase):
         self.assertEqual(len(manager.active_events), 0)
         self.assertEqual(manager.queued_event_key, "gia_xang_tang")
         self.assertIsNotNone(manager.queued_event)
+
+    def test_timed_event_is_removed_after_duration_expires(self):
+        game_state = GameState()
+        manager = EventManager(game_state, event_pool=["viec_nhe_vol_cao"])
+        game_state.event_manager = manager
+        game_state.move_log = [object()] * 18
+        manager.update()
+        game_state.move_log = [object()] * 20
+        manager.update()
+
+        self.assertEqual(len(manager.active_events), 1)
+
+        game_state.move_log = [object()] * 22
+        manager.update()
+        self.assertEqual(len(manager.active_events), 1)
+
+        game_state.move_log = [object()] * 24
+        manager.update()
+
+        self.assertEqual(len(manager.active_events), 0)
 
     def test_real_black_move_pipeline_can_still_reach_event_manager(self):
         game_state = GameState()

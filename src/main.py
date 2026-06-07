@@ -2,12 +2,15 @@
 
 import pygame as p
 
+from .abilities import use_ability
 from .constants import BLACK, BOARD_HEIGHT, HEIGHT, INFO_PANEL_HEIGHT, MAX_FPS, WHITE, WIDTH
 from .game.board import GameState
 from .game.move import Move
 from .ui.assets import load_images
 from .ui.input_handler import (
     InputState,
+    ability_attempt_ready,
+    clear_ability_state,
     clear_promotion_pending,
     handle_board_mouse_down,
     handle_board_mouse_up,
@@ -17,10 +20,12 @@ from .ui.input_handler import (
     resolve_invalid_click_selection,
     retain_origin_after_invalid_drag,
     set_promotion_pending,
+    select_ability,
 )
+from .ui.ability_menu import draw_ability_menu, get_available_ability_keys, get_ability_menu_rect, resolve_ability_menu_click
 from .ui.promotion_menu import draw_promotion_menu, resolve_promotion_click
 from .ui.render_board import draw_endgame_text, draw_event_overlays, draw_game_board
-from .ui.render_panels import draw_info_panels
+from .ui.render_panels import draw_info_panels, get_ability_error_text
 
 
 def process_move_attempt(input_state, game_state, valid_moves):
@@ -60,6 +65,39 @@ def handle_promotion_click(input_state, game_state, mouse_pos):
     return True
 
 
+def process_ability_attempt(input_state, game_state):
+    """Try to execute the selected ability against the chosen target."""
+    target_square = input_state.player_clicks[0]
+    succeeded = use_ability(
+        input_state.selected_ability_key,
+        game_state,
+        input_state.ability_source_square,
+        target_square,
+    )
+    if succeeded:
+        clear_ability_state(input_state)
+        reset_selection_state(input_state)
+        return True
+    input_state.ability_error = "Invalid ability target"
+    input_state.player_clicks = []
+    return False
+
+
+def handle_ability_menu_click(input_state, game_state, mouse_pos):
+    """Resolve a click inside an open ability menu."""
+    if not input_state.ability_menu_square:
+        return False
+    piece = game_state.board.get_piece_at(input_state.ability_menu_square[0], input_state.ability_menu_square[1])
+    ability_keys = get_available_ability_keys(game_state, piece)
+    menu_rect = get_ability_menu_rect(input_state.ability_menu_square)
+    ability_key = resolve_ability_menu_click(mouse_pos, ability_keys, menu_rect)
+    if ability_key is None:
+        clear_ability_state(input_state)
+        return False
+    select_ability(input_state, ability_key, input_state.ability_menu_square)
+    return True
+
+
 def main():
     """Run the main Pygame game loop."""
     p.init()
@@ -85,13 +123,18 @@ def main():
                 if input_state.promotion_move_pending is not None:
                     move_made = handle_promotion_click(input_state, game_state, mouse_pos) or move_made
                     continue
-                handle_board_mouse_down(input_state, game_state, mouse_pos)
+                if input_state.ability_menu_square:
+                    handle_ability_menu_click(input_state, game_state, mouse_pos)
+                    continue
+                handle_board_mouse_down(input_state, game_state, mouse_pos, event.button)
             elif event.type == p.MOUSEMOTION:
                 handle_mouse_motion(input_state, p.mouse.get_pos())
             elif event.type == p.MOUSEBUTTONUP:
                 handle_board_mouse_up(input_state, p.mouse.get_pos())
             if move_attempt_ready(input_state):
                 move_made = process_move_attempt(input_state, game_state, valid_moves) or move_made
+            if ability_attempt_ready(input_state):
+                move_made = process_ability_attempt(input_state, game_state) or move_made
 
         if move_made:
             valid_moves = game_state.get_valid_moves()
@@ -107,10 +150,17 @@ def main():
             input_state.mouse_pos,
         )
         draw_info_panels(screen, game_state, images, font_panel)
+        ability_error = get_ability_error_text(input_state)
+        if ability_error:
+            error_text = font_panel.render(ability_error, True, p.Color("orange"))
+            screen.blit(error_text, (10, INFO_PANEL_HEIGHT + 10))
 
         if input_state.promotion_move_pending:
             color = WHITE if game_state.white_to_move else BLACK
             draw_promotion_menu(screen, color, images)
+        if input_state.ability_menu_square:
+            piece = game_state.board.get_piece_at(input_state.ability_menu_square[0], input_state.ability_menu_square[1])
+            draw_ability_menu(screen, font_panel, game_state, piece, input_state.ability_menu_square)
 
         draw_event_overlays(screen, game_state.event_manager.active_events, font_panel)
 

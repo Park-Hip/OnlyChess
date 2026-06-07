@@ -1,6 +1,6 @@
 # Code Review Follow-Up Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Fix the highest-risk correctness issues first, then clean up rollback naming, code clarity, and extension seams so the project stays simple, correct, and ready for future `mode.md` features.
 
@@ -81,7 +81,7 @@ tests/
 - Modify: `src/ui/input_handler.py`
 - Test: `tests/ui/test_input_handler.py`
 
-- [ ] **Step 1: Add a failing test for clicks outside board width**
+- [x] **Step 1: Add a failing test for clicks outside board width**
 
 ```python
 def test_board_click_rejects_x_positions_outside_board_width(self):
@@ -89,12 +89,12 @@ def test_board_click_rejects_x_positions_outside_board_width(self):
     self.assertFalse(is_board_click((BOARD_COLS * SQ_SIZE, INFO_PANEL_HEIGHT + 10)))
 ```
 
-- [ ] **Step 2: Run the focused test to verify current failure**
+- [x] **Step 2: Run the focused test to verify current failure**
 
 Run: `uv run python -m unittest tests.ui.test_input_handler -v`
 Expected: FAIL on the new boundary assertions.
 
-- [ ] **Step 3: Update `is_board_click()` to validate both axes**
+- [x] **Step 3: Update `is_board_click()` to validate both axes**
 
 ```python
 def is_board_click(
@@ -111,19 +111,19 @@ def is_board_click(
     )
 ```
 
-- [ ] **Step 4: Keep downstream handlers unchanged unless tests prove more guarding is needed**
+- [x] **Step 4: Keep downstream handlers unchanged unless tests prove more guarding is needed**
 
 ```python
 if not is_board_click(location):
     return
 ```
 
-- [ ] **Step 5: Re-run the input handler tests**
+- [x] **Step 5: Re-run the input handler tests**
 
 Run: `uv run python -m unittest tests.ui.test_input_handler -v`
 Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/ui/input_handler.py tests/ui/test_input_handler.py
@@ -137,7 +137,7 @@ git commit -m "fix: guard board clicks by x and y bounds"
 - Test: `tests/game/test_castling_helpers.py`
 - Test: `tests/events/test_gia_xang_tang_event.py`
 
-- [ ] **Step 1: Add a failing castling regression test**
+- [x] **Step 1: Add a failing castling regression test**
 
 ```python
 def test_castle_requires_actual_rook_on_corner(self):
@@ -154,7 +154,7 @@ def test_castle_requires_actual_rook_on_corner(self):
     self.assertEqual(moves, [])
 ```
 
-- [ ] **Step 2: Add an event-specific regression test**
+- [x] **Step 2: Add an event-specific regression test**
 
 ```python
 def test_gia_xang_tang_prevents_future_castling_from_transformed_corner(self):
@@ -169,12 +169,12 @@ def test_gia_xang_tang_prevents_future_castling_from_transformed_corner(self):
     self.assertEqual(king.get_castle_moves(game_state), [])
 ```
 
-- [ ] **Step 3: Run the targeted tests to verify failure**
+- [x] **Step 3: Run the targeted tests to verify failure**
 
 Run: `uv run python -m unittest tests.game.test_castling_helpers tests.events.test_gia_xang_tang_event -v`
 Expected: FAIL because castling is still generated.
 
-- [ ] **Step 4: Add explicit rook validation in `King.get_castle_moves()`**
+- [x] **Step 4: Add explicit rook validation in `King.get_castle_moves()`**
 
 ```python
 corner_piece = gs.board.get_piece_at(r, BOARD_COLS - 1)
@@ -188,7 +188,7 @@ if (
             moves.append(Move((r, c), (r, c + 2), gs.board.grid, is_castle_move=True))
 ```
 
-- [ ] **Step 5: Mirror the same explicit rook check on queen side**
+- [x] **Step 5: Mirror the same explicit rook check on queen side**
 
 ```python
 corner_piece = gs.board.get_piece_at(r, 0)
@@ -206,12 +206,12 @@ if (
             moves.append(Move((r, c), (r, c - 2), gs.board.grid, is_castle_move=True))
 ```
 
-- [ ] **Step 6: Re-run the targeted tests**
+- [x] **Step 6: Re-run the targeted tests**
 
 Run: `uv run python -m unittest tests.game.test_castling_helpers tests.events.test_gia_xang_tang_event -v`
 Expected: PASS
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/pieces/standard.py tests/game/test_castling_helpers.py tests/events/test_gia_xang_tang_event.py
@@ -224,7 +224,7 @@ git commit -m "fix: require real rook for castling"
 - Modify: `src/main.py`
 - Test: `tests/ui/test_promotion_menu.py`
 
-- [ ] **Step 1: Add a failing test for outside-menu clicks during promotion**
+- [x] **Step 1: Add a failing test for outside-menu clicks during promotion**
 
 ```python
 def test_outside_click_does_not_resolve_promotion_choice(self):
@@ -232,7 +232,7 @@ def test_outside_click_does_not_resolve_promotion_choice(self):
     self.assertIsNone(resolve_promotion_click((rect.x - 5, rect.y), rect))
 ```
 
-- [ ] **Step 2: Add a small integration assertion in a new or existing UI flow test**
+- [x] **Step 2: Add a small integration assertion in a new or existing UI flow test**
 
 ```python
 input_state.promotion_move_pending = object()
@@ -241,12 +241,12 @@ self.assertFalse(result)
 self.assertIsNotNone(input_state.promotion_move_pending)
 ```
 
-- [ ] **Step 3: Run focused tests to confirm current behavior mismatch**
+- [x] **Step 3: Run focused tests to confirm current behavior mismatch**
 
 Run: `uv run python -m unittest tests.ui.test_promotion_menu -v`
 Expected: PASS for geometry helper but integration test should fail until `handle_promotion_click()` changes.
 
-- [ ] **Step 4: Preserve pending promotion when click is outside the menu**
+- [x] **Step 4: Preserve pending promotion when click is outside the menu**
 
 ```python
 choice = resolve_promotion_click(mouse_pos)
@@ -259,12 +259,12 @@ reset_selection_state(input_state)
 return True
 ```
 
-- [ ] **Step 5: Re-run the promotion tests**
+- [x] **Step 5: Re-run the promotion tests**
 
 Run: `uv run python -m unittest tests.ui.test_promotion_menu -v`
 Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/main.py tests/ui/test_promotion_menu.py
@@ -277,7 +277,7 @@ git commit -m "fix: keep promotion choice pending on outside click"
 - Modify: `src/events/manager.py`
 - Test: `tests/events/test_event_manager_flow.py`
 
-- [ ] **Step 1: Add a failing test for an intentionally empty event pool**
+- [x] **Step 1: Add a failing test for an intentionally empty event pool**
 
 ```python
 def test_empty_event_pool_remains_empty(self):
@@ -288,12 +288,12 @@ def test_empty_event_pool_remains_empty(self):
     self.assertIsNone(manager.queued_event_key)
 ```
 
-- [ ] **Step 2: Run the event manager tests to verify current failure**
+- [x] **Step 2: Run the event manager tests to verify current failure**
 
 Run: `uv run python -m unittest tests.events.test_event_manager_flow -v`
 Expected: FAIL because the default event is still injected.
 
-- [ ] **Step 3: Treat `None` differently from `[]`**
+- [x] **Step 3: Treat `None` differently from `[]`**
 
 ```python
 self.event_pool = ["gia_xang_tang"] if event_pool is None else list(event_pool)
@@ -301,7 +301,7 @@ if self.event_pool:
     self._queue_next_event()
 ```
 
-- [ ] **Step 4: Guard `_queue_next_event()` callers against empty pools**
+- [x] **Step 4: Guard `_queue_next_event()` callers against empty pools**
 
 ```python
 if not self.event_pool:
@@ -310,12 +310,12 @@ if not self.event_pool:
     return
 ```
 
-- [ ] **Step 5: Re-run the event manager tests**
+- [x] **Step 5: Re-run the event manager tests**
 
 Run: `uv run python -m unittest tests.events.test_event_manager_flow -v`
 Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/events/manager.py tests/events/test_event_manager_flow.py
@@ -336,7 +336,7 @@ git commit -m "fix: support intentionally empty event pools"
 - Modify: `tests/game/test_move_and_undo.py`
 - Modify: `README.md`
 
-- [ ] **Step 1: Rewrite rollback comments/docstrings away from player undo language**
+- [x] **Step 1: Rewrite rollback comments/docstrings away from player undo language**
 
 ```python
 def undo_move(self):
@@ -347,25 +347,25 @@ def undo_move(self):
 """Move object for representing chess actions and rollback state."""
 ```
 
-- [ ] **Step 2: Rename the test class to match current behavior**
+- [x] **Step 2: Rename the test class to match current behavior**
 
 ```python
 class MoveRollbackTests(unittest.TestCase):
     """Lock in move-state bookkeeping used by internal rollback."""
 ```
 
-- [ ] **Step 3: Update README wording if it still sounds user-facing**
+- [x] **Step 3: Update README wording if it still sounds user-facing**
 
 ```markdown
 - internal move-simulation rollback for legal move validation
 ```
 
-- [ ] **Step 4: Run the rollback and README-adjacent regression tests**
+- [x] **Step 4: Run the rollback and README-adjacent regression tests**
 
 Run: `uv run python -m unittest tests.game.test_move_and_undo tests.game.test_castling_helpers tests.game.test_game_rules_pipeline -v`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/game/board.py src/game/move.py tests/game/test_move_and_undo.py README.md
@@ -379,36 +379,36 @@ git commit -m "refactor: clarify internal rollback terminology"
 - Modify: `tests/game/test_move_and_undo.py`
 - Modify: `tests/game/test_castling_helpers.py`
 
-- [ ] **Step 1: Search for every `undo_move()` call site**
+- [x] **Step 1: Search for every `undo_move()` call site**
 
 Run: `rg -n "undo_move\\(" src tests`
 Expected: only internal engine use plus rollback tests.
 
-- [ ] **Step 2: If call sites are fully internal, rename the method**
+- [x] **Step 2: If call sites are fully internal, rename the method**
 
 ```python
 def _rollback_last_move(self):
     """Roll back the most recent simulated move."""
 ```
 
-- [ ] **Step 3: Update the internal validation call**
+- [x] **Step 3: Update the internal validation call**
 
 ```python
 self._rollback_last_move()
 ```
 
-- [ ] **Step 4: Update tests to call the new name only where rollback is being asserted directly**
+- [x] **Step 4: Update tests to call the new name only where rollback is being asserted directly**
 
 ```python
 game_state._rollback_last_move()
 ```
 
-- [ ] **Step 5: Run focused rollback tests**
+- [x] **Step 5: Run focused rollback tests**
 
 Run: `uv run python -m unittest tests.game.test_move_and_undo tests.game.test_castling_helpers -v`
 Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/game/board.py tests/game/test_move_and_undo.py tests/game/test_castling_helpers.py
@@ -427,30 +427,30 @@ git commit -m "refactor: make rollback helper internal to GameState"
 - Modify: `src/ui/render_panels.py`
 - Modify: `tests/ui/test_render_panels.py`
 
-- [ ] **Step 1: Decide the single countdown owner**
+- [x] **Step 1: Decide the single countdown owner**
 
 ```python
 event_turns_remaining = game_state.get_turns_to_next_event()
 ```
 
-- [ ] **Step 2: Remove the unused helper if nothing else needs it**
+- [x] **Step 2: Remove the unused helper if nothing else needs it**
 
 ```python
 # delete calculate_turns_to_event()
 ```
 
-- [ ] **Step 3: Rewrite tests around the GameState-facing API or the remaining helper**
+- [x] **Step 3: Rewrite tests around the GameState-facing API or the remaining helper**
 
 ```python
 self.assertEqual(game_state.get_turns_to_next_event(), 10)
 ```
 
-- [ ] **Step 4: Run the panel tests**
+- [x] **Step 4: Run the panel tests**
 
 Run: `uv run python -m unittest tests.ui.test_render_panels -v`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/ui/render_panels.py tests/ui/test_render_panels.py
@@ -463,24 +463,24 @@ git commit -m "refactor: keep event countdown logic in one place"
 - Modify: `src/ui/input_handler.py`
 - Modify: `src/ui/render_board.py`
 
-- [ ] **Step 1: Replace direct reads with board helpers where practical**
+- [x] **Step 1: Replace direct reads with board helpers where practical**
 
 ```python
 piece = game_state.board.get_piece_at(row, col)
 ```
 
-- [ ] **Step 2: Keep full-grid iteration only where rendering the full board is simpler**
+- [x] **Step 2: Keep full-grid iteration only where rendering the full board is simpler**
 
 ```python
 draw_pieces(screen, game_state.board.grid, images, selected_square if dragging else ())
 ```
 
-- [ ] **Step 3: Re-run the UI tests**
+- [x] **Step 3: Re-run the UI tests**
 
 Run: `uv run python -m unittest tests.ui.test_input_handler tests.ui.test_render_board -v`
 Expected: PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/ui/input_handler.py src/ui/render_board.py
@@ -496,7 +496,7 @@ git commit -m "refactor: use board access helpers in ui read paths"
 - Modify: `src/ui/render_panels.py`
 - Modify: `src/ui/input_handler.py`
 
-- [ ] **Step 1: Move only Pygame color constants out of the domain constants module**
+- [x] **Step 1: Move only Pygame color constants out of the domain constants module**
 
 ```python
 # src/ui/ui_constants.py
@@ -507,7 +507,7 @@ COLOR_DARK = p.Color("gray")
 PANEL_BACKGROUND = "#2f2f2f"
 ```
 
-- [ ] **Step 2: Keep board dimensions and piece codes in `src/constants.py`**
+- [x] **Step 2: Keep board dimensions and piece codes in `src/constants.py`**
 
 ```python
 BOARD_SIZE = 8
@@ -515,18 +515,18 @@ BOARD_ROWS = BOARD_SIZE
 BOARD_COLS = BOARD_SIZE
 ```
 
-- [ ] **Step 3: Update UI imports only**
+- [x] **Step 3: Update UI imports only**
 
 ```python
 from .ui_constants import COLOR_DARK, COLOR_LIGHT, PANEL_BACKGROUND
 ```
 
-- [ ] **Step 4: Run the UI regression tests**
+- [x] **Step 4: Run the UI regression tests**
 
 Run: `uv run python -m unittest tests.ui.test_assets tests.ui.test_render_board tests.ui.test_render_panels tests.ui.test_input_handler -v`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/constants.py src/ui/ui_constants.py src/ui/render_board.py src/ui/render_panels.py src/ui/input_handler.py
@@ -548,7 +548,7 @@ git commit -m "refactor: separate ui constants from domain constants"
 - Test: `tests/game/test_game_rules_pipeline.py`
 - Test: `tests/events/test_event_manager_flow.py`
 
-- [ ] **Step 1: Add explicit half-turn and full-turn helpers on `GameState`**
+- [x] **Step 1: Add explicit half-turn and full-turn helpers on `GameState`**
 
 ```python
 def get_half_turn_count(self):
@@ -561,32 +561,32 @@ def just_finished_full_turn(self):
     return self.white_to_move
 ```
 
-- [ ] **Step 2: Route event timing through those helpers**
+- [x] **Step 2: Route event timing through those helpers**
 
 ```python
 self.turn_counter = self.gs.get_full_turn_count()
 ```
 
-- [ ] **Step 3: Keep event update invocation behind a named rule**
+- [x] **Step 3: Keep event update invocation behind a named rule**
 
 ```python
 if game_state.just_finished_full_turn():
     game_state.event_manager.update()
 ```
 
-- [ ] **Step 4: Add or rewrite tests so they describe full-turn semantics directly**
+- [x] **Step 4: Add or rewrite tests so they describe full-turn semantics directly**
 
 ```python
 self.assertTrue(game_state.just_finished_full_turn())
 self.assertEqual(game_state.get_full_turn_count(), 10)
 ```
 
-- [ ] **Step 5: Run the focused tests**
+- [x] **Step 5: Run the focused tests**
 
 Run: `uv run python -m unittest tests.game.test_game_rules_pipeline tests.events.test_event_manager_flow -v`
 Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/game/board.py src/game/rules.py src/events/manager.py tests/game/test_game_rules_pipeline.py tests/events/test_event_manager_flow.py
@@ -600,7 +600,7 @@ git commit -m "refactor: centralize half-turn and full-turn helpers"
 - Modify: `src/game/board.py`
 - Test: `tests/game/test_capture_tracker.py`
 
-- [ ] **Step 1: Introduce a tiny captured-piece record**
+- [x] **Step 1: Introduce a tiny captured-piece record**
 
 ```python
 from dataclasses import dataclass
@@ -614,7 +614,7 @@ class CapturedPieceRecord:
         return f"{self.color}{self.piece_code}"
 ```
 
-- [ ] **Step 2: Store records instead of raw display strings**
+- [x] **Step 2: Store records instead of raw display strings**
 
 ```python
 if move.piece_moved.color == WHITE:
@@ -623,7 +623,7 @@ if move.piece_moved.color == WHITE:
     )
 ```
 
-- [ ] **Step 3: Keep the public UI-facing method simple**
+- [x] **Step 3: Keep the public UI-facing method simple**
 
 ```python
 def get_captured_pieces(self):
@@ -633,18 +633,18 @@ def get_captured_pieces(self):
     )
 ```
 
-- [ ] **Step 4: Add one test for record shape and preserve current UI output tests**
+- [x] **Step 4: Add one test for record shape and preserve current UI output tests**
 
 ```python
 self.assertEqual(game_state.get_captured_pieces(), ([BLACK + ROOK_CODE], []))
 ```
 
-- [ ] **Step 5: Run the capture tracker tests**
+- [x] **Step 5: Run the capture tracker tests**
 
 Run: `uv run python -m unittest tests.game.test_capture_tracker -v`
 Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/game/capture_tracker.py tests/game/test_capture_tracker.py
@@ -659,14 +659,14 @@ git commit -m "refactor: store captured pieces as small records"
 - Test: `tests/events/test_event_base_contract.py`
 - Test: `tests/events/test_event_manager_flow.py`
 
-- [ ] **Step 1: Add a tiny optional tick hook to the base event contract**
+- [x] **Step 1: Add a tiny optional tick hook to the base event contract**
 
 ```python
 def tick(self):
     """Advance any per-turn event state."""
 ```
 
-- [ ] **Step 2: Add a lightweight active-event tick step in the manager**
+- [x] **Step 2: Add a lightweight active-event tick step in the manager**
 
 ```python
 def _tick_active_events(self):
@@ -674,21 +674,21 @@ def _tick_active_events(self):
         event.tick()
 ```
 
-- [ ] **Step 3: Call ticking from the manager update flow without changing one-shot behavior**
+- [x] **Step 3: Call ticking from the manager update flow without changing one-shot behavior**
 
 ```python
 if self.turn_counter > 0:
     self._tick_active_events()
 ```
 
-- [ ] **Step 4: Keep `GiaXangTang` unchanged because it is still one-shot**
+- [x] **Step 4: Keep `GiaXangTang` unchanged because it is still one-shot**
 
 ```python
 class GiaXangTang(ChessEvent):
     ...
 ```
 
-- [ ] **Step 5: Add a base-contract test that the hook exists and is no-op safe**
+- [x] **Step 5: Add a base-contract test that the hook exists and is no-op safe**
 
 ```python
 event = ChessEvent(game_state)
@@ -696,12 +696,12 @@ event.tick()
 self.assertFalse(event.warning_active)
 ```
 
-- [ ] **Step 6: Run event tests**
+- [x] **Step 6: Run event tests**
 
 Run: `uv run python -m unittest tests.events.test_event_base_contract tests.events.test_event_manager_flow tests.events.test_gia_xang_tang_event -v`
 Expected: PASS
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/events/base.py src/events/manager.py tests/events/test_event_base_contract.py tests/events/test_event_manager_flow.py
@@ -722,38 +722,38 @@ git commit -m "refactor: add lightweight event tick hook"
 - Test: `tests/pieces/test_piece_metadata.py`
 - Test: `tests/pieces/test_piece_extension_hooks.py`
 
-- [ ] **Step 1: Decide one canonical source of piece identity**
+- [x] **Step 1: Decide one canonical source of piece identity**
 
 ```python
 def get_piece_code(self):
     return self.piece_code
 ```
 
-- [ ] **Step 2: Remove duplicated dependence on `name` where safe**
+- [x] **Step 2: Remove duplicated dependence on `name` where safe**
 
 ```python
 self.id = f"{color}{self.get_piece_code()}"
 ```
 
-- [ ] **Step 3: Replace magic `"active"` status with a simpler flag if status effects are not yet implemented**
+- [x] **Step 3: Replace magic `"active"` status with a simpler flag if status effects are not yet implemented**
 
 ```python
 self.is_active = True
 ```
 
-- [ ] **Step 4: Update the guard in `get_possible_moves()`**
+- [x] **Step 4: Update the guard in `get_possible_moves()`**
 
 ```python
 if not self.is_active:
     return []
 ```
 
-- [ ] **Step 5: Re-run the piece metadata tests**
+- [x] **Step 5: Re-run the piece metadata tests**
 
 Run: `uv run python -m unittest tests.pieces.test_piece_metadata tests.pieces.test_piece_extension_hooks tests.pieces.test_piece_registry -v`
 Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/pieces/base.py src/pieces/standard.py tests/pieces/test_piece_metadata.py tests/pieces/test_piece_extension_hooks.py
@@ -768,32 +768,32 @@ git commit -m "refactor: simplify piece identity and active-state semantics"
 - Modify: `src/pieces/standard.py`
 - Modify: `docs/architecture-current-baseline.md`
 
-- [ ] **Step 1: Replace garbled comments with short English comments or docstrings**
+- [x] **Step 1: Replace garbled comments with short English comments or docstrings**
 
 ```python
 # Generate pseudo-legal moves first.
 # Temporarily apply each move, then reject moves that leave the king in check.
 ```
 
-- [ ] **Step 2: Keep comments only where they explain rules, not obvious syntax**
+- [x] **Step 2: Keep comments only where they explain rules, not obvious syntax**
 
 ```python
 if move.is_enpassant_move:
     # The captured pawn sits beside the destination square, not on it.
 ```
 
-- [ ] **Step 3: Update the architecture note so it matches the post-cleanup seams**
+- [x] **Step 3: Update the architecture note so it matches the post-cleanup seams**
 
 ```markdown
 - `GameState` coordinates move execution, internal rollback for validation, and turn-based rule helpers.
 ```
 
-- [ ] **Step 4: Do one final regression run**
+- [x] **Step 4: Do one final regression run**
 
 Run: `uv run python -m unittest tests.ui.test_assets tests.ui.test_promotion_menu tests.ui.test_input_handler tests.ui.test_render_board tests.ui.test_render_panels tests.events.test_event_base_contract tests.events.test_event_registry tests.events.test_gia_xang_tang_event tests.events.test_event_manager_flow tests.game.test_castling_helpers tests.game.test_capture_tracker tests.game.test_material_scoring tests.game.test_game_rules_pipeline tests.game.test_board_helpers tests.game.test_board_piece_creation tests.game.test_move_and_undo tests.game.test_pawn_boundaries tests.pieces.test_piece_metadata tests.pieces.test_piece_registry tests.pieces.test_piece_extension_hooks -v`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/game/board.py src/game/move.py src/pieces/standard.py docs/architecture-current-baseline.md
@@ -804,17 +804,17 @@ git commit -m "docs: normalize rule comments and architecture wording"
 
 ## Final Verification Checklist
 
-- [ ] The game no longer crashes on clicks outside the board width.
-- [ ] Castling is impossible unless the correct rook is actually present.
-- [ ] Promotion clicks outside the menu do not silently discard the pending move.
-- [ ] `EventManager([])` stays empty instead of injecting a default event.
-- [ ] No player-facing undo feature remains in runtime behavior.
-- [ ] Internal rollback is clearly named and documented as simulation-only.
-- [ ] Event countdown logic has one clear owner.
-- [ ] UI code uses board helpers more consistently where random indexing was fragile.
-- [ ] Turn/full-turn semantics are explicit enough for AP and timed-event features.
-- [ ] Captured-piece tracking is usable both for UI and future rules like Necromancy.
-- [ ] The event system has a minimal seam for persistent effects without overengineering.
+- [x] The game no longer crashes on clicks outside the board width.
+- [x] Castling is impossible unless the correct rook is actually present.
+- [x] Promotion clicks outside the menu do not silently discard the pending move.
+- [x] `EventManager([])` stays empty instead of injecting a default event.
+- [x] No player-facing undo feature remains in runtime behavior.
+- [x] Internal rollback is clearly named and documented as simulation-only.
+- [x] Event countdown logic has one clear owner.
+- [x] UI code uses board helpers more consistently where random indexing was fragile.
+- [x] Turn/full-turn semantics are explicit enough for AP and timed-event features.
+- [x] Captured-piece tracking is usable both for UI and future rules like Necromancy.
+- [x] The event system has a minimal seam for persistent effects without overengineering.
 
 ---
 
@@ -841,10 +841,4 @@ git commit -m "docs: normalize rule comments and architecture wording"
 
 ---
 
-Plan complete and saved to `docs/superpowers/plans/2026-05-24-code-review-followup-phased-plan.md`. Two execution options:
-
-**1. Subagent-Driven (recommended)** - I dispatch a fresh subagent per task, review between tasks, fast iteration
-
-**2. Inline Execution** - Execute tasks in this session using executing-plans, batch execution with checkpoints
-
-**Which approach?**
+Plan execution completed and verified in this repository state.

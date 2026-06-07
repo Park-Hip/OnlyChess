@@ -1,5 +1,10 @@
 """Event timing, queueing, and execution orchestration."""
+
+from ..game.mode_config import DEFAULT_ADVANCED_EVENT_POOL
 from .registry import choose_random_event_key, create_event
+
+
+DEFAULT_EVENT_POOL = list(DEFAULT_ADVANCED_EVENT_POOL)
 
 
 class EventManager:
@@ -11,7 +16,7 @@ class EventManager:
         self.active_events = []
         self.queued_event = None
         self.queued_event_key = None
-        self.event_pool = ["gia_xang_tang"] if event_pool is None else list(event_pool)
+        self.event_pool = list(DEFAULT_EVENT_POOL) if event_pool is None else list(event_pool)
         if self.event_pool:
             self._queue_next_event()
 
@@ -28,6 +33,9 @@ class EventManager:
         """Advance any active event state before warning/execution checks."""
         for event in list(self.active_events):
             event.tick()
+            if event.duration == 0 and not event.warning_active and event is not self.queued_event:
+                event.cleanup()
+                self.active_events.remove(event)
 
     def update(self):
         """Advance warning and execution flow based on full-turn count."""

@@ -2,8 +2,9 @@
 
 import unittest
 
+from src.constants import BLACK, WHITE
 from src.game.board import GameState
-from src.ui.render_panels import get_material_text
+from src.ui.render_panels import get_ap_text, get_material_text
 
 
 class RenderPanelHelperTests(unittest.TestCase):
@@ -27,6 +28,13 @@ class RenderPanelHelperTests(unittest.TestCase):
         self.assertEqual(get_material_text(0, is_top_panel=True), "")
         self.assertEqual(get_material_text(-1, is_top_panel=False), "")
 
+    def test_get_ap_text_formats_player_ap(self):
+        game_state = GameState()
+        game_state.action_points.gain_for_move(WHITE)
+        game_state.action_points.gain_for_move(WHITE)
+
+        self.assertEqual(get_ap_text(game_state, WHITE), "AP: 1")
+        self.assertEqual(get_ap_text(game_state, BLACK), "AP: 0")
 
 if __name__ == "__main__":
     unittest.main()
