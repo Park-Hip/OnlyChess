@@ -3,9 +3,9 @@
 import pygame as p
 
 from ..constants import (
+    ARCHBISHOP_CODE,
     BISHOP_CODE,
     BLACK,
-    BOARD_WIDTH,
     KING_CODE,
     KNIGHT_CODE,
     PAWN_CODE,
@@ -23,12 +23,14 @@ STANDARD_SPRITE_KEYS = [
     WHITE + BISHOP_CODE,
     WHITE + KING_CODE,
     WHITE + QUEEN_CODE,
+    WHITE + ARCHBISHOP_CODE,
     BLACK + PAWN_CODE,
     BLACK + ROOK_CODE,
     BLACK + KNIGHT_CODE,
     BLACK + BISHOP_CODE,
     BLACK + KING_CODE,
     BLACK + QUEEN_CODE,
+    BLACK + ARCHBISHOP_CODE,
 ]
 
 
