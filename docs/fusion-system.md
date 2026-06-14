@@ -163,4 +163,4 @@ Fusion is intentionally limited to real standard captures. Ability captures upda
 
 Fusion pair lookup is directional, so reverse captures must be added explicitly if they should also fuse.
 
-Fused piece sprites currently use the primary component sprite through `get_sprite_key()` until custom fused-piece art is available.
+Most fused piece sprites currently use the primary component sprite through `get_sprite_key()` until custom fused-piece art is available. Archbishop is the current exception because it can load dedicated `wA.png` and `bA.png` art when those files exist in `images/`.
