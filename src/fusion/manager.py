@@ -1,6 +1,6 @@
-"""Fusion capture resolution."""
+﻿"""Fusion capture resolution."""
 
-from ..constants import MIN_FUSION_HALF_TURNS, TEMPO_BURST_KEY
+from ..constants import TEMPO_BURST_KEY
 from ..pieces import create_piece
 from .rules import get_fusion_result
 
@@ -37,8 +37,6 @@ class FusionManager:
         if not getattr(move, "is_real_move", False):
             return False
         if move.piece_captured is None:
-            return False
-        if self.gs.get_half_turn_count() < MIN_FUSION_HALF_TURNS:
             return False
         return move.piece_moved.can_fuse()
 

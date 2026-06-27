@@ -1,4 +1,4 @@
-# Chess Fusion Phase 7 Fusion Mechanics Implementation Plan
+﻿# Chess Fusion Phase 7 Fusion Mechanics Implementation Plan
 
 **Goal:** Add capture-based fusion while keeping core move execution readable and simulation-safe.
 

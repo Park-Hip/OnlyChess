@@ -1,4 +1,4 @@
-"""Tests for capture-based fusion resolution."""
+﻿"""Tests for capture-based fusion resolution."""
 
 import unittest
 
@@ -48,7 +48,7 @@ class FusionManagerTests(unittest.TestCase):
 
         self.assertEqual(game_state.board.get_piece_at(4, 6).get_piece_code(), CHANCELLOR_CODE)
 
-    def test_fusion_does_not_trigger_before_turn_five(self):
+    def test_fusion_can_trigger_in_the_opening(self):
         game_state = self._empty_state()
         game_state.move_log = []
         knight = Knight(WHITE, (4, 4))
@@ -59,8 +59,8 @@ class FusionManagerTests(unittest.TestCase):
         move = Move((4, 4), (2, 3), game_state.board.grid)
         game_state.make_move(move, is_real_move=True)
 
-        self.assertIsNone(move.fused_to_piece)
-        self.assertEqual(game_state.board.get_piece_at(2, 3).get_piece_code(), KNIGHT_CODE)
+        self.assertEqual(game_state.board.get_piece_at(2, 3).get_piece_code(), ARCHBISHOP_CODE)
+        self.assertIsNotNone(move.fused_to_piece)
 
     def test_simulated_capture_does_not_trigger_fusion(self):
         game_state = self._empty_state()

@@ -1,4 +1,4 @@
-# OnlyChess: Advanced Mode Design Document
+﻿# OnlyChess: Advanced Mode Design Document
 
 This document outlines the design and mechanics for the "Advanced Mode" in OnlyChess, introducing chaotic and strategic layers through Piece Fusions, Unique Abilities, and Global Events.
 
@@ -22,7 +22,7 @@ Players can fuse pieces through combat. When a piece captures an enemy piece, th
 - Fusion triggers **automatically** when a **base piece** captures an **enemy base piece** that forms a valid fusion pair.
 - Fusion is **forced** — the player cannot decline.
 - A piece can only be part of **one fusion** at a time (no chaining fusions).
-- Fusion cannot be triggered before **Turn 5** to prevent early-game exploits.
+- Fusion can happen from the **opening** if the capture pair is valid.
 - When a fused piece is captured, **both component pieces are permanently removed** from the game.
 - **Only standard captures trigger fusion.** Abilities (e.g., Bishop's Snipe), event damage (e.g., Meteor Strike, mines), and shield blocks do NOT trigger fusion.
 - If a base piece captures an enemy fused piece, it checks fusion eligibility against the **original pre-fusion piece** of the target. If the pair is valid, fusion occurs. If not, no fusion occurs.
@@ -76,7 +76,6 @@ Standard pieces gain unique active abilities. Abilities are not free; they requi
 - AP cannot exceed 5. Excess AP is lost.
 
 ---
-
 ## 3. Piece Abilities (Active Skills)
 
 Standard pieces gain unique active abilities. Using an ability **consumes your entire turn** — it IS your move. You cannot move and use an ability in the same turn.
@@ -353,3 +352,4 @@ class AdvancedGameState:
     # Tempo Burst
     tempo_burst_pending: bool = False  # If a Rook just triggered Tempo Burst
     tempo_burst_rook_id: str = None
+```

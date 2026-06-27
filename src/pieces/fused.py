@@ -1,4 +1,4 @@
-"""Fused chess piece classes."""
+﻿"""Fused chess piece classes."""
 
 from ..constants import ARCHBISHOP_CODE, BISHOP_CODE, CHANCELLOR_CODE, KNIGHT_CODE, ROOK_CODE
 from .base import Piece
@@ -25,8 +25,8 @@ class FusedPiece:
         return list(self.fusion_components)
 
     def get_sprite_key(self):
-        """Use an existing sprite until custom fused-piece art is available."""
-        return f"{self.color}{self.primary_component_code}"
+        """Use the fused piece sprite key."""
+        return self.get_display_id()
 
     def _get_knight_moves(self, gs):
         """Generate knight-style moves for fused pieces."""

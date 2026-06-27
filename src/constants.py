@@ -1,4 +1,4 @@
-"""Shared constants for board rules and game-domain values."""
+﻿"""Shared constants for board rules and game-domain values."""
 
 # Screen sizing
 BOARD_WIDTH = 512
@@ -41,11 +41,9 @@ WHITE = "w"
 BLACK = "b"
 
 # Fusion rules
-MIN_FUSION_HALF_TURNS = 8
 TEMPO_BURST_KEY = "tempo_burst"
 
 # Action Points
 STARTING_AP = 0
 MAX_AP = 5
 AP_GAIN_MOVE_INTERVAL = 2
-

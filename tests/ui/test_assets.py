@@ -1,13 +1,24 @@
-"""Tests for UI asset helpers."""
+﻿"""Tests for UI asset loading helpers."""
 
 import unittest
 
-from src.constants import BLACK, BISHOP_CODE, KING_CODE, KNIGHT_CODE, PAWN_CODE, QUEEN_CODE, ROOK_CODE, WHITE
+from src.constants import (
+    ARCHBISHOP_CODE,
+    BLACK,
+    BISHOP_CODE,
+    CHANCELLOR_CODE,
+    KING_CODE,
+    KNIGHT_CODE,
+    PAWN_CODE,
+    QUEEN_CODE,
+    ROOK_CODE,
+    WHITE,
+)
 from src.ui.assets import build_image_path, get_standard_sprite_keys, load_images
 
 
 class AssetHelperTests(unittest.TestCase):
-    """Verify asset lookup stays aligned with piece metadata."""
+    """Verify sprite key lists and image loading behavior."""
 
     def test_standard_sprite_keys_cover_all_standard_pieces(self):
         keys = get_standard_sprite_keys()
@@ -19,12 +30,16 @@ class AssetHelperTests(unittest.TestCase):
             WHITE + BISHOP_CODE,
             WHITE + KING_CODE,
             WHITE + QUEEN_CODE,
+            WHITE + ARCHBISHOP_CODE,
+            WHITE + CHANCELLOR_CODE,
             BLACK + PAWN_CODE,
             BLACK + ROOK_CODE,
             BLACK + KNIGHT_CODE,
             BLACK + BISHOP_CODE,
             BLACK + KING_CODE,
             BLACK + QUEEN_CODE,
+            BLACK + ARCHBISHOP_CODE,
+            BLACK + CHANCELLOR_CODE,
         }
         self.assertEqual(set(keys), expected)
 
@@ -54,6 +69,24 @@ class AssetHelperTests(unittest.TestCase):
         self.assertEqual(scaled_sizes, [(40, 40), (40, 40)])
         self.assertIn("wQ", images)
         self.assertIn("bK", images)
+
+    def test_default_load_images_includes_fused_piece_sprites(self):
+        loaded_paths = []
+
+        def fake_loader(path):
+            loaded_paths.append(path)
+            return path
+
+        def fake_scaler(image, size):
+            return (image, size)
+
+        images = load_images(image_loader=fake_loader, scaler=fake_scaler, square_size=40)
+
+        self.assertIn("images/wA.png", loaded_paths)
+        self.assertIn("images/bC.png", loaded_paths)
+        self.assertIn("wA", images)
+        self.assertIn("bC", images)
+        self.assertEqual(len(images), 16)
 
 
 if __name__ == "__main__":
