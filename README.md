@@ -8,7 +8,7 @@ The current codebase is the **stable advanced-mode baseline** after the event, f
 - internal move-simulation rollback for legal move validation
 - extracted event lifecycle/orchestration
 - the full `mode.md` global event pool
-- capture-based Fusion resolution with Archbishop, Chancellor, and Tempo Burst
+- capture-based Fusion resolution with Archbishop, Chancellor, Warden, and Inquisitor
 - Action Points tracked separately for both players and displayed on the player panels
 - active abilities: Knight Swap, Bishop Snipe, Rook Shield, and Pawn Sprint
 - extracted UI rendering and input helpers
