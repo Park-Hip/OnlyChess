@@ -52,7 +52,6 @@ class Move:
         self.rook_prev_has_moved = None
         self.is_real_move = False
         self.fused_to_piece = None
-        self.is_tempo_burst_move = False
 
     def __eq__(self, other):
         if isinstance(other, Move):

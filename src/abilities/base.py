@@ -13,12 +13,11 @@ class Ability:
     display_name = "Base Ability"
     ap_cost = 0
     owner_piece_codes = ()
+    requires_target = True
 
     def can_use(self, game_state, piece):
         """Return whether this ability can currently be used."""
         if piece is None:
-            return False
-        if game_state.tempo_burst_pending and piece is not game_state.tempo_burst_piece:
             return False
         if game_state.ability_used_this_turn:
             return False

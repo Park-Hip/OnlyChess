@@ -11,9 +11,12 @@ The current codebase is the **stable advanced-mode baseline** after the event, f
 - capture-based Fusion resolution with Archbishop, Chancellor, Warden, and Inquisitor
 - Action Points tracked separately for both players and displayed on the player panels
 - active abilities: Knight Swap, Bishop Snipe, Rook Shield, and Pawn Sprint
+- chess.com-style message log sidebar with Fusion Algebraic Notation (FAN)
+- event warnings and executions logged in the move table
+- in-game help overlay (`H` key) with fusion and ability reference
 - extracted UI rendering and input helpers
 
-Future work can focus on gameplay polish, custom art for fused pieces, and additional UI feedback.
+Future work can focus on gameplay polish and additional UI feedback.
 
 ## Run the Game
 

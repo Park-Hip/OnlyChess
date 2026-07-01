@@ -44,7 +44,6 @@ class InputHandlerTests(unittest.TestCase):
         self.assertTrue(input_state.dragging)
 
     def test_drag_release_packages_move_attempt(self):
-        game_state = GameState()
         input_state = InputState(sq_selected=(6, 0), player_clicks=[(6, 0)], dragging=True)
 
         handle_board_mouse_up(input_state, (1, INFO_PANEL_HEIGHT + 5 * SQ_SIZE + 1))

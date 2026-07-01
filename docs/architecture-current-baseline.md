@@ -13,12 +13,13 @@ This document describes the **stable advanced-mode baseline** after the event, f
   - Owns piece behavior and metadata.
   - Each piece class defines its own movement rules, sprite key, material value, active-state flag, and small extension hooks such as `can_fuse()` and `get_fusion_tags()`.
   - The piece registry creates standard and fused piece instances from stable piece codes.
-  - `Archbishop` combines Knight/Bishop movement and `Chancellor` combines Rook/Knight movement.
+  - `Archbishop` combines Knight/Bishop movement, `Chancellor` combines Rook/Knight movement, `Warden` adds limited diagonal to Rook movement, and `Inquisitor` adds limited orthogonal to Bishop movement.
+  - `_get_sliding_moves` supports a `limit` parameter for range-restricted sliding pieces.
 
 - `src/fusion/`
   - Owns capture-based fusion rules and resolution.
   - `rules.py` maps valid capture pairs to fusion results.
-  - `FusionManager` applies fusion only after real eligible captures, keeps simulated move generation side-effect free, and tracks Tempo Burst state.
+  - `FusionManager` applies fusion only after real eligible captures and keeps simulated move generation side-effect free.
 
 - `src/events/`
   - Owns the event lifecycle and orchestration.
@@ -35,6 +36,8 @@ This document describes the **stable advanced-mode baseline** after the event, f
 - `src/ui/`
   - Owns rendering and transient input state.
   - The UI package handles board rendering, player panels, AP display, promotion menu behavior, ability-menu state, sprite loading, click/drag interaction state, and UI-only constants.
+  - The message log sidebar renders a chess.com-style two-column grid with FAN (Fusion Algebraic Notation) and logs event warnings/executions as full-width rows.
+  - The help overlay modal shows all fusion pairs with movement descriptions and all abilities with AP costs.
   - UI helpers consume public game state and package user intent; they do not enforce chess rules.
 
 ## Current Runtime Flow
@@ -43,7 +46,8 @@ This document describes the **stable advanced-mode baseline** after the event, f
 2. UI input helpers collect selection, drag/click intent, promotion choices, and ability target intent.
 3. `GameState` validates and executes legal moves, while the ability registry validates and executes active abilities.
 4. Post-move systems update capture summaries, resolve eligible fusion captures, award AP for real moves, expire shields, and update timed events.
-5. UI render helpers draw the board, panels, overlays, ability menu, and promotion menu.
+5. The main loop logs events (warnings and executions) to the message log after each successful move or ability.
+6. UI render helpers draw the board, panels, message log sidebar, overlays, ability menu, help overlay, and promotion menu.
 
 ## Why This Baseline Matters
 

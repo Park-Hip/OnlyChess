@@ -64,3 +64,8 @@ python -m unittest discover -s tests/fusion -p "test_*.py" -v
 python -m unittest discover -s tests/game -p "test_*.py" -v
 python -m unittest discover -s tests/ui -p "test_*.py" -v
 ```
+
+## Post-Phase Update (2026-07-01)
+
+Task 4 (Tempo Burst ability use) is now obsolete. Tempo Burst was replaced entirely by the `Warden` and `Inquisitor` fused pieces. All Tempo Burst state and logic has been removed from the codebase.
+

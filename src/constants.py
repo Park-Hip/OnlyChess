@@ -1,10 +1,11 @@
-﻿"""Shared constants for board rules and game-domain values."""
+"""Shared constants for board rules and game-domain values."""
 
 # Screen sizing
 BOARD_WIDTH = 512
 BOARD_HEIGHT = 512
 INFO_PANEL_HEIGHT = 60
-WIDTH = BOARD_WIDTH
+LOG_PANEL_WIDTH = 250
+WIDTH = BOARD_WIDTH + LOG_PANEL_WIDTH
 HEIGHT = BOARD_HEIGHT + (2 * INFO_PANEL_HEIGHT)
 MAX_FPS = 60
 
@@ -41,7 +42,8 @@ WHITE = "w"
 BLACK = "b"
 
 # Fusion rules
-TEMPO_BURST_KEY = "tempo_burst"
+WARDEN_CODE = "W"       # Rook capturing Bishop
+INQUISITOR_CODE = "I"   # Bishop capturing Rook
 
 # Action Points
 STARTING_AP = 0

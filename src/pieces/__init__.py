@@ -1,7 +1,7 @@
 """Stable import surface for chess piece classes."""
 
 from .base import Piece
-from .fused import Archbishop, Chancellor, FusedPiece
+from .fused import Archbishop, Chancellor, FusedPiece, Inquisitor, Warden
 from .registry import create_piece, get_registered_piece_codes
 from .standard import Bishop, King, Knight, Pawn, Queen, Rook
 
@@ -10,6 +10,8 @@ __all__ = [
     "FusedPiece",
     "Archbishop",
     "Chancellor",
+    "Warden",
+    "Inquisitor",
     "Pawn",
     "Knight",
     "Bishop",

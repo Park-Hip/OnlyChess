@@ -1,6 +1,5 @@
 """Nguoi Chong Bat Luc event implementation."""
 
-import pygame as p
 
 from ..constants import BOARD_COLS, BOARD_ROWS, KING_CODE
 from .base import ChessEvent
@@ -17,6 +16,7 @@ class NguoiChongBatLuc(ChessEvent):
     def __init__(self, game_state):
         super().__init__(game_state)
         self.name = "Nguoi Chong Bat Luc"
+        self.warning_description = "NGUOI CHONG BAT LUC INCOMING! BOTH KINGS WILL BE IMMOBILIZED."
         self.duration = self.IMMOBILIZE_DURATION
         self.immobilized_kings = []
 
@@ -46,6 +46,11 @@ class NguoiChongBatLuc(ChessEvent):
         for king in self.immobilized_kings:
             king.is_active = False
             king.immobilized_turns = self.duration
+            
+        if self.immobilized_kings:
+            self.execution_messages.append("[stun] (All) K")
+        else:
+            self.execution_messages.append("0x")
 
     def tick(self):
         """Reduce immobilize duration and restore kings when it expires."""
@@ -67,9 +72,3 @@ class NguoiChongBatLuc(ChessEvent):
                 king.is_active = True
                 king.immobilized_turns = 0
 
-    def draw(self, screen, font, width, height, info_panel_height):
-        """Draw warning text before the event executes."""
-        if self.warning_active:
-            text = "WARNING: NGUOI CHONG BAT LUC INCOMING! BOTH KINGS WILL BE IMMOBILIZED."
-            text_object = font.render(text, True, p.Color("red"))
-            screen.blit(text_object, (10, info_panel_height + 10))

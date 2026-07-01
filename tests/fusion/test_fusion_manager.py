@@ -2,7 +2,7 @@
 
 import unittest
 
-from src.constants import ARCHBISHOP_CODE, BLACK, BOARD_COLS, BOARD_ROWS, CHANCELLOR_CODE, KNIGHT_CODE, ROOK_CODE, WHITE
+from src.constants import ARCHBISHOP_CODE, BLACK, BOARD_COLS, BOARD_ROWS, CHANCELLOR_CODE, KNIGHT_CODE, WHITE
 from src.game.board import GameState
 from src.game.move import Move
 from src.pieces import Archbishop, Bishop, King, Knight, Rook

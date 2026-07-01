@@ -1,6 +1,5 @@
-﻿"""Fusion capture resolution."""
+"""Fusion capture resolution."""
 
-from ..constants import TEMPO_BURST_KEY
 from ..pieces import create_piece
 from .rules import get_fusion_result
 
@@ -25,10 +24,6 @@ class FusionManager:
             return None
 
         capturing_piece.has_fused = True
-        if fusion_result == TEMPO_BURST_KEY:
-            self._start_tempo_burst(capturing_piece)
-            return fusion_result
-
         self._replace_with_fused_piece(move, fusion_result, capturing_code, captured_code)
         return fusion_result
 
@@ -48,9 +43,3 @@ class FusionManager:
         fused_piece.primary_component_code = capturing_code
         self.gs.board.replace_piece_at(move.end_row, move.end_col, fused_piece)
         move.fused_to_piece = fused_piece
-
-    def _start_tempo_burst(self, rook):
-        """Grant one immediate extra move to the capturing rook."""
-        self.gs.tempo_burst_pending = True
-        self.gs.tempo_burst_piece = rook
-        self.gs.tempo_burst_owner = rook.color

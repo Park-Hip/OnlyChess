@@ -78,16 +78,12 @@ class GameState:
         self.action_points = ActionPointTracker()
         self.event_manager = EventManager(self)
         self.fusion_manager = FusionManager(self)
-        self.tempo_burst_pending = False
-        self.tempo_burst_piece = None
-        self.tempo_burst_owner = None
         self.ability_used_this_turn = False
         self.active_shields = []
 
     def make_move(self, move, promotion_choice='Q', is_real_move=False):
         """Apply a move and update all related game-state fields."""
         self._record_move_state(move)
-        move.is_tempo_burst_move = self._is_tempo_burst_move(move)
         self._apply_base_piece_movement(move)
         self._resolve_en_passant_capture(move)
         self._resolve_pawn_promotion(move, promotion_choice)
@@ -167,15 +163,12 @@ class GameState:
     def _finalize_move(self, move, is_real_move):
         """Log the move, switch turns, and update king/event state."""
         self.move_log.append(move)
-        if not move.is_tempo_burst_move:
-            self.white_to_move = not self.white_to_move
+        self.white_to_move = not self.white_to_move
         self.ability_used_this_turn = False
         self._update_king_position(move)
         move.is_real_move = is_real_move
         if is_real_move:
             run_post_move_systems(self, move)
-        if is_real_move and move.is_tempo_burst_move:
-            self.clear_tempo_burst()
 
     def _update_king_position(self, move):
         """Update the cached king location after a king move."""
@@ -298,32 +291,13 @@ class GameState:
         for r in range(BOARD_ROWS):
             for c in range(BOARD_COLS):
                 piece = self.board.grid[r][c]
-                if self.tempo_burst_pending:
-                    if piece is self.tempo_burst_piece:
-                        moves.extend(get_piece_moves(piece, self, include_castle=include_castle))
-                    continue
                 if piece and ((piece.color == WHITE and self.white_to_move) or \
                              (piece.color == BLACK and not self.white_to_move)):
                     moves.extend(get_piece_moves(piece, self, include_castle=include_castle))
         return moves
 
-    def _is_tempo_burst_move(self, move):
-        """Return whether this move spends the pending Tempo Burst extra move."""
-        return self.tempo_burst_pending and move.piece_moved is self.tempo_burst_piece
-
-    def clear_tempo_burst(self):
-        """Clear pending Tempo Burst extra-move state."""
-        self.tempo_burst_pending = False
-        self.tempo_burst_piece = None
-        self.tempo_burst_owner = None
-
     def finish_ability_turn(self, color):
         """Consume the current turn after a successful ability use."""
-        if self.tempo_burst_pending:
-            self.move_log.append({"ability_turn": color, "tempo_burst": True})
-            self.clear_tempo_burst()
-            return
-
         self.ability_used_this_turn = True
         self.action_points.gain_for_move(color)
         self.move_log.append({"ability_turn": color})

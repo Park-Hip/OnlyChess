@@ -1,4 +1,4 @@
-﻿"""Fused chess piece classes."""
+"""Fused chess piece classes."""
 
 from ..constants import ARCHBISHOP_CODE, BISHOP_CODE, CHANCELLOR_CODE, KNIGHT_CODE, ROOK_CODE
 from .base import Piece
@@ -67,3 +67,47 @@ class Chancellor(FusedPiece, Rook):
 
     def _calculate_moves(self, gs):
         return self._get_rook_moves(gs) + self._get_knight_moves(gs)
+
+
+class Warden(FusedPiece, Rook):
+    """Fused Rook + Bishop piece (Heavy Rook).
+    Moves orthogonally without limit, plus diagonally up to 3 squares.
+    """
+
+    piece_code = "W"
+    material_value = 7
+    component_codes = (ROOK_CODE, BISHOP_CODE)
+
+    def __init__(self, color, pos):
+        super().__init__(color, self.piece_code, pos)
+
+    def _calculate_moves(self, gs):
+        # Full Rook moves
+        moves = self._get_rook_moves(gs)
+        
+        # Limited Bishop moves (max 3 squares, which means limit=4 for range(1, 4))
+        directions = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
+        moves.extend(self._get_sliding_moves(gs, directions, limit=4))
+        return moves
+
+
+class Inquisitor(FusedPiece, Bishop):
+    """Fused Bishop + Rook piece (Heavy Bishop).
+    Moves diagonally without limit, plus orthogonally up to 3 squares.
+    """
+
+    piece_code = "I"
+    material_value = 7
+    component_codes = (BISHOP_CODE, ROOK_CODE)
+
+    def __init__(self, color, pos):
+        super().__init__(color, self.piece_code, pos)
+
+    def _calculate_moves(self, gs):
+        # Full Bishop moves
+        moves = self._get_bishop_moves(gs)
+        
+        # Limited Rook moves (max 3 squares, which means limit=4 for range(1, 4))
+        directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+        moves.extend(self._get_sliding_moves(gs, directions, limit=4))
+        return moves

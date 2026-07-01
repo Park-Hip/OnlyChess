@@ -1,6 +1,6 @@
 """Pawn Sprint ability."""
 
-from ..constants import BLACK, BOARD_ROWS, PAWN_CODE, QUEEN_CODE, WHITE
+from ..constants import BOARD_ROWS, PAWN_CODE, QUEEN_CODE, WHITE
 from ..pieces import create_piece
 from .base import Ability
 from .registry import register_ability

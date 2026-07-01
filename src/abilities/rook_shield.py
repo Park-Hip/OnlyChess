@@ -13,6 +13,7 @@ class RookShield(Ability):
     display_name = "Rook Shield"
     ap_cost = 3
     owner_piece_codes = (ROOK_CODE,)
+    requires_target = False
 
     def is_valid_target(self, game_state, piece, target_square):
         return target_square == piece.pos
