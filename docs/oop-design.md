@@ -37,7 +37,6 @@ Managers and helpers keep focused runtime responsibilities out of `GameState`:
 - `ActionPointTracker` owns AP values and move counts for each player.
 - `CaptureTracker` owns captured-piece summaries for UI and ability captures.
 - `ShieldTracker` owns temporary shield state and shield expiry.
-- `TempoBurstState` owns the temporary extra-move state granted by Tempo Burst.
 
 ## Inheritance
 
@@ -72,7 +71,6 @@ Ability inheritance follows the same simple structure:
 - `self.fusion_manager = FusionManager(self)`
 - `self.shield_tracker = ShieldTracker()`
 - `self.post_move_systems = create_default_post_move_systems(self)`
-- `self.tempo_burst_state = TempoBurstState()`
 
 This is easier to explain than a large inheritance hierarchy. `GameState` remains the coordinator, while helper objects own details that would otherwise make it a God Object.
 
@@ -80,7 +78,7 @@ This is easier to explain than a large inheritance hierarchy. `GameState` remain
 
 The project uses simple registries for extension:
 
-- `src.pieces.registry.PIECE_CLASS_BY_CODE` maps piece codes to piece classes.
+- `src.pieces.registry._PIECE_REGISTRY` maps piece codes to piece classes.
 - `src.events.registry` maps event keys to event classes.
 - `src.abilities.registry` maps ability keys to ability instances.
 
@@ -122,7 +120,6 @@ Post-move side effects are controlled through `run_post_move_systems()` instead 
 - Action Point bookkeeping into `ActionPointTracker`
 - shield bookkeeping into `ShieldTracker`
 - fusion resolution into `FusionManager`
-- Tempo Burst state into `TempoBurstState`
 - rendering and input state into `src/ui/`
 - post-move side effects into `src/game/post_move_systems/`
 
@@ -147,7 +144,7 @@ The current test layout supports subsystem-focused testing:
 
 - `tests/pieces/` checks piece metadata, extension hooks, fused pieces, and registry behavior
 - `tests/events/` checks event contracts, event manager flow, registry behavior, and concrete events
-- `tests/fusion/` checks fusion rules, fusion manager behavior, and Tempo Burst
+- `tests/fusion/` checks fusion rules, fusion manager behavior, and fused pieces
 - `tests/abilities/` checks the ability registry and concrete abilities
 - `tests/game/` checks core move behavior, helpers, post-move systems, trackers, and scoring
 - `tests/ui/` checks UI helpers without running a full interactive game

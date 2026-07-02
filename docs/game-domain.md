@@ -77,7 +77,6 @@ Important owned state and helpers include:
 - `fusion_manager`: capture-based fusion coordination.
 - `shield_tracker`: temporary shield state.
 - `post_move_systems`: ordered systems that run after real moves.
-- `tempo_burst_state`: pending Tempo Burst extra-move state.
 - `ability_used_this_turn`: helper flag for ability turn flow.
 
 `GameState` is central, but it delegates focused details to helper classes so the design remains understandable and expandable.
@@ -87,14 +86,13 @@ Important owned state and helpers include:
 `GameState.make_move(move, promotion_choice='Q', is_real_move=False)` applies one move in a fixed order:
 
 1. `_record_move_state(move)` stores previous state needed for rollback.
-2. `_is_tempo_burst_move(move)` marks whether this move consumes a pending Tempo Burst move.
-3. `_apply_base_piece_movement(move)` moves the piece from start square to end square.
-4. `_resolve_en_passant_capture(move)` removes the pawn captured by en passant.
-5. `_resolve_pawn_promotion(move, promotion_choice)` replaces a promoted pawn with the selected piece type.
-6. `_update_en_passant_square(move)` sets or clears the next en passant target.
-7. `_resolve_castle_rook_movement(move)` moves the rook for castling.
-8. `_update_castle_state(move)` updates and logs castling rights.
-9. `_finalize_move(move, is_real_move)` logs the move, flips the turn, updates king position, and runs real-move side effects when requested.
+2. `_apply_base_piece_movement(move)` moves the piece from start square to end square.
+3. `_resolve_en_passant_capture(move)` removes the pawn captured by en passant.
+4. `_resolve_pawn_promotion(move, promotion_choice)` replaces a promoted pawn with the selected piece type.
+5. `_update_en_passant_square(move)` sets or clears the next en passant target.
+6. `_resolve_castle_rook_movement(move)` moves the rook for castling.
+7. `_update_castle_state(move)` updates and logs castling rights.
+8. `_finalize_move(move, is_real_move)` logs the move, flips the turn, updates king position, and runs real-move side effects when requested.
 
 The default `is_real_move=False` matters because the same method is used for internal simulation during legal move filtering.
 
@@ -102,7 +100,7 @@ The default `is_real_move=False` matters because the same method is used for int
 
 `get_valid_moves()` produces legal moves in two phases.
 
-First, it calls `get_all_possible_moves()` to collect pseudo-legal moves for the side to move. `get_all_possible_moves()` normally scans the board, selects pieces whose color matches the active turn, and asks each piece for possible moves through `get_piece_moves()`. When `GameState.tempo_burst_state.pending` is true, generation is restricted to only the Tempo Burst piece stored in `tempo_burst_state.piece`.
+First, it calls `get_all_possible_moves()` to collect pseudo-legal moves for the side to move. `get_all_possible_moves()` scans the board, selects pieces whose color matches the active turn, and asks each piece for possible moves through `get_piece_moves()`.
 
 Second, `get_valid_moves()` simulates each candidate move with `make_move()` using the default simulated mode. It temporarily flips `white_to_move` so `in_check()` evaluates the side that just moved. If that side's king is in check, the move is removed. The simulated move is then rolled back.
 
@@ -152,8 +150,6 @@ The default order from `create_default_post_move_systems()` is:
 5. event update
 
 This is the boundary between core chess-domain movement and advanced systems. `GameState` coordinates the loop, but concrete fusion behavior, event behavior, AP bookkeeping, and shield logic stay in their own classes.
-
-After those real post-move systems run, a real Tempo Burst move clears pending Tempo Burst state.
 
 ## Interactions With Other Subsystems
 

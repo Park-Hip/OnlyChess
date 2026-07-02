@@ -13,12 +13,12 @@ This document describes the **stable advanced-mode baseline** after the event, f
   - Owns piece behavior and metadata.
   - Each piece class defines its own movement rules, sprite key, material value, active-state flag, and small extension hooks such as `can_fuse()` and `get_fusion_tags()`.
   - The piece registry creates standard and fused piece instances from stable piece codes.
-  - `Archbishop` combines Knight/Bishop movement and `Chancellor` combines Rook/Knight movement.
+  - `Archbishop` combines Knight/Bishop movement, `Chancellor` combines Rook/Knight movement, and `Warden`/`Inquisitor` combine Rook/Bishop movement with a limited second range.
 
 - `src/fusion/`
   - Owns capture-based fusion rules and resolution.
-  - `rules.py` maps valid capture pairs to fusion results.
-  - `FusionManager` applies fusion only after real eligible captures, keeps simulated move generation side-effect free, and uses a dedicated Tempo Burst state helper.
+  - `rules.py` maps valid capture pairs (in both directions) to fused pieces.
+  - `FusionManager` applies fusion only after real eligible captures and keeps simulated move generation side-effect free.
 
 - `src/events/`
   - Owns the event lifecycle and orchestration.
