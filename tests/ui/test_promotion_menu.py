@@ -3,10 +3,9 @@
 import unittest
 
 from src.constants import BISHOP_CODE, KNIGHT_CODE, QUEEN_CODE, ROOK_CODE
-from src.game.board import GameState
-from src.main import handle_promotion_click
-from src.ui.input_handler import InputState
 from src.ui.promotion_menu import PROMOTION_CHOICES, get_promotion_menu_rect, resolve_promotion_click
+from src.ui.screens.game_screen import GameScreen
+from src.ui.screens.shared_resources import SharedResources
 
 
 class _StubMove:
@@ -50,14 +49,15 @@ class PromotionMenuTests(unittest.TestCase):
         self.assertIsNone(resolve_promotion_click((rect.x - 5, rect.y), menu_rect=rect))
 
     def test_handle_promotion_click_keeps_pending_move_on_outside_click(self):
-        game_state = GameState()
-        input_state = InputState(promotion_move_pending=_StubMove(end_row=0, end_col=0))
+        shared = SharedResources(images={}, fonts={"normal": None, "title": None, "small": None}, menu_background=None)
+        game_screen = GameScreen(shared)
+        game_screen.input_state.promotion_move_pending = _StubMove(end_row=0, end_col=0)
 
         # (0, 0) sits above the menu, which starts below the top info panel.
-        result = handle_promotion_click(input_state, game_state, (0, 0))
+        result = game_screen._handle_promotion_click((0, 0))
 
         self.assertFalse(result)
-        self.assertIsNotNone(input_state.promotion_move_pending)
+        self.assertIsNotNone(game_screen.input_state.promotion_move_pending)
 
 
 if __name__ == "__main__":
