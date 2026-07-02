@@ -1,6 +1,5 @@
 """Viec Nhe Vol Cao event implementation."""
 
-import pygame as p
 
 from ..constants import BOARD_COLS, BOARD_ROWS, PAWN_CODE
 from .base import ChessEvent
@@ -17,6 +16,7 @@ class ViecNheVolCao(ChessEvent):
     def __init__(self, game_state):
         super().__init__(game_state)
         self.name = "Viec Nhe Vol Cao"
+        self.warning_description = "VIEC NHE VOL CAO INCOMING! ALL PAWNS WILL BE STUNNED."
         self.duration = self.STUN_DURATION
         self.stunned_pawns = []
 
@@ -46,6 +46,11 @@ class ViecNheVolCao(ChessEvent):
         for pawn in self.stunned_pawns:
             pawn.is_active = False
             pawn.stunned_turns = self.duration
+            
+        if self.stunned_pawns:
+            self.execution_messages.append("[stun] (All) P")
+        else:
+            self.execution_messages.append("0x")
 
     def tick(self):
         """Reduce the stun duration and recover pawns when it expires."""
@@ -67,9 +72,3 @@ class ViecNheVolCao(ChessEvent):
                 pawn.is_active = True
                 pawn.stunned_turns = 0
 
-    def draw(self, screen, font, width, height, info_panel_height):
-        """Draw warning text before the event executes."""
-        if self.warning_active:
-            text = "WARNING: VIEC NHE VOL CAO INCOMING! ALL PAWNS WILL BE STUNNED."
-            text_object = font.render(text, True, p.Color("red"))
-            screen.blit(text_object, (10, info_panel_height + 10))

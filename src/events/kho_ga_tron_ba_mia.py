@@ -2,7 +2,6 @@
 
 import random
 
-import pygame as p
 
 from ..constants import (
     ARCHBISHOP_CODE,
@@ -15,6 +14,7 @@ from ..constants import (
     ROOK_CODE,
     WHITE,
 )
+from ..game.state_helpers import format_piece_fan, format_square
 from .base import ChessEvent
 from .registry import register_event
 
@@ -30,6 +30,7 @@ class KhoGaTronBaMia(ChessEvent):
     def __init__(self, game_state):
         super().__init__(game_state)
         self.name = "Kho Ga Tron Ba Mia"
+        self.warning_description = "KHO GA TRON BA MIA INCOMING! SOME PIECES WILL BE POISONED."
         self.duration = self.POISON_DURATION
         self.poisoned_pieces = []
 
@@ -60,6 +61,7 @@ class KhoGaTronBaMia(ChessEvent):
         super().execute()
         self.duration = self.POISON_DURATION
         self.poisoned_pieces = []
+        poisoned_msgs = []
         for color in (WHITE, BLACK):
             eligible_pieces = self._collect_eligible_pieces(color)
             if not eligible_pieces:
@@ -67,6 +69,11 @@ class KhoGaTronBaMia(ChessEvent):
             piece = random.choice(eligible_pieces)
             piece.poisoned_turns = self.duration
             self.poisoned_pieces.append(piece)
+            poisoned_msgs.append(f"[poi] {format_piece_fan(piece)}@{format_square(*piece.pos)}")
+        if poisoned_msgs:
+            self.execution_messages.append(", ".join(poisoned_msgs))
+        else:
+            self.execution_messages.append("0x")
 
     def tick(self):
         """Reduce poison duration and clear it when it expires."""
@@ -87,9 +94,3 @@ class KhoGaTronBaMia(ChessEvent):
             if self._is_piece_on_board(piece):
                 piece.poisoned_turns = 0
 
-    def draw(self, screen, font, width, height, info_panel_height):
-        """Draw warning text before the event executes."""
-        if self.warning_active:
-            text = "WARNING: KHO GA TRON BA MIA INCOMING! SOME PIECES WILL BE POISONED."
-            text_object = font.render(text, True, p.Color("red"))
-            screen.blit(text_object, (10, info_panel_height + 10))

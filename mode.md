@@ -22,7 +22,7 @@ Players can fuse pieces through combat. When a piece captures an enemy piece, th
 - Fusion triggers **automatically** when a **base piece** captures an **enemy base piece** that forms a valid fusion pair.
 - Fusion is **forced** — the player cannot decline.
 - A piece can only be part of **one fusion** at a time (no chaining fusions).
-- Fusion cannot be triggered before **Turn 5** to prevent early-game exploits.
+- Fusion can happen from the **opening** if the capture pair is valid.
 - When a fused piece is captured, **both component pieces are permanently removed** from the game.
 - **Only standard captures trigger fusion.** Abilities (e.g., Bishop's Snipe), event damage (e.g., Meteor Strike, mines), and shield blocks do NOT trigger fusion.
 - If a base piece captures an enemy fused piece, it checks fusion eligibility against the **original pre-fusion piece** of the target. If the pair is valid, fusion occurs. If not, no fusion occurs.
@@ -34,7 +34,8 @@ Players can fuse pieces through combat. When a piece captures an enemy piece, th
 |-----------------|----------------|--------|-------------|
 | Knight | Bishop | **Archbishop** | Moves like both a Knight and a Bishop. Extremely deadly in closed positions. |
 | Rook | Knight | **Chancellor** | Moves like both a Rook and a Knight. Excellent for mating nets. |
-| Rook | Bishop | **Tempo Burst** | No permanent hybrid. The Rook gains a **one-time free extra move** immediately after the fusion capture, then remains a Rook. |
+| Rook | Bishop | **Warden** | Heavy Rook. Moves orthogonally without limit, plus diagonally up to 3 squares. |
+| Bishop | Rook | **Inquisitor** | Heavy Bishop. Moves diagonally without limit, plus orthogonally up to 3 squares. |
 
 ### Fused Piece Rules
 
@@ -44,13 +45,6 @@ Players can fuse pieces through combat. When a piece captures an enemy piece, th
 - Fusion is permanent unless the piece is captured or transformed by an event.
 - When a fused piece is affected by a transformation event (e.g., Umamusume, Giá Xăng Tăng), it follows the event's rules. If the event is temporary, the piece returns to its fused form when the event expires. If the event is permanent, the fused piece is permanently lost.
 
-### Tempo Burst Details
-
-- The Rook gains **one immediate extra move** after fusing via Tempo Burst.
-- This extra move is a full standard move (or ability use if AP permits) and does not cost the player's normal turn.
-- The Rook is **not** immune during this extra move and can be captured normally if it ends on a threatened square.
-- After the extra move resolves, the Rook returns to being a standard Rook. No permanent hybrid is created.
-- Tempo Burst is still considered a fusion for purposes of the "one fusion per piece" rule. A Rook that triggers Tempo Burst cannot fuse again later.
 
 ---
 
@@ -76,7 +70,6 @@ Standard pieces gain unique active abilities. Abilities are not free; they requi
 - AP cannot exceed 5. Excess AP is lost.
 
 ---
-
 ## 3. Piece Abilities (Active Skills)
 
 Standard pieces gain unique active abilities. Using an ability **consumes your entire turn** — it IS your move. You cannot move and use an ability in the same turn.
@@ -340,7 +333,7 @@ class AdvancedGameState:
     active_events: list = []  # Currently active event effects
     
     # Fusion Tracking
-    fused_pieces: dict = {}  # {piece_id: {"components": [piece1, piece2], "type": "archbishop"|"chancellor"}}
+    fused_pieces: dict = {}  # {piece_id: {"components": [piece1, piece2], "type": "archbishop"|"chancellor"|"warden"|"inquisitor"}}
     
     # Status Effects
     stunned_pawns: dict = {}  # {piece_id: turns_remaining}
@@ -350,6 +343,4 @@ class AdvancedGameState:
     impotent_kings_turns_remaining: int = 0
     shielded_pieces: list = []  # piece_ids, clears after opponent's turn
     
-    # Tempo Burst
-    tempo_burst_pending: bool = False  # If a Rook just triggered Tempo Burst
-    tempo_burst_rook_id: str = None
+```

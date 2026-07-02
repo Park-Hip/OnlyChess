@@ -41,12 +41,12 @@ class Piece:
         """Return piece-specific moves."""
         return []
 
-    def _get_sliding_moves(self, gs, directions):
+    def _get_sliding_moves(self, gs, directions, limit=BOARD_ROWS):
         """Generate moves for pieces that slide across the board."""
         moves = []
         r, c = self.pos
         for dr, dc in directions:
-            for i in range(1, BOARD_ROWS):
+            for i in range(1, limit):
                 end_row = r + dr * i
                 end_col = c + dc * i
                 if not gs.board.is_inside_board(end_row, end_col):

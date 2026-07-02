@@ -41,6 +41,27 @@ class ComeoutEventTests(unittest.TestCase):
         self.assertEqual(game_state.board.get_piece_at(7, 4).get_piece_code(), KING_CODE)
         self.assertEqual(game_state.board.get_piece_at(0, 4).get_piece_code(), KING_CODE)
 
+    def test_execute_preserves_dynamic_status_effects(self):
+        game_state = GameState()
+        game_state.board.grid = [[None for _ in range(BOARD_COLS)] for _ in range(BOARD_ROWS)]
+        pawn = Pawn(WHITE, (2, 2))
+        pawn.has_moved = True
+        pawn.stunned_turns = 2
+        pawn.poisoned_turns = 3
+        pawn.is_active = False
+        game_state.board.set_piece_at(2, 2, pawn)
+        event = Comeout(game_state)
+
+        with patch("src.events.comeout.random.choice", return_value=(2, 2, pawn)):
+            event.execute()
+
+        queen = game_state.board.get_piece_at(2, 2)
+        self.assertEqual(queen.get_piece_code(), QUEEN_CODE)
+        self.assertTrue(queen.has_moved)
+        self.assertEqual(queen.stunned_turns, 2)
+        self.assertEqual(queen.poisoned_turns, 3)
+        self.assertFalse(queen.is_active)
+
     def test_execute_is_no_op_when_no_pawns_exist(self):
         game_state = GameState()
         game_state.board.grid = [[None for _ in range(BOARD_COLS)] for _ in range(BOARD_ROWS)]

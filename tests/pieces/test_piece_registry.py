@@ -7,11 +7,13 @@ from src.constants import (
     BISHOP_CODE,
     BLACK,
     CHANCELLOR_CODE,
+    INQUISITOR_CODE,
     KING_CODE,
     KNIGHT_CODE,
     PAWN_CODE,
     QUEEN_CODE,
     ROOK_CODE,
+    WARDEN_CODE,
     WHITE,
 )
 from src.pieces import Archbishop, Bishop, Chancellor, King, Knight, Pawn, Queen, Rook, create_piece, get_registered_piece_codes
@@ -42,6 +44,8 @@ class PieceRegistryTests(unittest.TestCase):
                 KING_CODE,
                 ARCHBISHOP_CODE,
                 CHANCELLOR_CODE,
+                WARDEN_CODE,
+                INQUISITOR_CODE,
             },
         )
 

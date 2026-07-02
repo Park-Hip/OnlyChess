@@ -1,6 +1,5 @@
 """Fusion capture resolution."""
 
-from ..constants import MIN_FUSION_HALF_TURNS, TEMPO_BURST_KEY
 from ..pieces import create_piece
 from .rules import get_fusion_result
 
@@ -25,10 +24,6 @@ class FusionManager:
             return None
 
         capturing_piece.has_fused = True
-        if fusion_result == TEMPO_BURST_KEY:
-            self._start_tempo_burst(capturing_piece)
-            return fusion_result
-
         self._replace_with_fused_piece(move, fusion_result, capturing_code, captured_code)
         return fusion_result
 
@@ -37,8 +32,6 @@ class FusionManager:
         if not getattr(move, "is_real_move", False):
             return False
         if move.piece_captured is None:
-            return False
-        if self.gs.get_half_turn_count() < MIN_FUSION_HALF_TURNS:
             return False
         return move.piece_moved.can_fuse()
 
@@ -50,7 +43,3 @@ class FusionManager:
         fused_piece.primary_component_code = capturing_code
         self.gs.board.replace_piece_at(move.end_row, move.end_col, fused_piece)
         move.fused_to_piece = fused_piece
-
-    def _start_tempo_burst(self, rook):
-        """Grant one immediate extra move to the capturing rook."""
-        self.gs.tempo_burst_state.start(rook)

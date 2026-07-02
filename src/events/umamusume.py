@@ -1,6 +1,5 @@
 """Umamusume event implementation."""
 
-import pygame as p
 
 from ..constants import BOARD_COLS, BOARD_ROWS, KING_CODE, KNIGHT_CODE
 from ..pieces import create_piece
@@ -17,10 +16,12 @@ class Umamusume(ChessEvent):
     def __init__(self, game_state):
         super().__init__(game_state)
         self.name = "Umamusume"
+        self.warning_description = "UMAMUSUME INCOMING! ALL NON-KING PIECES BECOME KNIGHTS."
 
     def execute(self):
         """Replace every non-king piece with a knight of the same color."""
         super().execute()
+        transformed = False
         for row in range(BOARD_ROWS):
             for col in range(BOARD_COLS):
                 piece = self.gs.board.get_piece_at(row, col)
@@ -29,10 +30,10 @@ class Umamusume(ChessEvent):
                 new_knight = create_piece(KNIGHT_CODE, piece.color, (row, col))
                 new_knight.has_moved = piece.has_moved
                 self.gs.board.replace_piece_at(row, col, new_knight)
+                transformed = True
+                
+        if transformed:
+            self.execution_messages.append("(All)=N")
+        else:
+            self.execution_messages.append("0x")
 
-    def draw(self, screen, font, width, height, info_panel_height):
-        """Draw warning text before the event executes."""
-        if self.warning_active:
-            text = "WARNING: UMAMUSUME INCOMING! ALL NON-KING PIECES BECOME KNIGHTS."
-            text_object = font.render(text, True, p.Color("red"))
-            screen.blit(text_object, (10, info_panel_height + 10))

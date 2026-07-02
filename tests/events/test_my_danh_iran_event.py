@@ -3,7 +3,7 @@
 import unittest
 from unittest.mock import patch
 
-from src.constants import BLACK, BOARD_COLS, BOARD_ROWS, KING_CODE, PAWN_CODE, QUEEN_CODE, ROOK_CODE, WHITE
+from src.constants import BLACK, BOARD_COLS, BOARD_ROWS, KING_CODE, QUEEN_CODE, WHITE
 from src.events import MyDanhIran
 from src.game.board import GameState
 from src.pieces import King, Pawn, Queen, Rook

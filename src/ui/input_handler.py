@@ -40,11 +40,13 @@ def clear_ability_state(input_state):
     input_state.ability_error = ""
 
 
-def select_ability(input_state, ability_key, source_square):
+def select_ability(input_state, ability_key, source_square, requires_target=True):
     """Store the chosen ability and source square."""
     input_state.selected_ability_key = ability_key
     input_state.ability_source_square = source_square
     input_state.ability_menu_square = ()
+    if not requires_target:
+        input_state.player_clicks = [source_square]
 
 
 def set_promotion_pending(input_state, move):
