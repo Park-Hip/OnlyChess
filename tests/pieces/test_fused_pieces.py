@@ -1,4 +1,4 @@
-"""Tests for fused chess pieces."""
+﻿"""Tests for fused chess pieces."""
 
 import unittest
 
@@ -48,12 +48,12 @@ class FusedPieceTests(unittest.TestCase):
         self.assertEqual(archbishop.get_fusion_tags(), ["N", "B"])
         self.assertEqual(chancellor.get_fusion_tags(), ["R", "N"])
 
-    def test_archbishop_uses_dedicated_sprite_keys(self):
-        white_archbishop = Archbishop(WHITE, (4, 4))
-        black_archbishop = Archbishop(BLACK, (3, 3))
+    def test_fused_pieces_use_their_own_sprite_keys(self):
+        archbishop = Archbishop(WHITE, (4, 4))
+        chancellor = Chancellor(BLACK, (3, 3))
 
-        self.assertEqual(white_archbishop.get_sprite_key(), "wA")
-        self.assertEqual(black_archbishop.get_sprite_key(), "bA")
+        self.assertEqual(archbishop.get_sprite_key(), "wA")
+        self.assertEqual(chancellor.get_sprite_key(), "bC")
 
 
 if __name__ == "__main__":

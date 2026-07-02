@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from ..constants import BLACK, BOARD_COLS, BOARD_ROWS, KING_CODE, ROOK_CODE, WHITE
+from ..constants import BOARD_COLS, BOARD_ROWS, KING_CODE, ROOK_CODE, WHITE
 
 
 @dataclass

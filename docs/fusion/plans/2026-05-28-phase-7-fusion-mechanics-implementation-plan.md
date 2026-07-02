@@ -23,3 +23,12 @@
 
 - `python -m unittest discover -s tests/fusion -p "test_*.py" -v`
 - `python -m unittest discover -s tests/pieces -p "test_*.py" -v`
+
+## Post-Phase Update (2026-07-01)
+
+Tempo Burst was later replaced by two new fused pieces:
+- `Warden` (Rook captures Bishop): unlimited orthogonal + max 3 sq. diagonal
+- `Inquisitor` (Bishop captures Rook): unlimited diagonal + max 3 sq. orthogonal
+
+All Tempo Burst state and logic was removed from `GameState`, `FusionManager`, and the UI.
+

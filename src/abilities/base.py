@@ -13,6 +13,7 @@ class Ability:
     display_name = "Base Ability"
     ap_cost = 0
     owner_piece_codes = ()
+    requires_target = True
 
     def can_use(self, game_state, piece):
         """Return whether this ability can currently be used."""

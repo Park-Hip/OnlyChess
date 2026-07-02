@@ -2,10 +2,10 @@
 
 import random
 
-import pygame as p
 
 from ..constants import BLACK, BOARD_COLS, BOARD_ROWS, PAWN_CODE, WHITE
 from ..pieces import create_piece
+from ..game.state_helpers import format_piece_fan, format_square
 from .base import ChessEvent
 from .registry import register_event
 
@@ -19,8 +19,9 @@ class MatQuyenCongDan(ChessEvent):
     def __init__(self, game_state):
         super().__init__(game_state)
         self.name = "Mat Quyen Cong Dan"
+        self.warning_description = "MAT QUYEN CONG DAN INCOMING! A BLACK PAWN WILL FALL AND A WHITE PAWN WILL SWITCH SIDES."
 
-    def _collect_pawn_entries(self, target_color):
+    def _collect_pawn_entries(self, target_color, include_shielded=True):
         """Return board entries for pawns that match the target color."""
         entries = []
         for row in range(BOARD_ROWS):
@@ -31,6 +32,8 @@ class MatQuyenCongDan(ChessEvent):
                 if piece.color != target_color:
                     continue
                 if piece.get_piece_code() != PAWN_CODE:
+                    continue
+                if not include_shielded and getattr(piece, "is_shielded", False):
                     continue
                 entries.append((row, col, piece))
         return entries
@@ -47,23 +50,23 @@ class MatQuyenCongDan(ChessEvent):
         """Remove one black pawn and transform one white pawn into a black pawn."""
         super().execute()
 
-        black_pawns = self._collect_pawn_entries(BLACK)
+        messages = []
+        black_pawns = self._collect_pawn_entries(BLACK, include_shielded=False)
         if black_pawns:
-            row, col, _ = random.choice(black_pawns)
+            row, col, pawn = random.choice(black_pawns)
+            messages.append(f"x{format_piece_fan(pawn)}@{format_square(row, col)}")
             self.gs.board.set_piece_at(row, col, None)
 
         white_pawns = self._collect_pawn_entries(WHITE)
-        if not white_pawns:
-            return
+        if white_pawns:
+            row, col, white_pawn = random.choice(white_pawns)
+            messages.append(f"{format_piece_fan(white_pawn)}@{format_square(row, col)}=bP")
+            transformed_pawn = create_piece(PAWN_CODE, BLACK, (row, col))
+            self._copy_pawn_state(white_pawn, transformed_pawn)
+            self.gs.board.replace_piece_at(row, col, transformed_pawn)
 
-        row, col, white_pawn = random.choice(white_pawns)
-        transformed_pawn = create_piece(PAWN_CODE, BLACK, (row, col))
-        self._copy_pawn_state(white_pawn, transformed_pawn)
-        self.gs.board.replace_piece_at(row, col, transformed_pawn)
+        if messages:
+            self.execution_messages.append(", ".join(messages))
+        else:
+            self.execution_messages.append("0x")
 
-    def draw(self, screen, font, width, height, info_panel_height):
-        """Draw warning text before the event executes."""
-        if self.warning_active:
-            text = "WARNING: MAT QUYEN CONG DAN INCOMING! A BLACK PAWN WILL FALL AND A WHITE PAWN WILL SWITCH SIDES."
-            text_object = font.render(text, True, p.Color("red"))
-            screen.blit(text_object, (10, info_panel_height + 10))

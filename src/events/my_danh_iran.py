@@ -2,9 +2,9 @@
 
 import random
 
-import pygame as p
 
-from ..constants import BOARD_COLS, BOARD_ROWS, SQ_SIZE
+from ..constants import BOARD_COLS
+from ..game.state_helpers import format_piece_fan, format_square
 from .base import ChessEvent
 from .registry import register_event
 
@@ -18,6 +18,7 @@ class MyDanhIran(ChessEvent):
     def __init__(self, game_state):
         super().__init__(game_state)
         self.name = "My Danh Iran"
+        self.warning_description = "MY DANH IRAN INCOMING! A RANDOM 2X2 ZONE WILL BE DESTROYED."
         self.warning_area = self._choose_warning_area()
 
     def _choose_warning_area(self):
@@ -40,25 +41,17 @@ class MyDanhIran(ChessEvent):
     def execute(self):
         """Destroy every non-shielded piece inside the warning zone."""
         super().execute()
+        destroyed = []
         for row, col in self._iter_warning_squares():
             piece = self.gs.board.get_piece_at(row, col)
             if piece is None:
                 continue
             if self._is_piece_shielded(piece):
                 continue
+            destroyed.append(f"x{format_piece_fan(piece)}@{format_square(row, col)}")
             self.gs.board.set_piece_at(row, col, None)
 
-    def draw(self, screen, font, width, height, info_panel_height):
-        """Draw the warning banner and highlight the 2x2 danger zone."""
-        if not self.warning_active:
-            return
-
-        text = "WARNING: MY DANH IRAN INCOMING! A RANDOM 2X2 ZONE WILL BE DESTROYED."
-        text_object = font.render(text, True, p.Color("red"))
-        screen.blit(text_object, (10, info_panel_height + 10))
-
-        overlay = p.Surface((SQ_SIZE * 2, SQ_SIZE * 2))
-        overlay.set_alpha(100)
-        overlay.fill(p.Color("red"))
-        row, col = self.warning_area
-        screen.blit(overlay, (col * SQ_SIZE, row * SQ_SIZE + info_panel_height))
+        if destroyed:
+            self.execution_messages.append(", ".join(destroyed))
+        else:
+            self.execution_messages.append("0x")

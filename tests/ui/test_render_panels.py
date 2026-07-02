@@ -10,16 +10,16 @@ from src.ui.render_panels import get_ap_text, get_material_text
 class RenderPanelHelperTests(unittest.TestCase):
     """Verify score and countdown formatting for the player panels."""
 
-    def test_game_state_turns_to_next_event_uses_turn_counter_modulo(self):
+    def test_game_state_turns_to_next_event_uses_displayed_turn_number(self):
         game_state = GameState()
 
         game_state.event_manager.turn_counter = 0
-        self.assertEqual(game_state.get_turns_to_next_event(), 10)
+        self.assertEqual(game_state.get_turns_to_next_event(), 9)
 
-        game_state.event_manager.turn_counter = 9
+        game_state.event_manager.turn_counter = 8
         self.assertEqual(game_state.get_turns_to_next_event(), 1)
 
-        game_state.event_manager.turn_counter = 10
+        game_state.event_manager.turn_counter = 9
         self.assertEqual(game_state.get_turns_to_next_event(), 10)
 
     def test_get_material_text_formats_for_each_panel(self):

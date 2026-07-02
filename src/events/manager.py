@@ -14,6 +14,7 @@ class EventManager:
         self.gs = game_state
         self.turn_counter = 0
         self.active_events = []
+        self.recently_executed_events = []
         self.queued_event = None
         self.queued_event_key = None
         self.event_pool = list(DEFAULT_EVENT_POOL) if event_pool is None else list(event_pool)
@@ -38,20 +39,23 @@ class EventManager:
                 self.active_events.remove(event)
 
     def update(self):
-        """Advance warning and execution flow based on full-turn count."""
+        """Advance warning and execution flow at the start of displayed turns."""
+        self.recently_executed_events.clear()
         self.turn_counter = self.gs.get_full_turn_count()
 
         if self.turn_counter > 0:
             self._tick_active_events()
 
-        if self.turn_counter > 0 and self.turn_counter % 10 == 9:
+        # completed turns 8 -> displayed turn 9 warning; completed turns 9 -> displayed turn 10 execution.
+        if self.turn_counter > 0 and self.turn_counter % 10 == 8:
             if self.queued_event and self.queued_event not in self.active_events:
                 self.queued_event.trigger_warning()
                 self.active_events.append(self.queued_event)
 
-        if self.turn_counter > 0 and self.turn_counter % 10 == 0:
+        if self.turn_counter > 0 and self.turn_counter % 10 == 9:
             if self.queued_event and self.queued_event in self.active_events:
                 self.queued_event.execute()
+                self.recently_executed_events.append(self.queued_event)
                 if self.queued_event.duration == 0:
                     self.queued_event.cleanup()
                     self.active_events.remove(self.queued_event)
