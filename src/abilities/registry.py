@@ -1,6 +1,8 @@
 """Ability registry and public ability lookup helpers."""
 
-_ABILITY_REGISTRY = {}
+from .base import Ability
+
+_ABILITY_REGISTRY: dict[str, Ability] = {}
 
 
 def register_ability(ability_class):

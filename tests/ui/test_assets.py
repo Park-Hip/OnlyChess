@@ -1,4 +1,4 @@
-﻿"""Tests for UI asset loading helpers."""
+"""Tests for UI asset loading helpers."""
 
 import unittest
 
@@ -7,11 +7,13 @@ from src.constants import (
     BLACK,
     BISHOP_CODE,
     CHANCELLOR_CODE,
+    INQUISITOR_CODE,
     KING_CODE,
     KNIGHT_CODE,
     PAWN_CODE,
     QUEEN_CODE,
     ROOK_CODE,
+    WARDEN_CODE,
     WHITE,
 )
 from src.ui.assets import build_image_path, get_standard_sprite_keys, load_images
@@ -32,6 +34,8 @@ class AssetHelperTests(unittest.TestCase):
             WHITE + QUEEN_CODE,
             WHITE + ARCHBISHOP_CODE,
             WHITE + CHANCELLOR_CODE,
+            WHITE + WARDEN_CODE,
+            WHITE + INQUISITOR_CODE,
             BLACK + PAWN_CODE,
             BLACK + ROOK_CODE,
             BLACK + KNIGHT_CODE,
@@ -40,6 +44,8 @@ class AssetHelperTests(unittest.TestCase):
             BLACK + QUEEN_CODE,
             BLACK + ARCHBISHOP_CODE,
             BLACK + CHANCELLOR_CODE,
+            BLACK + WARDEN_CODE,
+            BLACK + INQUISITOR_CODE,
         }
         self.assertEqual(set(keys), expected)
 
@@ -86,7 +92,7 @@ class AssetHelperTests(unittest.TestCase):
         self.assertIn("images/bC.png", loaded_paths)
         self.assertIn("wA", images)
         self.assertIn("bC", images)
-        self.assertEqual(len(images), 16)
+        self.assertEqual(len(images), 20)
 
 
 if __name__ == "__main__":

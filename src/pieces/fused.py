@@ -1,14 +1,17 @@
 """Fused chess piece classes."""
 
-from ..constants import ARCHBISHOP_CODE, BISHOP_CODE, CHANCELLOR_CODE, KNIGHT_CODE, ROOK_CODE
+from ..constants import (
+    ARCHBISHOP_CODE, BISHOP_CODE, CHANCELLOR_CODE,
+    KNIGHT_CODE, ROOK_CODE, WARDEN_CODE, INQUISITOR_CODE
+)
 from .base import Piece
 from .standard import Bishop, Knight, Rook
 
 
-class FusedPiece:
+class FusedPiece(Piece):
     """Mixin for pieces made from a fusion capture."""
 
-    component_codes = ()
+    component_codes: tuple[str, ...] = ()
 
     def __init__(self, color, name, pos):
         Piece.__init__(self, color, name, pos)
@@ -30,15 +33,15 @@ class FusedPiece:
 
     def _get_knight_moves(self, gs):
         """Generate knight-style moves for fused pieces."""
-        return Knight._calculate_moves(self, gs)
+        return Knight._calculate_moves(self, gs)  # type: ignore
 
     def _get_bishop_moves(self, gs):
         """Generate bishop-style moves for fused pieces."""
-        return Bishop._calculate_moves(self, gs)
+        return Bishop._calculate_moves(self, gs)  # type: ignore
 
     def _get_rook_moves(self, gs):
         """Generate rook-style moves for fused pieces."""
-        return Rook._calculate_moves(self, gs)
+        return Rook._calculate_moves(self, gs)  # type: ignore
 
 
 class Archbishop(FusedPiece, Bishop):
@@ -46,7 +49,7 @@ class Archbishop(FusedPiece, Bishop):
 
     piece_code = ARCHBISHOP_CODE
     material_value = 6
-    component_codes = (KNIGHT_CODE, BISHOP_CODE)
+    component_codes: tuple[str, ...] = (KNIGHT_CODE, BISHOP_CODE)
 
     def __init__(self, color, pos):
         super().__init__(color, ARCHBISHOP_CODE, pos)
@@ -60,7 +63,7 @@ class Chancellor(FusedPiece, Rook):
 
     piece_code = CHANCELLOR_CODE
     material_value = 8
-    component_codes = (ROOK_CODE, KNIGHT_CODE)
+    component_codes: tuple[str, ...] = (ROOK_CODE, KNIGHT_CODE)
 
     def __init__(self, color, pos):
         super().__init__(color, CHANCELLOR_CODE, pos)
@@ -74,12 +77,12 @@ class Warden(FusedPiece, Rook):
     Moves orthogonally without limit, plus diagonally up to 3 squares.
     """
 
-    piece_code = "W"
+    piece_code = WARDEN_CODE
     material_value = 7
-    component_codes = (ROOK_CODE, BISHOP_CODE)
+    component_codes: tuple[str, ...] = (ROOK_CODE, BISHOP_CODE)
 
     def __init__(self, color, pos):
-        super().__init__(color, self.piece_code, pos)
+        super().__init__(color, WARDEN_CODE, pos)
 
     def _calculate_moves(self, gs):
         # Full Rook moves
@@ -87,7 +90,10 @@ class Warden(FusedPiece, Rook):
         
         # Limited Bishop moves (max 3 squares, which means limit=4 for range(1, 4))
         directions = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
-        moves.extend(self._get_sliding_moves(gs, directions, limit=4))
+        if getattr(self, "poisoned_turns", 0) > 0:
+            moves.extend(self._get_one_step_moves(gs, directions))
+        else:
+            moves.extend(self._get_sliding_moves(gs, directions, limit=4))
         return moves
 
 
@@ -96,12 +102,12 @@ class Inquisitor(FusedPiece, Bishop):
     Moves diagonally without limit, plus orthogonally up to 3 squares.
     """
 
-    piece_code = "I"
+    piece_code = INQUISITOR_CODE
     material_value = 7
-    component_codes = (BISHOP_CODE, ROOK_CODE)
+    component_codes: tuple[str, ...] = (BISHOP_CODE, ROOK_CODE)
 
     def __init__(self, color, pos):
-        super().__init__(color, self.piece_code, pos)
+        super().__init__(color, INQUISITOR_CODE, pos)
 
     def _calculate_moves(self, gs):
         # Full Bishop moves
@@ -109,5 +115,8 @@ class Inquisitor(FusedPiece, Bishop):
         
         # Limited Rook moves (max 3 squares, which means limit=4 for range(1, 4))
         directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-        moves.extend(self._get_sliding_moves(gs, directions, limit=4))
+        if getattr(self, "poisoned_turns", 0) > 0:
+            moves.extend(self._get_one_step_moves(gs, directions))
+        else:
+            moves.extend(self._get_sliding_moves(gs, directions, limit=4))
         return moves

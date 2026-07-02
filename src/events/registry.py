@@ -3,7 +3,10 @@
 import random
 
 
-_EVENT_REGISTRY = {}
+from typing import Type
+from .base import ChessEvent
+
+_EVENT_REGISTRY: dict[str, Type[ChessEvent]] = {}
 
 
 def register_event(event_class):

@@ -12,7 +12,7 @@ class Ability:
     ability_key = "base"
     display_name = "Base Ability"
     ap_cost = 0
-    owner_piece_codes = ()
+    owner_piece_codes: tuple[str, ...] = ()
     requires_target = True
 
     def can_use(self, game_state, piece):
