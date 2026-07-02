@@ -126,7 +126,7 @@ Files changed:
 
 - Add a stable piece code in `src/constants.py`.
 - Add a class in `src/pieces/fused.py`.
-- Update `PIECE_CLASS_BY_CODE` in `src/pieces/registry.py`.
+- Update `_PIECE_REGISTRY` in `src/pieces/registry.py`.
 - Update `FUSION_RESULTS` in `src/fusion/rules.py`.
 - Optionally update sprites or UI assets through `src/ui/assets.py`.
 
@@ -149,7 +149,7 @@ Files changed:
 - Add a state owner such as `src/game/poison_tracker.py`.
 - Add a post-move system such as `src/game/post_move_systems/poison.py`.
 - Update `src/game/post_move_systems/__init__.py` to insert the system at the correct order.
-- Add a field to `GameState` in `src/game/board.py` only if the mechanic needs shared runtime ownership like `shield_tracker` or `tempo_burst_state`.
+- Add a field to `GameState` in `src/game/board.py` only if the mechanic needs shared runtime ownership like `shield_tracker`.
 - Optionally update UI display files such as `src/ui/render_board.py` or `src/ui/render_panels.py`.
 
 Core impact:

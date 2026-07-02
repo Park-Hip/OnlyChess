@@ -59,10 +59,9 @@ This package owns capture-triggered fusion.
 
 - `manager.py`: `FusionManager` decides whether a real capture can fuse and applies fusion results.
 - `rules.py`: `FUSION_RESULTS` lookup table for valid capture pairs.
-- `tempo_burst_state.py`: focused state helper for Tempo Burst extra-move behavior.
 - `__init__.py`: package exports.
 
-Start here when changing fusion eligibility, fusion pairs, fused-result replacement, or Tempo Burst.
+Start here when changing fusion eligibility, fusion pairs, or fused-result replacement.
 
 ## `src/abilities/`
 
@@ -84,7 +83,9 @@ This package owns presentation and transient input state.
 
 - `input_handler.py`: `InputState`, click/drag handling, board-square conversion, promotion state, ability state, and move-attempt readiness.
 - `render_board.py`: board, piece, highlight, shield, event-overlay, drag, and endgame rendering.
-- `render_panels.py`: player panels, material text, AP text, Tempo Burst text, ability error text, and captured-piece row rendering.
+- `render_panels.py`: player panels, material text, AP text, ability error text, and captured-piece row rendering.
+- `message_log.py`: `MessageLog` history plus log side-panel, help-button, and entry-formatting rendering.
+- `help_overlay.py`: modal help overlay drawing and close-control resolution.
 - `ability_menu.py`: ability menu position, available ability keys, click resolution, and drawing.
 - `promotion_menu.py`: promotion menu position, click resolution, and drawing.
 - `assets.py`: sprite-key lookup and image loading.
@@ -97,7 +98,7 @@ Start here when changing how something looks or how mouse input is interpreted. 
 - `tests/game/`: core game state, move, helper, tracker, scoring, and post-move system tests.
 - `tests/pieces/`: piece metadata, movement extension hooks, fused pieces, and registry tests.
 - `tests/events/`: event contract, manager flow, registry, and concrete event tests.
-- `tests/fusion/`: fusion manager, fusion rules, and Tempo Burst tests.
+- `tests/fusion/`: fusion manager, fusion rules, and fused-piece tests.
 - `tests/abilities/`: ability registry and concrete ability tests.
 - `tests/ui/`: input, menu, asset, board rendering, and panel helper tests.
 

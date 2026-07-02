@@ -63,7 +63,7 @@ Game domain: owns board state, legal move generation, real move execution, simul
 
 Events: use a simple base class plus registry. The manager controls warning, execution, ticking, and cleanup timing; each event owns its own effect.
 
-Fusion: runs after real captures only. A rule table maps capture pairs to fused pieces or Tempo Burst, while `FusionManager` applies the result.
+Fusion: runs after real captures only. A rule table maps capture pairs to fused pieces (Archbishop, Chancellor, Warden, Inquisitor), while `FusionManager` applies the result.
 
 Abilities: use Action Points. The base ability class handles common checks, and each concrete ability owns its target rules and effect.
 
@@ -76,7 +76,7 @@ UI: handles Pygame rendering, panels, highlights, promotion selection, ability s
 3. GameState As Coordinator: central state owner, not the owner of all behavior.
 4. Piece Inheritance: standard and fused pieces extend `Piece`.
 5. Event System: `ChessEvent` subclasses plus `EventManager`.
-6. Fusion System: capture rules, `FusionManager`, fused pieces, Tempo Burst.
+6. Fusion System: capture rules, `FusionManager`, fused pieces (Archbishop, Chancellor, Warden, Inquisitor).
 7. Ability System: AP tracker, `Ability` subclasses, registry.
 8. UI Boundary: UI displays and collects intent, rules stay outside UI.
 9. Avoiding A God Object: trackers, managers, helpers, and post-move systems.

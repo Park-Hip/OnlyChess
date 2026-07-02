@@ -22,7 +22,8 @@ The UI layer owns:
 - player panels
 - captured-piece rows
 - AP text
-- Tempo Burst text
+- the message log panel
+- the help overlay
 
 The UI layer does not own legal move rules, event rules, fusion rules, or ability effects. Those decisions belong in domain, event, fusion, and ability modules.
 
@@ -31,7 +32,9 @@ The UI layer does not own legal move rules, event rules, fusion rules, or abilit
 - `src/main.py`: Pygame entry point. It initializes the game, receives Pygame events, calls input helpers, delegates real moves and abilities, and calls rendering helpers each frame.
 - `src/ui/input_handler.py`: Defines `InputState` and functions for click selection, drag release, board-square conversion, promotion state, ability state, and move or ability attempt readiness.
 - `src/ui/render_board.py`: Draws the board, pieces, highlights, shield overlays, dragged pieces, event overlays, and endgame text.
-- `src/ui/render_panels.py`: Draws player panels, captured rows, material advantage text, AP text, event countdown text, and Tempo Burst text. It also exposes `get_ability_error_text()` for transient ability errors.
+- `src/ui/render_panels.py`: Draws player panels, captured rows, material advantage text, AP text, and event countdown text. It also exposes `get_ability_error_text()` for transient ability errors.
+- `src/ui/message_log.py`: Defines `MessageLog` (scrollable move/ability/event history), draws the log side panel and help button, and formats move and ability entries.
+- `src/ui/help_overlay.py`: Draws the modal help overlay and resolves its close control.
 - `src/ui/ability_menu.py`: Positions and draws the ability menu, finds affordable ability keys, and resolves ability-menu clicks.
 - `src/ui/promotion_menu.py`: Positions and draws the promotion menu and resolves promotion-choice clicks.
 - `src/ui/assets.py`: Loads piece images and maps sprite keys to image assets.
@@ -74,12 +77,14 @@ If `use_ability()` succeeds, ability and selection state are cleared. If it fail
 Each frame, `src/main.py` redraws the visible game state in a fixed order:
 
 1. `draw_game_board()` draws the board, highlights, pieces, shield overlays, and dragged piece if needed.
-2. `draw_info_panels()` draws player panels, captured rows, AP text, turn text, event countdown text, and Tempo Burst text.
-3. `src.main.main()` renders any transient ability error near the board using `get_ability_error_text()`.
-4. `draw_promotion_menu()` draws the promotion menu when a promotion is pending.
-5. `draw_ability_menu()` draws the ability menu when an ability source square is selected.
-6. `draw_event_overlays()` delegates overlay drawing to active event objects.
-7. `draw_endgame_text()` draws checkmate or stalemate text over the board.
+2. `draw_info_panels()` draws player panels, captured rows, AP text, turn text, and event countdown text.
+3. `draw_message_log()` draws the scrollable move/ability/event log side panel and help button.
+4. `src.main.main()` renders any transient ability error near the board using `get_ability_error_text()`.
+5. `draw_promotion_menu()` draws the promotion menu when a promotion is pending.
+6. `draw_ability_menu()` draws the ability menu when an ability source square is selected.
+7. `draw_event_overlays()` delegates overlay drawing to active event objects.
+8. `draw_endgame_text()` draws checkmate or stalemate text over the board.
+9. `draw_help_overlay()` draws the modal help screen when it is toggled on.
 
 Rendering reads public game state and display-oriented fields. It should not modify gameplay state except through explicit input flows handled by `src/main.py`.
 
@@ -87,7 +92,7 @@ Rendering reads public game state and display-oriented fields. It should not mod
 
 - Game domain: UI asks `GameState.get_valid_moves()` for legal moves and calls `GameState.make_move()` for accepted real moves.
 - Pieces: UI renders pieces through sprite keys returned by piece objects.
-- Fusion: UI displays fusion-related public state such as Tempo Burst text, but fusion eligibility and results stay in `src/fusion/`.
+- Fusion: fused pieces render through their sprite keys like any other piece, while fusion eligibility and results stay in `src/fusion/`.
 - Events: UI calls event drawing hooks through `draw_event_overlays()`, while event rules and timing stay in `src/events/`.
 - Abilities: UI shows available ability keys and target intent, while ability validation, AP spending, and effects stay in `src/abilities/`.
 - Action Points: UI renders AP values through panel helpers, while AP storage and spending rules stay in the game and ability layers.

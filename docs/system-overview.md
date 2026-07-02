@@ -23,7 +23,7 @@ The current system is the stable advanced-mode baseline. The docs describe the i
 - `src/game/`: board state, chess-domain rules, move execution, scoring, helper trackers, and ordered post-move systems.
 - `src/pieces/`: standard and fused chess piece classes plus piece registry.
 - `src/events/`: event contract, concrete events, event registry, and event lifecycle manager.
-- `src/fusion/`: capture-based fusion rules, fusion manager, and Tempo Burst state.
+- `src/fusion/`: capture-based fusion rules and the fusion manager.
 - `src/abilities/`: active ability contract, concrete abilities, and ability registry.
 - `src/ui/`: rendering helpers, input state, menus, sprites, and panel drawing.
 
