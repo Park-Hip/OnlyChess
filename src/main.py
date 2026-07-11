@@ -9,6 +9,7 @@ import pygame as p
 
 from .constants import HEIGHT, MAX_FPS, WIDTH
 from .ui.assets import load_images
+from .ui.audio import SoundPlayer, load_sounds
 from .ui.screens.menu_screen import MenuScreen
 from .ui.screens.shared_resources import SharedResources
 from .ui.ui_constants import PANEL_BG
@@ -35,6 +36,16 @@ def _load_menu_background(image_loader=None, scaler=None):
     return scaler(background, (WIDTH, HEIGHT))
 
 
+def _load_sound_player():
+    """Initialize the audio mixer and load sound effects, if audio is available."""
+    try:
+        p.mixer.init()
+    except p.error as e:
+        print(f"Warning: audio disabled ({e}).")
+        return SoundPlayer()
+    return SoundPlayer(load_sounds())
+
+
 def main():
     """Run the main Pygame application loop, swapping between screens."""
     p.init()
@@ -45,7 +56,13 @@ def main():
 
     images = load_images(image_loader=p.image.load, scaler=p.transform.scale)
     menu_background = _load_menu_background()
-    shared = SharedResources(images=images, fonts=_load_fonts(), menu_background=menu_background)
+    sound_player = _load_sound_player()
+    shared = SharedResources(
+        images=images,
+        fonts=_load_fonts(),
+        menu_background=menu_background,
+        sound_player=sound_player,
+    )
 
     current_screen = MenuScreen(shared)
     running = True
