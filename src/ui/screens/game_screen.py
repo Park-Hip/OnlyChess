@@ -12,6 +12,7 @@ from ..ability_menu import (
     get_available_ability_keys,
     resolve_ability_menu_click,
 )
+from ..audio import move_sound_key
 from ..help_overlay import draw_help_overlay, get_help_modal_close_rect
 from ..input_handler import (
     InputState,
@@ -67,6 +68,7 @@ class GameScreen(Screen):
         self.fonts = shared.fonts
         self.font_panel = shared.fonts["normal"]
         self.images = shared.images
+        self.sound_player = shared.sound_player
 
         self.game_state = GameState()
         self.valid_moves = self.game_state.get_valid_moves()
@@ -175,6 +177,7 @@ class GameScreen(Screen):
                 return True
 
             self.game_state.make_move(valid_move, is_real_move=True)
+            self.sound_player.play(move_sound_key(valid_move))
             reset_selection_state(self.input_state)
             return True
 
@@ -204,6 +207,7 @@ class GameScreen(Screen):
 
         move.promotion_choice = choice
         self.game_state.make_move(move, choice, is_real_move=True)
+        self.sound_player.play(move_sound_key(move))
         clear_promotion_pending(self.input_state)
         reset_selection_state(self.input_state)
         return True
