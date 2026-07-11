@@ -26,3 +26,7 @@ The codebase must adhere to the following principles:
 2. Always read the related documentation in the `docs/` folder before coding.
 3. Write clear code, use self-documenting English variable and function names, minimize redundant comments, and only comment on complex mathematical logic or game rules.
 4. Always explain the choices you make.
+
+# GIT COMMITS
+- Do NOT add a `Co-Authored-By: Claude ...` trailer to commit messages.
+- Do NOT add the "Generated with Claude Code" line to PR bodies.

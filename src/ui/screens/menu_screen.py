@@ -7,7 +7,7 @@ from ..ui_constants import ACCENT_GOLD, CARD_BG, TEXT_PRIMARY
 from .base import Screen
 from .game_screen import GameScreen
 
-GAME_TITLE = "Chess Fusion"
+GAME_TITLE = "OnlyChess"
 START_BUTTON_LABEL = "Start"
 QUIT_BUTTON_LABEL = "Quit"
 

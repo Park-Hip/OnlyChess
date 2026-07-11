@@ -50,7 +50,7 @@ def main():
     """Run the main Pygame application loop, swapping between screens."""
     p.init()
     screen = p.display.set_mode((WIDTH, HEIGHT))
-    p.display.set_caption("Chess Fusion")
+    p.display.set_caption("OnlyChess")
     clock = p.time.Clock()
     screen.fill(PANEL_BG)
 
