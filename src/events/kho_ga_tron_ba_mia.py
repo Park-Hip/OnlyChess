@@ -10,8 +10,10 @@ from ..constants import (
     BOARD_COLS,
     BOARD_ROWS,
     CHANCELLOR_CODE,
+    INQUISITOR_CODE,
     KNIGHT_CODE,
     ROOK_CODE,
+    WARDEN_CODE,
     WHITE,
 )
 from ..game.state_helpers import format_piece_fan, format_square
@@ -25,7 +27,7 @@ class KhoGaTronBaMia(ChessEvent):
 
     event_key = "kho_ga_tron_ba_mia"
     POISON_DURATION = 3
-    ELIGIBLE_CODES = (ROOK_CODE, KNIGHT_CODE, BISHOP_CODE, ARCHBISHOP_CODE, CHANCELLOR_CODE)
+    ELIGIBLE_CODES = (ROOK_CODE, KNIGHT_CODE, BISHOP_CODE, ARCHBISHOP_CODE, CHANCELLOR_CODE, WARDEN_CODE, INQUISITOR_CODE)
 
     def __init__(self, game_state):
         super().__init__(game_state)

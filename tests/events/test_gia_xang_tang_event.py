@@ -5,7 +5,7 @@ import unittest
 from src.constants import BLACK, BOARD_COLS, BOARD_ROWS, CHANCELLOR_CODE, KNIGHT_CODE, ROOK_CODE, WHITE
 from src.events import GiaXangTang
 from src.game.board import GameState
-from src.pieces import Chancellor, Rook
+from src.pieces import Chancellor, Rook, Warden
 
 
 class GiaXangTangEventTests(unittest.TestCase):
@@ -58,17 +58,21 @@ class GiaXangTangEventTests(unittest.TestCase):
         king = game_state.board.get_piece_at(7, 4)
         self.assertEqual(king.get_castle_moves(game_state), [])
 
-    def test_chancellor_is_permanently_transformed_to_knight(self):
+    def test_chancellor_and_warden_are_permanently_transformed_to_knight(self):
         game_state = GameState()
         game_state.board.grid = [[None for _ in range(BOARD_COLS)] for _ in range(BOARD_ROWS)]
         chancellor = Chancellor(WHITE, (4, 4))
+        warden = Warden(BLACK, (2, 2))
         game_state.board.set_piece_at(4, 4, chancellor)
+        game_state.board.set_piece_at(2, 2, warden)
         event = GiaXangTang(game_state)
 
         event.execute()
 
         self.assertEqual(chancellor.get_piece_code(), CHANCELLOR_CODE)
+        self.assertEqual(warden.get_piece_code(), "W")
         self.assertEqual(game_state.board.get_piece_at(4, 4).get_piece_code(), KNIGHT_CODE)
+        self.assertEqual(game_state.board.get_piece_at(2, 2).get_piece_code(), KNIGHT_CODE)
 
 if __name__ == "__main__":
     unittest.main()

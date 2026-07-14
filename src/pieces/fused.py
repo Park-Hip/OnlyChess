@@ -91,7 +91,10 @@ class Warden(FusedPiece, Rook):
         
         # Limited Bishop moves (max 3 squares, which means limit=4 for range(1, 4))
         directions = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
-        moves.extend(self._get_sliding_moves(gs, directions, limit=4))
+        if getattr(self, "poisoned_turns", 0) > 0:
+            moves.extend(self._get_one_step_moves(gs, directions))
+        else:
+            moves.extend(self._get_sliding_moves(gs, directions, limit=4))
         return moves
 
 
@@ -113,5 +116,8 @@ class Inquisitor(FusedPiece, Bishop):
         
         # Limited Rook moves (max 3 squares, which means limit=4 for range(1, 4))
         directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-        moves.extend(self._get_sliding_moves(gs, directions, limit=4))
+        if getattr(self, "poisoned_turns", 0) > 0:
+            moves.extend(self._get_one_step_moves(gs, directions))
+        else:
+            moves.extend(self._get_sliding_moves(gs, directions, limit=4))
         return moves
