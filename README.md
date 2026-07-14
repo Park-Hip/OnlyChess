@@ -22,8 +22,6 @@ players to adapt mid-game.
   transformations, dice-roll piece removal, and more. A warning fires one turn ahead so players
   can brace for it.
 
-See [`mode.md`](mode.md) for the full advanced-mode design document.
-
 ## Core Mechanics
 
 ### Fusion Pairs
@@ -57,9 +55,6 @@ Events trigger every 10 full turns, with a one-turn warning beforehand. A sample
 | Mỹ đánh Iran (Meteor Strike) | A random 2×2 zone is warned, then everything inside is destroyed |
 | Tài Xỉu | A coin flip removes one random piece from a random side |
 | Người Chồng Bất Lực | Both Kings are immobilized for a turn — check becomes deadly |
-
-The full 10-event pool, triggers, and edge cases are documented in
-[`mode.md`](mode.md#4-special-events-global-disruptions).
 
 ## Getting Started
 
