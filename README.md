@@ -158,3 +158,7 @@ uv run python -c "import os; os.environ['SDL_VIDEODRIVER']='dummy'; import pygam
 ## Tech Stack
 
 Python, Pygame, `uv`.
+
+## Credits / Assets
+
+- Chess piece sprites (including standard and fused variants) are sourced from [GreenChess](https://greenchess.net/info.php?item=downloads).
