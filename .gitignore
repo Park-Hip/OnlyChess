@@ -10,3 +10,7 @@ wheels/
 .venv
 /md
 CONTEXT.md
+
+# Internal docs and tests (kept local, not published)
+docs/
+tests/

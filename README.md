@@ -3,7 +3,7 @@
 Standard chess — until a capture fuses two pieces into something new, and a global event
 turns the board upside down ten moves later.
 
-![Full game window at the start of a match](docs/images/hero.png)
+![Full game window at the start of a match](screenshots/hero.png)
 
 OnlyChess is a Python/Pygame chess variant built for an Object-Oriented Programming course
 project. It keeps the base game fully standard-chess-legal, then layers on capture-triggered
@@ -23,12 +23,6 @@ players to adapt mid-game.
   can brace for it.
 
 See [`mode.md`](mode.md) for the full advanced-mode design document.
-
-## Gameplay Showcase
-
-<!-- screenshot: mid-game board with a fused piece (e.g. Archbishop) on it, e.g. docs/images/fusion.png -->
-<!-- screenshot: event warning overlay / message log entry, e.g. docs/images/event-warning.png -->
-<!-- screenshot: player panel showing Action Points and the ability menu open, e.g. docs/images/ability-menu.png -->
 
 ## Core Mechanics
 
@@ -69,6 +63,14 @@ The full 10-event pool, triggers, and edge cases are documented in
 
 ## Getting Started
 
+### Download & play (no clone needed)
+
+The easiest way to play is to grab the packaged build from the
+[**GitHub Releases**](../../releases) page — just download the latest release and run the game
+directly, no cloning or Python setup required.
+
+### Run from source
+
 Requires Python and [`uv`](https://github.com/astral-sh/uv).
 
 ```bash
@@ -105,9 +107,6 @@ Move execution runs through an ordered list of post-move systems (capture tracki
 AP gain → shield expiry → event ticking), so new post-move mechanics slot in as one more system
 rather than a new branch in `GameState`.
 
-Full write-up: [`docs/system-overview.md`](docs/system-overview.md),
-[`docs/oop-design.md`](docs/oop-design.md).
-
 ## Extensibility
 
 The goal is that most new features are additive, not invasive:
@@ -120,40 +119,7 @@ The goal is that most new features are additive, not invasive:
 
 Honest limits: new piece identities still need constants, new persistent state may need a
 `GameState` field, and mechanics touching both moves and ability turns need care around
-`GameState.finish_ability_turn()`. See
-[`docs/extensibility-and-change-impact.md`](docs/extensibility-and-change-impact.md) for
-worked examples.
-
-## Testing
-
-```bash
-uv run python -m unittest discover -s tests/fusion -p "test_*.py" -v
-uv run python -m unittest discover -s tests/abilities -p "test_*.py" -v
-uv run python -m unittest discover -s tests/pieces -p "test_*.py" -v
-uv run python -m unittest discover -s tests/game -p "test_*.py" -v
-uv run python -m unittest discover -s tests/events -p "test_*event*.py" -v
-uv run python -m unittest discover -s tests/ui -p "test_*.py" -v
-```
-
-Smoke test (boots the app headlessly via Pygame's dummy driver):
-
-```bash
-uv run python -c "import os; os.environ['SDL_VIDEODRIVER']='dummy'; import pygame as p; p.init(); p.event.post(p.event.Event(p.QUIT)); import run; run.main(); print('smoke-ok')"
-```
-
-## Documentation
-
-- [docs/system-overview.md](docs/system-overview.md) — entry point, package structure, runtime flow
-- [docs/oop-design.md](docs/oop-design.md) — OOP responsibilities and extension points
-- [docs/extensibility-and-change-impact.md](docs/extensibility-and-change-impact.md) — concrete change scenarios
-- [docs/file-map.md](docs/file-map.md) — source navigation guide
-- [docs/game-domain.md](docs/game-domain.md) — core chess engine and move validation
-- [docs/events-system.md](docs/events-system.md) — global special events
-- [docs/fusion-system.md](docs/fusion-system.md) — capture-triggered fusion
-- [docs/abilities-system.md](docs/abilities-system.md) — Action Points and active abilities
-- [docs/ui-and-input.md](docs/ui-and-input.md) — UI and input boundaries
-- [docs/presentation-summary.md](docs/presentation-summary.md) — slide-ready talking points
-- [docs/architecture-current-baseline.md](docs/architecture-current-baseline.md) — verified baseline structure
+`GameState.finish_ability_turn()`.
 
 ## Tech Stack
 
