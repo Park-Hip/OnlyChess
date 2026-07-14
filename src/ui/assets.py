@@ -16,6 +16,7 @@ from ..constants import (
     SQ_SIZE,
     WARDEN_CODE,
     WHITE,
+    get_resource_path,
 )
 
 
@@ -50,7 +51,7 @@ def get_standard_sprite_keys():
 
 def build_image_path(sprite_key, images_dir="images"):
     """Build the filesystem path for a sprite image."""
-    return f"{images_dir}/{sprite_key}.png"
+    return get_resource_path(f"{images_dir}/{sprite_key}.png")
 
 
 def load_images(

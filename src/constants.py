@@ -49,3 +49,21 @@ INQUISITOR_CODE = "I"   # Bishop capturing Rook
 STARTING_AP = 0
 MAX_AP = 5
 AP_GAIN_MOVE_INTERVAL = 2
+
+# Events
+EVENT_CYCLE_TURNS = 10
+EVENT_WARNING_OFFSET = 8
+EVENT_EXECUTE_OFFSET = 9
+
+import os
+import sys
+
+def get_resource_path(relative_path):
+    """Get absolute path to resource, works for dev and for PyInstaller."""
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+
+    return os.path.join(base_path, relative_path)

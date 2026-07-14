@@ -1,6 +1,6 @@
 """Board and game-state models for the chess domain."""
 
-from ..constants import BISHOP_CODE, BLACK, BOARD_COLS, BOARD_ROWS, KING_CODE, KNIGHT_CODE, PAWN_CODE, QUEEN_CODE, ROOK_CODE, STANDARD_PIECE_ORDER, WHITE
+from ..constants import BISHOP_CODE, BLACK, BOARD_COLS, BOARD_ROWS, KING_CODE, KNIGHT_CODE, PAWN_CODE, QUEEN_CODE, ROOK_CODE, STANDARD_PIECE_ORDER, WHITE, EVENT_CYCLE_TURNS
 from ..events.manager import EventManager
 from ..fusion.manager import FusionManager
 from ..pieces import Pawn, create_piece
@@ -344,5 +344,5 @@ class GameState:
 
     def get_turns_to_next_event(self):
         """Return the number of turns remaining before the next event."""
-        return 10 - (self.get_turn_number() % 10)
+        return EVENT_CYCLE_TURNS - (self.get_turn_number() % EVENT_CYCLE_TURNS)
 

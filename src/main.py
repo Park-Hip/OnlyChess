@@ -7,7 +7,7 @@ currently active, swapping screens or exiting when a screen requests it.
 
 import pygame as p
 
-from .constants import HEIGHT, MAX_FPS, WIDTH
+from .constants import HEIGHT, MAX_FPS, WIDTH, get_resource_path
 from .ui.assets import load_images
 from .ui.audio import SoundPlayer, load_sounds
 from .ui.screens.menu_screen import MenuScreen
@@ -32,7 +32,7 @@ def _load_menu_background(image_loader=None, scaler=None):
         image_loader = p.image.load
     if scaler is None:
         scaler = p.transform.smoothscale
-    background = image_loader(MENU_BACKGROUND_PATH).convert()
+    background = image_loader(get_resource_path(MENU_BACKGROUND_PATH)).convert()
     return scaler(background, (WIDTH, HEIGHT))
 
 
