@@ -1,6 +1,6 @@
 """Board and game-state models for the chess domain."""
 
-from ..constants import BISHOP_CODE, BLACK, BOARD_COLS, BOARD_ROWS, KING_CODE, KNIGHT_CODE, PAWN_CODE, QUEEN_CODE, ROOK_CODE, STANDARD_PIECE_ORDER, WHITE
+from ..constants import BISHOP_CODE, BLACK, BOARD_COLS, BOARD_ROWS, KING_CODE, KNIGHT_CODE, PAWN_CODE, QUEEN_CODE, ROOK_CODE, STANDARD_PIECE_ORDER, WHITE, EVENT_CYCLE_TURNS
 from ..events.manager import EventManager
 from ..fusion.manager import FusionManager
 from ..pieces import Pawn, create_piece
@@ -13,8 +13,10 @@ from .castling import (
     restore_castle_rights_from_log,
     update_castle_rights_for_move,
 )
+from .post_move_systems import create_default_post_move_systems
 from .rules import run_post_move_systems
 from .scoring import calculate_material_advantage
+from .shield_tracker import ShieldTracker
 from .state_helpers import is_inside_board, safe_get_piece, set_piece
 
 class Board:
@@ -78,8 +80,9 @@ class GameState:
         self.action_points = ActionPointTracker()
         self.event_manager = EventManager(self)
         self.fusion_manager = FusionManager(self)
+        self.shield_tracker = ShieldTracker()
+        self.post_move_systems = create_default_post_move_systems(self)
         self.ability_used_this_turn = False
-        self.active_shields = []
 
     def make_move(self, move, promotion_choice='Q', is_real_move=False):
         """Apply a move and update all related game-state fields."""
@@ -309,21 +312,11 @@ class GameState:
 
     def add_shielded_piece(self, piece, owner_color):
         """Track a shielded piece until the opponent completes a turn."""
-        piece.is_shielded = True
-        piece.shield_owner = owner_color
-        piece.shield_turns = 1
-        if piece not in self.active_shields:
-            self.active_shields.append(piece)
+        self.shield_tracker.add(piece, owner_color)
 
     def expire_shields_after_turn(self, completed_turn_color):
         """Remove shields after the protected side's opponent completes a turn."""
-        for piece in list(self.active_shields):
-            if getattr(piece, "shield_owner", None) == completed_turn_color:
-                continue
-            piece.is_shielded = False
-            piece.shield_turns = 0
-            piece.shield_owner = None
-            self.active_shields.remove(piece)
+        self.shield_tracker.expire_after_turn(completed_turn_color)
 
     def get_captured_pieces(self):
         """Return captured-piece summaries for both players."""
@@ -351,7 +344,5 @@ class GameState:
 
     def get_turns_to_next_event(self):
         """Return the number of turns remaining before the next event."""
-        current_turn_number = self.get_turn_number()
-        turns_until_event = 10 - (current_turn_number % 10)
-        return 10 if turns_until_event == 0 else turns_until_event
+        return EVENT_CYCLE_TURNS - (self.get_turn_number() % EVENT_CYCLE_TURNS)
 

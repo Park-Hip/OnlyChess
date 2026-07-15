@@ -54,6 +54,10 @@ class Archbishop(FusedPiece, Bishop):
     def __init__(self, color, pos):
         super().__init__(color, ARCHBISHOP_CODE, pos)
 
+    def get_sprite_key(self):
+        """Return the dedicated Archbishop sprite key."""
+        return self.get_display_id()
+
     def _calculate_moves(self, gs):
         return self._get_bishop_moves(gs) + self._get_knight_moves(gs)
 

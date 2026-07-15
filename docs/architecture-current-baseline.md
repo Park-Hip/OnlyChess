@@ -6,19 +6,18 @@ This document describes the **stable advanced-mode baseline** after the event, f
 
 - `src/game/`
   - Owns the main gameplay state and turn flow.
-  - `GameState` coordinates move execution, internal legal-move simulation rollback, capture summaries, scoring access, AP state, fusion state, and event-manager integration.
-  - Smaller helpers support focused responsibilities such as castling, capture tracking, scoring, action-point tracking, and post-move systems.
+  - `GameState` coordinates move execution, internal legal-move simulation rollback, capture summaries, scoring access, AP state, fusion state, shield tracking, and event-manager integration.
+  - Smaller helpers support focused responsibilities such as castling, capture tracking, scoring, action-point tracking, post-move systems, and mode configuration.
 
 - `src/pieces/`
   - Owns piece behavior and metadata.
   - Each piece class defines its own movement rules, sprite key, material value, active-state flag, and small extension hooks such as `can_fuse()` and `get_fusion_tags()`.
   - The piece registry creates standard and fused piece instances from stable piece codes.
-  - `Archbishop` combines Knight/Bishop movement, `Chancellor` combines Rook/Knight movement, `Warden` adds limited diagonal to Rook movement, and `Inquisitor` adds limited orthogonal to Bishop movement.
-  - `_get_sliding_moves` supports a `limit` parameter for range-restricted sliding pieces.
+  - `Archbishop` combines Knight/Bishop movement, `Chancellor` combines Rook/Knight movement, and `Warden`/`Inquisitor` combine Rook/Bishop movement with a limited second range.
 
 - `src/fusion/`
   - Owns capture-based fusion rules and resolution.
-  - `rules.py` maps valid capture pairs to fusion results.
+  - `rules.py` maps valid capture pairs (in both directions) to fused pieces.
   - `FusionManager` applies fusion only after real eligible captures and keeps simulated move generation side-effect free.
 
 - `src/events/`
@@ -36,8 +35,6 @@ This document describes the **stable advanced-mode baseline** after the event, f
 - `src/ui/`
   - Owns rendering and transient input state.
   - The UI package handles board rendering, player panels, AP display, promotion menu behavior, ability-menu state, sprite loading, click/drag interaction state, and UI-only constants.
-  - The message log sidebar renders a chess.com-style two-column grid with FAN (Fusion Algebraic Notation) and logs event warnings/executions as full-width rows.
-  - The help overlay modal shows all fusion pairs with movement descriptions and all abilities with AP costs.
   - UI helpers consume public game state and package user intent; they do not enforce chess rules.
 
 ## Current Runtime Flow
@@ -46,8 +43,8 @@ This document describes the **stable advanced-mode baseline** after the event, f
 2. UI input helpers collect selection, drag/click intent, promotion choices, and ability target intent.
 3. `GameState` validates and executes legal moves, while the ability registry validates and executes active abilities.
 4. Post-move systems update capture summaries, resolve eligible fusion captures, award AP for real moves, expire shields, and update timed events.
-5. The main loop logs events (warnings and executions) to the message log after each successful move or ability.
-6. UI render helpers draw the board, panels, message log sidebar, overlays, ability menu, help overlay, and promotion menu.
+5. Runtime helpers and configuration objects keep subsystem-specific state and default advanced-mode setup out of the main post-move function.
+5. UI render helpers draw the board, panels, overlays, ability menu, and promotion menu.
 
 ## Why This Baseline Matters
 
@@ -57,6 +54,7 @@ This document describes the **stable advanced-mode baseline** after the event, f
   - fusion rules are separated from move execution
   - active ability behavior is separated from the UI loop
   - UI logic is separated from the main game loop
+  - post-move side effects are separated into ordered systems instead of one hardcoded function
 
 ## Out of Scope for This Baseline
 

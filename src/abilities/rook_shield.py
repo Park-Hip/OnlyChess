@@ -20,7 +20,7 @@ class RookShield(Ability):
 
     def apply(self, game_state, piece, target_square):
         for shielded_piece in self._collect_shield_targets(game_state, piece):
-            game_state.add_shielded_piece(shielded_piece, piece.color)
+            game_state.shield_tracker.add(shielded_piece, piece.color)
 
     def _collect_shield_targets(self, game_state, piece):
         """Return the rook and adjacent friendly pieces."""

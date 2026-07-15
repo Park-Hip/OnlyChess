@@ -1,19 +1,11 @@
 """Event timing, queueing, and execution orchestration."""
+
+from ..constants import EVENT_CYCLE_TURNS, EVENT_EXECUTE_OFFSET, EVENT_WARNING_OFFSET
+from ..game.mode_config import DEFAULT_ADVANCED_EVENT_POOL
 from .registry import choose_random_event_key, create_event
 
 
-DEFAULT_EVENT_POOL = [
-    "gia_xang_tang",
-    "umamusume",
-    "my_danh_iran",
-    "tai_xiu",
-    "comeout",
-    "viec_nhe_vol_cao",
-    "nguoi_chong_bat_luc",
-    "kho_ga_tron_ba_mia",
-    "long_toi_tan_nat_khi_nhan_ra_toi_la_gay",
-    "mat_quyen_cong_dan",
-]
+DEFAULT_EVENT_POOL = list(DEFAULT_ADVANCED_EVENT_POOL)
 
 
 class EventManager:
@@ -56,12 +48,12 @@ class EventManager:
             self._tick_active_events()
 
         # completed turns 8 -> displayed turn 9 warning; completed turns 9 -> displayed turn 10 execution.
-        if self.turn_counter > 0 and self.turn_counter % 10 == 8:
+        if self.turn_counter > 0 and self.turn_counter % EVENT_CYCLE_TURNS == EVENT_WARNING_OFFSET:
             if self.queued_event and self.queued_event not in self.active_events:
                 self.queued_event.trigger_warning()
                 self.active_events.append(self.queued_event)
 
-        if self.turn_counter > 0 and self.turn_counter % 10 == 9:
+        if self.turn_counter > 0 and self.turn_counter % EVENT_CYCLE_TURNS == EVENT_EXECUTE_OFFSET:
             if self.queued_event and self.queued_event in self.active_events:
                 self.queued_event.execute()
                 self.recently_executed_events.append(self.queued_event)

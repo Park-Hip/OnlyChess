@@ -6,7 +6,7 @@ from unittest.mock import patch
 from src.constants import ARCHBISHOP_CODE, BLACK, BOARD_COLS, BOARD_ROWS, BISHOP_CODE, CHANCELLOR_CODE, KNIGHT_CODE, ROOK_CODE, WHITE
 from src.events import KhoGaTronBaMia
 from src.game.board import GameState
-from src.pieces import Archbishop, Bishop, Chancellor, King, Knight, Pawn, Queen, Rook
+from src.pieces import Archbishop, Bishop, Chancellor, King, Knight, Pawn, Queen, Rook, Warden, Inquisitor
 
 
 class KhoGaTronBaMiaEventTests(unittest.TestCase):
@@ -132,6 +132,27 @@ class KhoGaTronBaMiaEventTests(unittest.TestCase):
         self.assertEqual(chancellor.get_piece_code(), CHANCELLOR_CODE)
         self.assertEqual(archbishop_targets, {(3, 3), (3, 5), (5, 3), (5, 5)})
         self.assertEqual(chancellor_targets, {(1, 2), (3, 2), (2, 1), (2, 3)})
+
+    def test_poison_restricts_warden_and_inquisitor_movement(self):
+        game_state = GameState()
+        game_state.board.grid = [[None for _ in range(BOARD_COLS)] for _ in range(BOARD_ROWS)]
+        warden = Warden(WHITE, (4, 4))
+        inquisitor = Inquisitor(BLACK, (2, 2))
+        game_state.board.set_piece_at(4, 4, warden)
+        game_state.board.set_piece_at(2, 2, inquisitor)
+        game_state.board.set_piece_at(7, 4, King(WHITE, (7, 4)))
+        game_state.board.set_piece_at(0, 4, King(BLACK, (0, 4)))
+
+        warden.poisoned_turns = 3
+        inquisitor.poisoned_turns = 3
+
+        warden_targets = {(move.end_row, move.end_col) for move in warden.get_possible_moves(game_state)}
+        inquisitor_targets = {(move.end_row, move.end_col) for move in inquisitor.get_possible_moves(game_state)}
+
+        self.assertEqual(warden.get_piece_code(), "W")
+        self.assertEqual(inquisitor.get_piece_code(), "I")
+        self.assertEqual(warden_targets, {(3, 4), (5, 4), (4, 3), (4, 5), (3, 3), (3, 5), (5, 3), (5, 5)})
+        self.assertEqual(inquisitor_targets, {(1, 1), (1, 3), (3, 1), (3, 3), (1, 2), (3, 2), (2, 1), (2, 3)})
 
 if __name__ == "__main__":
     unittest.main()
