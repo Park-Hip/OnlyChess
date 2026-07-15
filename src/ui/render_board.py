@@ -14,7 +14,8 @@ from .ui_constants import COLOR_DARK, COLOR_LIGHT
 
 def get_board_colors():
     """Return the alternating board colors used for the chessboard."""
-    return [COLOR_LIGHT, COLOR_DARK]
+    from ..config import game_config
+    return [p.Color(game_config.color_light_square), p.Color(game_config.color_dark_square)]
 
 
 def get_last_move_squares(game_state):

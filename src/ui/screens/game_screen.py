@@ -100,8 +100,8 @@ class GameScreen(Screen):
         return rects
 
     def _is_game_over(self):
-        """Whether the current game has ended in checkmate or stalemate."""
-        return self.game_state.checkmate or self.game_state.stalemate
+        """Whether the current game has ended in checkmate, stalemate, or timeout."""
+        return self.game_state.checkmate or self.game_state.stalemate or self.game_state.timeout
 
     # ---- event handling ----
 
@@ -260,13 +260,16 @@ class GameScreen(Screen):
 
     # ---- per-frame update ----
 
-    def update(self):
+    def update(self, dt):
         """Refresh valid moves and message log after a move, update cursor."""
         if self.move_made:
             self._log_events()
             self.message_log.auto_scroll_to_bottom()
             self.valid_moves = self.game_state.get_valid_moves()
             self.move_made = False
+
+        if not self.show_help and self.input_state.promotion_move_pending is None:
+            self.game_state.update_timer(dt)
 
         self._update_cursor(p.mouse.get_pos())
 
@@ -401,6 +404,10 @@ class GameScreen(Screen):
             self._draw_game_over_buttons(surface)
         elif self.game_state.stalemate:
             draw_endgame_text(surface, "STALEMATE!")
+            self._draw_game_over_buttons(surface)
+        elif self.game_state.timeout:
+            winner = "Black" if self.game_state.white_to_move else "White"
+            draw_endgame_text(surface, f"TIMEOUT! {winner} wins")
             self._draw_game_over_buttons(surface)
 
         if self.show_help:

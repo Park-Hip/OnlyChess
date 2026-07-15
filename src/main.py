@@ -66,6 +66,7 @@ def main():
 
     current_screen = MenuScreen(shared)
     running = True
+    dt = 0
 
     while running:
         for event in p.event.get():
@@ -80,10 +81,10 @@ def main():
         if current_screen.next_screen is not None:
             current_screen = current_screen.next_screen
 
-        current_screen.update()
+        current_screen.update(dt)
         current_screen.draw(screen)
 
-        clock.tick(MAX_FPS)
+        dt = clock.tick(MAX_FPS) / 1000.0
         p.display.flip()
 
 

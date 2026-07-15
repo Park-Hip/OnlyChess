@@ -49,6 +49,12 @@ def _draw_ap_pill(screen, font, text, x, y, active=False):
     screen.blit(ap_surf, (pill_rect.x + 8, pill_rect.y + 4))
 
 
+def format_time(seconds):
+    """Format seconds into MM:SS."""
+    mins = int(max(0, seconds) // 60)
+    secs = int(max(0, seconds) % 60)
+    return f"{mins:02d}:{secs:02d}"
+
 def draw_info_panels(screen, game_state, images, font):
     """Draw player panels, captured pieces, score summaries, and event countdown."""
     # --- Top Panel (Player 2 / Black) ---
@@ -62,6 +68,9 @@ def draw_info_panels(screen, game_state, images, font):
     name_text_black = font.render("Player 2", True, ACCENT_GOLD if is_black_turn else TEXT_PRIMARY)
     screen.blit(name_text_black, (10, 10))
     _draw_ap_pill(screen, font, get_ap_text(game_state, BLACK), 110, 8, is_black_turn)
+    
+    black_time = font.render(format_time(game_state.timers['b']), True, ACCENT_GOLD if is_black_turn else TEXT_PRIMARY)
+    screen.blit(black_time, (180, 10))
 
     next_x = draw_captured_pieces_row(screen, black_captured, images, 10, 35)
     black_score_text = get_material_text(score, is_top_panel=True)
@@ -78,6 +87,9 @@ def draw_info_panels(screen, game_state, images, font):
     name_text_white = font.render("Player 1", True, ACCENT_GOLD if is_white_turn else TEXT_PRIMARY)
     screen.blit(name_text_white, (10, bottom_y + 10))
     _draw_ap_pill(screen, font, get_ap_text(game_state, WHITE), 110, bottom_y + 8, is_white_turn)
+    
+    white_time = font.render(format_time(game_state.timers['w']), True, ACCENT_GOLD if is_white_turn else TEXT_PRIMARY)
+    screen.blit(white_time, (180, bottom_y + 10))
 
     next_x = draw_captured_pieces_row(screen, white_captured, images, 10, bottom_y + 35)
     white_score_text = get_material_text(score, is_top_panel=False)

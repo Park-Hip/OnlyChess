@@ -8,10 +8,12 @@ from .base import Screen
 from .game_screen import GameScreen
 
 GAME_TITLE = "OnlyChess"
-START_BUTTON_LABEL = "Start"
+NEW_GAME_LABEL = "New Game"
+LOAD_GAME_LABEL = "Load Game"
+OPTIONS_LABEL = "Options"
 QUIT_BUTTON_LABEL = "Quit"
 
-BUTTON_WIDTH = 200
+BUTTON_WIDTH = 250
 BUTTON_HEIGHT = 56
 BUTTON_SPACING = 24
 BUTTON_BORDER_RADIUS = 8
@@ -31,8 +33,14 @@ class MenuScreen(Screen):
     def __init__(self, shared):
         super().__init__()
         self.shared = shared
-        self.start_button_rect = self._button_rect(center_y=BUTTONS_CENTER_Y)
-        self.quit_button_rect = self._button_rect(center_y=BUTTONS_CENTER_Y + BUTTON_HEIGHT + BUTTON_SPACING)
+        
+        # Calculate Y positions
+        start_y = BUTTONS_CENTER_Y - (BUTTON_HEIGHT + BUTTON_SPACING) // 2
+        
+        self.new_game_rect = self._button_rect(center_y=start_y)
+        self.load_game_rect = self._button_rect(center_y=start_y + (BUTTON_HEIGHT + BUTTON_SPACING))
+        self.options_rect = self._button_rect(center_y=start_y + (BUTTON_HEIGHT + BUTTON_SPACING) * 2)
+        self.quit_button_rect = self._button_rect(center_y=start_y + (BUTTON_HEIGHT + BUTTON_SPACING) * 3)
 
     @staticmethod
     def _button_rect(center_y):
@@ -41,12 +49,18 @@ class MenuScreen(Screen):
         return rect
 
     def handle_event(self, event):
-        """Start a new game or request quit when a button is clicked."""
+        """Handle menu button clicks."""
         if event.type != p.MOUSEBUTTONDOWN:
             return
         mouse_pos = p.mouse.get_pos()
-        if self.start_button_rect.collidepoint(mouse_pos):
+        if self.new_game_rect.collidepoint(mouse_pos):
             self.next_screen = GameScreen(self.shared)
+        elif self.load_game_rect.collidepoint(mouse_pos):
+            # TODO: Implement load game
+            pass
+        elif self.options_rect.collidepoint(mouse_pos):
+            from .options_screen import OptionsScreen
+            self.next_screen = OptionsScreen(self.shared)
         elif self.quit_button_rect.collidepoint(mouse_pos):
             self.should_quit = True
 
@@ -60,7 +74,9 @@ class MenuScreen(Screen):
         surface.blit(title_surface, title_rect)
 
         button_font = self.shared.fonts["normal"]
-        self._draw_button(surface, button_font, self.start_button_rect, START_BUTTON_LABEL)
+        self._draw_button(surface, button_font, self.new_game_rect, NEW_GAME_LABEL)
+        self._draw_button(surface, button_font, self.load_game_rect, LOAD_GAME_LABEL)
+        self._draw_button(surface, button_font, self.options_rect, OPTIONS_LABEL)
         self._draw_button(surface, button_font, self.quit_button_rect, QUIT_BUTTON_LABEL)
 
     @staticmethod

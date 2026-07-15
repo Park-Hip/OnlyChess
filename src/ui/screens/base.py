@@ -22,8 +22,8 @@ class Screen:
     def handle_event(self, event):
         """Handle a single pygame event."""
 
-    def update(self):
-        """Advance any per-frame state. Called once per frame."""
+    def update(self, dt):
+        """Update per-frame logic (animations, ai)."""
 
     def draw(self, surface):
         """Draw the screen onto the given surface."""

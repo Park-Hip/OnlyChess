@@ -1,0 +1,7 @@
+{
+    "clock_minutes": 15,
+    "color_white_piece": "#55FF55",
+    "color_black_piece": "#5555FF",
+    "color_light_square": "#DDFFDD",
+    "color_dark_square": "#555555"
+}

@@ -66,6 +66,9 @@ class GameState:
     """Coordinate board state, legal move generation, and turn flow."""
 
     def __init__(self):
+        from ..config import game_config
+        self.timers = {'w': float(game_config.clock_minutes * 60), 'b': float(game_config.clock_minutes * 60)}
+        self.timeout = False
         self.board = Board()
         self.white_to_move = True
         self.move_log = []
@@ -83,6 +86,17 @@ class GameState:
         self.shield_tracker = ShieldTracker()
         self.post_move_systems = create_default_post_move_systems(self)
         self.ability_used_this_turn = False
+
+    def update_timer(self, dt_seconds):
+        """Update the active player's clock."""
+        if self.checkmate or self.stalemate or self.timeout:
+            return
+        
+        current_color = 'w' if self.white_to_move else 'b'
+        self.timers[current_color] -= dt_seconds
+        if self.timers[current_color] <= 0:
+            self.timers[current_color] = 0
+            self.timeout = True
 
     def make_move(self, move, promotion_choice='Q', is_real_move=False):
         """Apply a move and update all related game-state fields."""
@@ -247,7 +261,19 @@ class GameState:
                 self.black_king_pos = (move.start_row, move.start_col)
 
     def get_valid_moves(self):
-        # Generate pseudo-legal moves first.
+        # 1. Check if the opponent was checkmated by a board event after their turn ended.
+        # If the opponent's King is in check at the start of OUR turn, they lose immediately.
+        self.white_to_move = not self.white_to_move
+        opponent_in_check = self.in_check()
+        self.white_to_move = not self.white_to_move
+        
+        if opponent_in_check:
+            # We flip turn so UI says the current player won, then declare checkmate.
+            self.white_to_move = not self.white_to_move
+            self.checkmate = True
+            return []
+
+        # 2. Generate pseudo-legal moves first.
         moves = self.get_all_possible_moves()
         
         # Temporarily apply each move and remove those that expose own king.
