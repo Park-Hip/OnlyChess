@@ -1,7 +1,7 @@
 """A deliberately small Pygame preview for the Wave 2 loaded-content slice.
 
-This is not the replacement game screen.  It proves that linked mod content can reach the
-renderer without importing the legacy `GameState`; move input and gameplay arrive in Wave 3.
+This is a loader/rendering probe. The playable application uses ``EngineGameScreen``; the preview
+remains useful for isolated mod-content diagnostics.
 """
 
 from __future__ import annotations

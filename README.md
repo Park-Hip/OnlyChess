@@ -10,10 +10,9 @@ project. It keeps the base game fully standard-chess-legal, then layers on captu
 **fusion**, resource-gated **active abilities**, and periodic **global events** that force both
 players to adapt mid-game.
 
-> **Refactor in progress.** The playable runtime described below is the legacy engine and remains
-> the comparison oracle while the mod-driven engine is rebuilt. If you are contributing to the
-> refactor, start with [the refactor status](docs/refactor/status.md), not the legacy architecture
-> section of this README.
+> **Mod-driven runtime.** The playable application loads its rules and content from mods through
+> the generic engine. For the current architecture and contributor route, start with
+> [the refactor status](docs/refactor/status.md).
 
 ## What Makes It Different
 
@@ -83,11 +82,10 @@ Compatibility entrypoint (forwards to the same `src.main.main()`):
 uv run python main.py
 ```
 
-## Legacy Runtime Architecture & OOP Design
+## Retired Runtime Architecture (Historical)
 
-This section describes the currently playable, pre-mod architecture. It is useful when comparing
-behaviour during the refactor, but it is not the target design. The target keeps the engine loop in
-`src/` and moves all game content, including base chess, into `mods/`.
+This section records the removed, pre-mod architecture. It is historical context only; the active
+runtime uses `src/engine/`, `src/modding/`, `src/runtime.py`, and content in `mods/`.
 
 OnlyChess is organized around a central `GameState`, but `GameState` does not own every rule —
 it coordinates focused collaborators instead:
