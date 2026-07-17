@@ -38,7 +38,8 @@ refactor has a target instead of a direction. It does — D1 wrote the whole bas
 | E2 migration order | ✅ [`migration-plan.md`](migration-plan.md) — **rebuild the core behind the loader; old engine as oracle.** 7 waves |
 | **Wave 0 · S1** — the `.lc` spike | ✅ **passed, 2026-07-17.** `ruamel.yaml>=0.18` declared (2nd dependency). All 6 checks green; 3 findings → below |
 | **ADR-003** — validation | ✅ **accepted, 2026-07-17** → [adr/003-validation.md](adr/003-validation.md). Registry-driven walk, **no library**; patch stage stamps provenance. Both libraries tested on real content, both rejected |
-| **Wave 0 · S2** — differential harness | ⬜ **← NEXT.** The last Wave 0 item before the seam (S4's gates land with Wave 1) |
+| **Wave 0 · S2** — differential harness | ✅ **done, 2026-07-17.** `tests/oracle/` — +36 tests (182 → 218). **The old engine matches published perft exactly**, incl. Kiwipete d3 and start d4. Findings → below |
+| **Wave 1** — the seam | ⬜ **← NEXT.** Wave 0 is complete (S1 ✅, S2 ✅, S3 decided, S4 lands with Wave 1) |
 
 Decisions closed: D1–D10. D8 (versioning) is settled by `mod-package.md`'s Versioning section, and
 Gate 3 completed it — a mod now has an `id`, which is what MAJOR and dependency keys were implicitly
@@ -53,6 +54,53 @@ about. D9's verb set was **reopened by D1 and re-closed**, then **reopened by E2
 | **Asset ID scheme** | **Folder per piece, file per side** — `<mod>/assets/sprites/warden/<side_id>.png`. Extends to a board with any number of `sides` without string-mangling. Kills `assets.py`'s 20 hardcoded keys **and its silent Queen fallback**, which is `never silently skip malformed content` in the one place a modder's typo lands |
 | **Board + pool selection** | **A `game_mode` content type** — the tenth. Names a `board:` and its `pools:`; the player picks one in the existing menu. *Any engine rule for picking a board needs a rule for picking that rule*, and a player choice is the only terminator that does not make core name a mod. **Bonus: UC11 becomes data** — `base:vanilla` (`pools: []`) is standard chess as a *menu entry*, where before it needed a mod manager. Stage 9 now requires ≥1 `game_mode`, not ≥1 board |
 | **The castling bug** | **Fixed**, divergence list 4 → 5. The new architecture fixes it by *not* reproducing the hack; preserving it would mean writing code to reintroduce a bug. The F2/F4 precedent for preserving live behaviour was weighed and does not apply: **those are design choices somebody could have meant; this is a rules bug nobody designed** |
+
+### S2 is done — the oracle has a ground truth, and the old engine passes it
+
+**Wave 0 is complete.** `tests/oracle/` is the harness the strangler rests on: FEN as the position
+description, an `EngineAdapter` seam the new engine plugs into at Wave 3, the move-set comparison,
+legal-play position generation, and the divergence list with §4's cap enforced as a test. +36 tests,
+182 → 218, and the suite still runs in 1.4s. `ORACLE_SLOW=1` runs the deep sweep (45s).
+
+**Scope grew by one thing, deliberately: published perft.** S2 as specced is *old-vs-old*, which is
+**trivially green by construction** — same engine both sides, so it cannot detect a bug in the
+harness itself. Had `position.py` silently dropped castling rights, both sides would drop them
+identically, the comparison would pass, and **Wave 3 would inherit a broken oracle with a clean
+record.** Perft is ground truth from outside the project, so it checks the harness, the old engine,
+and the divergence list at once. It is the only test in the repo that is not us grading our own
+homework.
+
+**The old engine's move generation is correct for standard chess.** Every published position matches
+exactly — start (20 / 400 / 8902 / **197281**), Kiwipete (48 / 2039 / **97862**), and positions 3–5
+including the promotion-heavy ones. That is a stronger statement than the 182 tests ever made, and it
+is worth knowing *before* a rebuild rather than after.
+
+**Four findings:**
+
+1. **Perft is necessary and not sufficient — the standard suite does not catch our castling bug.**
+   Kiwipete is *the* castling torture position and the old engine matches it at depth 3, yet §1's bug
+   reproduces immediately in a hand-written position: given `4k3/8/8/8/8/8/4p3/4K2R w K - 0 1` the
+   engine offers **`e1g1` while the black pawn on e2 attacks f1**. The published suite simply contains
+   no pawn attacking a castling transit square. **Every divergence needs its own position; ground
+   truth will not find them for us.** Now a regression test, so Wave 4 can *prove* the fix.
+2. **The old engine's move list is not the chess move set.** It emits **one** `Move` for a promotion
+   and takes the piece as a parameter to `make_move`, so `e7e8` is one entry where chess has four.
+   Forwarded naively, **perft would have silently undercounted every promotion**. The adapter expands
+   them — which is also what the spec already decided the new engine does (`into:` + `choose: mover`),
+   so the two engines meet at the interface rather than at a translation.
+3. **Random positions must come from legal play, not scattered pieces — and this is load-bearing, not
+   taste.** FEN cannot express `has_moved`, which is fine for the old engine (it is written once in
+   `base.py:24` and **never read in move generation** — the double-step gates on *rank*). But the new
+   engine gates on `has_moved` deliberately. For positions reached by legal play the two rules
+   **agree**, because pawns never move backwards: a white pawn on rank 2 has provably never moved.
+   Scattering pieces would manufacture the `pawn_double_step` divergence artificially and **the oracle
+   would report a bug that isn't one.**
+4. **The divergence count is ambiguous in the specs, and nobody should trust it until it is
+   reconciled.** §0's box *names three* but says "the four places"; §4 says "four entries are known";
+   the E2 table says the castling fix took the list "4 → 5". `divergences.py` records the three with
+   unambiguous sources plus `ability_turn_rule` (E1 §5.2 says the rule must be **built**, not
+   preserved — a behaviour change by definition), caps at 5, and states the discrepancy rather than
+   silently picking a number.
 
 ### S1 is done — the `.lc` spike passed, and narrowed ADR-003
 

@@ -80,6 +80,16 @@ The oracle is the argument. Everything else about the strangler is ordinary.
 > (status-model), and the castling fix below. **That is a feature.** Every difference the oracle
 > reports must be either a bug or on a written list, and the list is short enough to review. It
 > converts "we think we preserved behaviour" into "here are the four places we didn't, on purpose."
+>
+> ✅ **Built (S2, 2026-07-17) → `tests/oracle/`. One thing was added: published perft.** Old-vs-old is
+> trivially green — same engine both sides — so it cannot catch a bug in the *harness*, and a broken
+> FEN adapter would have been invisible until Wave 3 depended on it. Perft is ground truth from
+> outside the project, and **the old engine matches it exactly** (start to depth 4, Kiwipete to
+> depth 3, promotions included).
+>
+> ⚠️ **But perft does not catch the castling bug** — Kiwipete passes. The published suite has no pawn
+> attacking a castling transit square. **Ground truth is necessary and not sufficient: every entry on
+> the divergence list needs its own hand-written position**, and each one now has a test.
 
 ---
 
@@ -334,7 +344,7 @@ Each wave ends with the game running and the oracle green. Sizes are relative, n
 | # | Work | Why first |
 |---|---|---|
 | ~~**S1**~~ | ~~The `.lc` spike~~ | ✅ **Done, 2026-07-17. Passed.** `ruamel.yaml>=0.18` declared; all 6 checks green, incl. the unknown-key case and a path through a seq index. **Three findings** → [roadmap](roadmap.md#s1-is-done--the-lc-spike-passed-and-narrowed-adr-003): pydantic is disqualified on positions, jsonschema paths the unknown-key case worst, and **patch provenance is an unmodelled hole in the error contract**. |
-| **S2** | **The differential harness**, old-vs-old. A position description → both engines; compare move sets. | The safety net for every wave after. Build it while it is trivially green. |
+| ~~**S2**~~ | ~~The differential harness~~ | ✅ **Done, 2026-07-17.** `tests/oracle/` — FEN as the position description, an `EngineAdapter` seam, the comparison, legal-play position generation, and the divergence list with §4's cap enforced. **Scope grew by one thing, deliberately: published perft as external ground truth**, because old-vs-old is trivially green and cannot catch a bug in the harness itself. Findings → [roadmap](roadmap.md#s2-is-done--the-oracle-has-a-ground-truth-and-the-old-engine-passes-it). |
 | ~~**S3**~~ | ~~Asset ID scheme~~ | ✅ **Decided** (§6.1): folder per piece, file per side. The ~20 file renames are Wave 2 work. |
 | **S4** | **Standing gates G1–G3** (§7), written as the seam lands in Wave 1. | ~20 lines total, and they are the only checks that see the invariants. Cheap now; retrofitted checks find violations after they are load-bearing. |
 
@@ -397,8 +407,8 @@ tests, which is the thing this whole project exists to remove.
 | **The parallel engine never converges** and the project stalls with two half-engines | The classic strangler failure | Every wave ends green and the oracle is objective. If Wave 3 doesn't converge, the design is wrong and that is worth knowing at Wave 3. |
 | **The loader is a big up-front build** before anything runs | Real | Wave 2 forces end-to-end before the loader is complete. Stages arrive with the content types that need them. |
 | **Performance.** Interpreted move-gen inside `get_valid_moves`'s simulate-everything loop | ~900 move-gens/turn today; a data-driven layer adds a constant factor | Irrelevant at human speed and 60fps. **Do not optimise.** It would matter for an AI, which is out of scope. |
-| **The oracle's divergence list grows** until it explains everything | The failure mode that makes it worthless | Cap it. Four entries are known. **A fifth needs a written argument**, not a shrug. |
-| **`.lc` doesn't work** as specified | Genuinely unknown | S1, first, before anything depends on it. |
+| **The oracle's divergence list grows** until it explains everything | The failure mode that makes it worthless | Cap it. Four entries are known. **A fifth needs a written argument**, not a shrug. ✅ **Now executable** — `tests/oracle/divergences.py` carries the list and `test_divergences.py` enforces the cap, so a sixth fails the suite instead of slipping in. ⚠️ **The count is ambiguous** and S2 did not invent an answer: §0 names three but says "four", this row says four, roadmap's E2 table says "4 → 5". Reconcile before Wave 3. |
+| ~~**`.lc` doesn't work** as specified~~ | ~~Genuinely unknown~~ | ✅ **Retired — S1 ran it and it works.** See [ADR-003](adr/003-validation.md). |
 | **Scope creep into UI** | 2,000 lines, tempting, unrelated | Four touch points (§5). Nothing else. |
 
 ---
