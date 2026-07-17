@@ -18,35 +18,84 @@ has a target instead of a direction.
 | **Gate 1** | ✅ passed |
 | **B** — feasibility experiment | ✅ complete → [`feasibility-study.md`](feasibility-study.md) |
 | **Gate 2** | ✅ passed — mod power decided by evidence |
-| **C** — lock format + spec | 🔶 **in progress — 5 of 6 done** |
+| **C** — lock format + spec | ✅ **complete — 6 of 6** |
 | C1 format | ✅ [ADR-001](adr/001-data-format.md) — YAML, pinned to 1.2 core schema |
 | C2 mod package | ✅ [spec/mod-package.md](spec/mod-package.md) — manifest, IDs, semver, load order |
 | C3 content schemas | ✅ [spec/content-schemas.md](spec/content-schemas.md) — 6 content types, 3 vocabularies |
+| C4 loader lifecycle | ✅ [spec/loader-lifecycle.md](spec/loader-lifecycle.md) — 9 stages + error contract |
 | C5 conflict semantics | ✅ [ADR-002](adr/002-conflict-semantics.md) — addressable + 3 patch ops |
 | C6 status model | ✅ [spec/status-model.md](spec/status-model.md) — statuses as data |
-| **C4 loader lifecycle** | ⬜ **← NEXT.** Pipeline + error contract. |
-| **Gate 3 / D / E** | ⬜ not reached |
+| **Gate 3** | ⬜ **← NEXT.** Spec complete + internally consistent? |
+| **D / E** | ⬜ not reached |
 
 Decisions closed: D1–D7, D9 (verb vocabulary), D10 (open properties — the bag exists, base ships
 none). Retired: D11. Still open: D8 (mostly settled in `mod-package.md`).
 
-### Do this next: C4 — loader lifecycle
+### Do this next: Gate 3, then D1
 
-The pipeline stage by stage — discover → parse → validate → resolve dependencies → order → register
-→ activate — and what a failure does at each stage.
+**Gate 3** asks two questions, and most of the material is already written:
 
-Pin down the **error contract**: every content error names mod id, file, field, and expectation. The
-person reading it does not read Python. This is a spec deliverable, not a polish task. `CLAUDE.md`'s
-*fail loud, with attribution* and *validate at load, not at use* are the requirements.
+1. *Every Phase A capability has a home in a schema* — [content-schemas.md](spec/content-schemas.md)
+   ends with the checklist. Verify it rather than redo it.
+2. *The spec is internally consistent* — six documents now cross-reference each other. This is the
+   part that has not been done, and it is a real review pass, not a formality.
 
-Two inputs from C3 that C4 must honour:
+Known gaps carried into Gate 3, all deliberate, all recorded — a gap is not a Gate 3 failure if it is
+written down and owned:
 
-- **Unknown keys are a load error.** C3 leans on this as its highest-value validation rule — it turns
-  a typo'd `limt: 3` from silent wrong behaviour into a message.
-- **`limit` is off by one** between schema (`3` = three squares) and engine (`range(1, limit)`). The
-  loader owns the conversion.
+| Gap | Where | Status |
+|---|---|---|
+| Event triggers (F5) | content-schemas | Deferred out loud; v1 is pool-invoked only |
+| **Player choice** (promotion) | content-schemas, finding 2 | **Real gap.** Needs a move-pipeline home |
+| `credit` → fusion? | content-schemas | Recommendation recorded; **human decides** |
+| Board layout selection | loader-lifecycle | Needs an owner in Phase D |
+| `.lc` position mapping | loader-lifecycle | **Unspiked; highest-risk unknown** |
+| Validation library | loader-lifecycle | Deliberately deferred to ADR-003 (Phase E) |
 
-Then Gate 3.
+Then **D1** — hand-write the whole base game as data files. That is the cheapest test of the
+dogfooding decision, and C3's three transcription hazards (`limit` off-by-one, the pawn double-step,
+fusion's `match` axes) are all waiting there.
+
+### C4 is done — what it decided, and what it found
+
+Read [spec/loader-lifecycle.md](spec/loader-lifecycle.md). Nine stages: discover → resolve → parse →
+load code → validate → patch → register → link → activate.
+
+**The roadmap's own pipeline sketch was in the wrong order.** It has *validate* before *resolve*.
+That is not a style preference — it is impossible:
+
+> Validation needs the verb vocabulary → the vocabulary is not complete until code mods have
+> registered their verbs → code mods must run in dependency order → dependency order comes from
+> resolve.
+
+Validating earlier checks content against a vocabulary still missing verbs, and every `castle:` in
+`base:chess` fails as an unknown key. Worth flagging because **the naive order fails only for code
+mods** — it would pass every test written against `base:chess` alone, until the first third-party
+verb. Two smaller ordering constraints: parse before running anyone's Python (the only free safety a
+trusted-local-install model offers), and patch before normalize (ADR-002 targets *author-facing*
+field names, so `limit: 3` must land before the off-by-one conversion).
+
+Other decisions worth not relitigating:
+
+- **All errors collected and reported together, not fail-fast.** A non-coder with six typos should
+  not run the game six times to find them one at a time.
+- **Report the root, not the cascade.** One typo in `base:chess` disables it, disables `base:fusion`
+  and `base:events` transitively, registers zero board layouts, and stops the game — four errors, one
+  cause. Leading with "no board layouts registered" sends the modder to the wrong file.
+- **The engine requires ≥1 board layout, never `base:chess` by name.** Core may not name a mod, and
+  a total conversion (UC12) replaces `base:chess` and must still boot.
+- **The vocabulary freezes at stage 4** and nothing may register a verb afterward.
+
+**The C4 finding that changes the research backlog:** the *pydantic v2 vs jsonschema* question is
+framed on the wrong criterion. Error quality can't decide it, because **we write our own message
+layer either way** — jsonschema's `anyOf` errors are unusable for this audience and pydantic's are
+still Python-shaped. What actually bites is (a) **source positions**, which neither library provides
+— `file:line:col` has to come from the parser retaining `ruamel`'s `.lc` data through validation,
+which is architecture rather than a flag; and (b) **the vocabulary is runtime-extensible**, so
+`effect` is a discriminated union over a registry that doesn't exist at import time — which both
+libraries are bad at and the verb registry already solves, since by stage 4 it *is* a schema. A
+registry-driven validator is a third option the backlog doesn't list. **Deferred to ADR-003 in Phase
+E, deliberately**, because the `.lc` spike is a real input and deciding without it is vibes.
 
 ### C3 is done — what it decided, and what it found
 
@@ -439,7 +488,7 @@ documented by people who hit them at scale.
 | **MtG Forge / card DSLs** | Non-coders authoring "trigger + effect + duration" cards. Nearest thing to your events. | **High** |
 | **Dota 2** data-driven abilities | Already surveyed; go deeper on where the data model gave out and why. | Medium |
 | Format ergonomics for non-coders | Feeds C1. The comment question is the crux. | Medium |
-| Python schema validation (pydantic v2 vs jsonschema) | Feeds C4's error contract. Error *quality* is the criterion, not speed. | Medium |
+| ~~Python schema validation (pydantic v2 vs jsonschema)~~ | **Reframed by C4.** Error quality can't be the criterion — we write our own message layer either way. The real constraints are source positions (neither library helps; it's the parser's job) and a runtime-extensible vocabulary (both are bad at it; the verb registry already *is* a schema). Now blocked on the `.lc` spike → ADR-003, Phase E. | Deferred |
 | Pygame hot-reload feasibility | Iteration speed for modders. Nice-to-have; do not let it shape the spec. | Low |
 | Asset loading from mod folders | Sprites/sounds from arbitrary paths; `src/ui/assets.py` currently builds fixed paths. | Low |
 
@@ -473,9 +522,10 @@ Written as the phases produce them — not up front.
 - `docs/modding/roadmap.md` — this file
 - Phase A → `content-audit.md`, `use-cases.md`
 - Phase B → `feasibility-study.md`
-- Phase C → `spec/mod-package.md`, `spec/content-schemas.md`, `spec/loader-lifecycle.md`
+- Phase C → `spec/mod-package.md`, `spec/content-schemas.md`, `spec/loader-lifecycle.md`,
+  `spec/status-model.md` — **all written**
 - Phase D → `mods/base/**` (data files), `modder-guide.md`
-- Phase E → `engine-gap-analysis.md`, `migration-plan.md`
+- Phase E → `engine-gap-analysis.md`, `migration-plan.md`, `adr/003-validation.md`
 - Ongoing → `adr/`
 
 The existing `docs/*.md` describe the **pre-refactor** design. They are an accurate map of the
