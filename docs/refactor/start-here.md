@@ -25,13 +25,8 @@ mods/ -> loader -> runtime registries -> engine verbs -> actions -> game state/U
 
 1. [status.md](status.md) — current wave, completed evidence, and deliberate gaps.
 2. [architecture.md](architecture.md) — component responsibilities and boundaries.
-3. [wave-1-loader.md](wave-1-loader.md) — current source code you can safely change today.
-4. The focused section of [the migration plan](../modding/migration-plan.md) for the wave you are
-   implementing.
-5. The relevant normative spec under `docs/modding/spec/`, only when changing its contract.
-
-Read the legacy overview, `docs/system-overview.md`, when you need to understand behaviour the new
-engine must reproduce. Do not use it as a guide for adding new target-engine content.
+3. [contributing.md](contributing.md) — the checklist for a safe change.
+4. The relevant normative spec under `docs/modding/spec/`, only when changing its contract.
 
 ## Vocabulary
 
@@ -45,7 +40,6 @@ engine must reproduce. Do not use it as a guide for adding new target-engine con
 | action | A recorded state change and its inverse; the basis of undo. |
 | oracle | New-engine perft coverage in `tests/oracle/`. |
 
-For expanded definitions, see [glossary.md](glossary.md).
 
 ## First-change checklist
 

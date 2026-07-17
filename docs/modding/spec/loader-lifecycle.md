@@ -1,6 +1,6 @@
 # Spec — Loader Lifecycle
 
-**Status:** draft (roadmap C4). The last Phase C deliverable before Gate 3.
+**Status:** current loader contract.
 **Depends on:** [ADR-001](../adr/001-data-format.md) (YAML 1.2 chokepoint),
 [ADR-002](../adr/002-conflict-semantics.md) (patch ordering), [mod-package.md](mod-package.md)
 (manifests, IDs, dependency graph), [content-schemas.md](content-schemas.md) (what gets validated).
@@ -32,9 +32,9 @@ flowchart TD
     L --> A["9 Activate"]
 ```
 
-### The ordering is not the roadmap's, and the difference matters
+### The ordering and the difference matter
 
-The roadmap sketches *discover → parse → validate → resolve dependencies → order → register →
+The lifecycle is *discover → parse → validate → resolve dependencies → order → register →
 activate*. **Resolve must move before validate**, because of a dependency chain the sketch does not
 show:
 
@@ -424,7 +424,10 @@ above is disqualified regardless of its other merits.
 
 ---
 
-## What this deletes
+## Historical design notes
+
+> The deleted-code examples in this section explain why the loader contract exists. They are not
+> active implementation paths and must not be restored.
 
 The three blockers in `CLAUDE.md`'s "Current state" are loader problems, and stage 7 is where the
 first one dies.
@@ -457,7 +460,7 @@ unreachable, because a dangling reference cannot survive load. Logged for E1.
 
 ---
 
-## Open
+## Future capabilities
 
 - ~~**Which board layout does a session use?**~~ **Closed by E2** — and it was the same question as
   "which event pool?", which the modder guide surfaced independently. Answer: a **`game_mode` content
@@ -479,10 +482,10 @@ unreachable, because a dangling reference cannot survive load. Logged for E1.
   `castle` and `enpassant` are not one-liners. The module name derives from the **mod id**, not the
   folder, since the id is the thing guaranteed unique across a load.
 - **Reload.** The pipeline is specified as one-shot at startup. Hot reload is explicitly out of scope
-  (roadmap, "Explicitly not doing yet"), but the frozen-vocabulary rule at stage 4 is what would make
+  but the frozen-vocabulary rule at stage 4 is what would make
   it hard later. Noted, not solved.
-- **Asset loading** is not in this pipeline. `sprite: base:sprites/warden` (C3) assumes an asset ID
-  scheme that mod-package.md still lists as open. Assets probably need a stage between 7 and 9.
+- **Historical asset note.** Asset loading was considered outside this pipeline; presentation assets
+  remain intentionally unsupported by the current runtime.
 - **Does `engine:` gate the verb vocabulary or the loader contract?** Inherited from mod-package.md,
   and stage 4 sharpens it: they will version differently once code mods register verbs.
 

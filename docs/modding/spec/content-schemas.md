@@ -1,11 +1,10 @@
 # Spec — Content Schemas
 
-**Status:** draft (roadmap C3). Decides D9 (verb vocabulary) and D10 (open piece properties).
+**Status:** current contract for content vocabulary and open piece properties.
 **Depends on:** [ADR-001](../adr/001-data-format.md) (YAML 1.2), [ADR-002](../adr/002-conflict-semantics.md)
 (addressability), [mod-package.md](mod-package.md) (IDs, load order), [status-model.md](status-model.md)
 (statuses — **already specified, not restated here**).
-**Derived from:** [`content-audit.md`](../content-audit.md) (what exists),
-[`feasibility-study.md`](../feasibility-study.md) (what is expressible).
+**Scope:** the content shapes supported by the active loader and engine.
 
 **There are ten content types.** Eight are specified here — **piece**, **event**, **event pool**,
 **ability**, **fusion**, **board layout**, **resource**, **game mode**. **status** is specified in
@@ -375,7 +374,6 @@ the contract exists.
 type: piece
 id: base:warden
 name: Warden                          # human-facing
-sprite: base:sprites/warden           # optional; defaults to the piece's own id
 material: 7
 components: [base:rook, base:bishop]  # ordered — first is primary
 moves:
@@ -740,7 +738,7 @@ what they mean. A modder's `mymod:mana` works on day one, and `base:ap` gets no 
 > ⚠️ **Corrected by E1 — the rule is not in core today; it is not implemented at all.** This box
 > originally argued the point from the code: *"`Ability.use` calls `finish_ability_turn`, so spending
 > an ability is spending your turn."* E1 verified otherwise
-> ([engine-gap-analysis](../engine-gap-analysis.md) §2.3): `ability_used_this_turn` is **vestigial**
+> `ability_used_this_turn` is **vestigial**
 > — set `True` and back to `False` inside one synchronous call, so `can_use`'s read never sees it —
 > and `can_use` never checks `white_to_move` either. **White can use two abilities in a row, the
 > second on black's turn**, and the engine allows it. Only the UI's input gating prevents it.
@@ -944,7 +942,7 @@ together.
 
 # Game mode
 
-**Added by E2** ([migration-plan](../migration-plan.md) §6.2). A mode is a playable configuration: a
+**Game mode.** A mode is a playable configuration: a
 board, and the event pools that run on it.
 
 ```yaml
@@ -1068,7 +1066,10 @@ whatever survives replacement — both happen at stage 6, replacement first.
 
 ---
 
-# What C3 found that the audit and Phase B did not
+# Historical design findings
+
+> This section records how the contract was derived. It is rationale, not an additional runtime
+> surface; the schemas above define what a mod can use today.
 
 Writing the schemas against the source surfaced five things. Three are transcription hazards for D1;
 one is a genuine gap; one is a correction to this spec's own first draft.
@@ -1094,7 +1095,7 @@ choose: mover
 ```
 
 `into` accepting a list means "offer these; `choose:` says who picks". One value of `choose` —
-`mover` — is earned. This is a **new concept the roadmap did not anticipate**, it is required by
+`mover` — is earned. This is a required concept for the active content contract.
 standard chess, and it drags in a UI contract (the engine must be able to *ask*, and the ability
 pipeline must be able to suspend). Flagged for C4: the loader lifecycle is not affected, but the
 **move pipeline** is, and E1 should expect it.
@@ -1188,7 +1189,7 @@ source looked complete, was reviewed, passed Gate 3, and was wrong.
 
 ---
 
-# Open
+# Future capabilities
 
 - ~~**Does `credit` trigger fusion?**~~ **Decided after D1** ([above](#destroy)): no — displacement
   does. `base:fusion` declares `fuses_on: displacing_captures`, which preserves today's behaviour and
@@ -1197,8 +1198,6 @@ source looked complete, was reviewed, passed Gate 3, and was wrong.
 - **`material` may belong in `properties`** ([above](#properties--the-open-bag-d10)) — depends on
   whether scoring is engine or base-game UI.
 - **`has_status` has no consumer** ([above](#filter--which-qualify)) — cut it if a reviewer objects.
-- **Asset IDs** — `sprite: base:sprites/warden` assumes an asset ID scheme that mod-package.md lists
-  as open. Same question, still open.
 - **Message templates on abilities?** Events have `message`; abilities emit nothing today. Left
   unspecified rather than guessed.
 

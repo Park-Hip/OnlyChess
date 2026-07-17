@@ -1,6 +1,6 @@
 # Spec — Status Effects
 
-**Status:** draft (roadmap C6 / D6). Resolves audit findings **F1**, **F2**, **F4**, **F7**.
+**Status:** current status-effect contract.
 **Satisfies:** UC8 (*add a new status* — the confirmed must-have).
 
 ## Why shield first
@@ -20,7 +20,7 @@ The rule is *survive your own turn-end, die on the opponent's turn-end*. `shield
 vestigial — nothing reads it as a counter. Design against this first; a naive `duration: N` model
 cannot express it, and retrofitting shield into a countdown would silently change the game.
 
-There is a second, quieter divergence: **poison and stun tick on full turns** (`EventManager.update`
+There is a second, quieter rule: **poison and stun tick on full turns**
 runs at full-turn boundaries), while **shield expires on half-turns** (`expire_shields_after_turn`
 fires after every move *and* every ability). Two granularities, undocumented.
 
@@ -127,7 +127,7 @@ Consequences, all of them improvements:
 > independent, an event is instant and there is nothing to display."*
 >
 > **`render_panels` does not read `active_events`. Nothing in `src/ui/` does.**
-> ([engine-gap-analysis](../engine-gap-analysis.md) §3.1.) The panels draw AP, captured pieces,
+> The panels draw AP, captured pieces,
 > material, turn number and a countdown. The only UI reads of event state are the warning banner
 > (`message_log.py:175` → `queued.warning_active`) and the executed-message lines
 > (`game_screen.py:354`), and **both survive the status rewrite untouched.** The flagged migration

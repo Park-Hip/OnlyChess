@@ -1,6 +1,6 @@
 # Spec — Mod Package
 
-**Status:** draft (roadmap C2). Decides D4 (ID grammar) and D8 (versioning).
+**Status:** current mod-package contract.
 **Depends on:** [ADR-001](../adr/001-data-format.md) (YAML 1.2), [ADR-002](../adr/002-conflict-semantics.md).
 
 ## Folder layout
@@ -14,7 +14,6 @@ mods/
     pieces/        queen.yaml, pawn.yaml, …
     board/         standard.yaml
     statuses/
-    assets/        sprites/, sounds/
   base-fusion/
     manifest.yaml
     pieces/        warden.yaml, inquisitor.yaml, …
@@ -177,15 +176,5 @@ reported.
 
 - **Where do mods live?** `mods/` beside the executable, or a per-user data directory? Affects
   packaging and whether a game update can clobber mods.
-- ~~**Asset ID scheme.**~~ **Closed by E2/Wave 2.** `sprite: base:sprites/warden` resolves to
-  **`<mod>/assets/sprites/warden/<side-namespace>/<side-name>.png`** — a folder per piece, one file
-  per side. A side remains the namespaced data ID `base:white`; splitting it into directories avoids
-  the illegal Windows filename `base:white.png` without inventing a lossy string encoding. Chosen over
-  a flat `warden_white.png` because it extends to a board with any number of `sides`, and over
-  per-side declarations in the piece file because that mapping is entirely mechanical. Replaces
-  `assets.py`'s 20 hardcoded `f"{color}{code}"` keys.
-  ⚠️ **`load_images`' Queen fallback must die with it**: a missing sprite currently prints a warning
-  and silently renders a queen, which is `CLAUDE.md`'s *never silently skip malformed content* in the
-  one place a modder's typo lands. It becomes a load error.
 - **Does `engine:` gate the verb vocabulary or the loader contract?** They will version differently
   once code mods register verbs.

@@ -37,7 +37,7 @@ is *"a defect in the engine, not a task for the modder."* The table was the thin
 **Core owns the loop; mods own what goes in it.** Core draws, dispatches input, and plays audio —
 mods **register** what to draw. A timer mod registers a HUD element; a theme mod registers a palette.
 Neither gets to call into pygame directly, and core never names one. See UC16–UC17 in
-`docs/modding/use-cases.md`.
+the modding contracts under `docs/modding/spec/`.
 
 Core may never:
 
@@ -86,7 +86,7 @@ speculation. Generality no content exercises is dead weight that constrains ever
 
 The base mod is the spec for the **vocabulary**, but not for the **shape**. The shape is earned by
 the extensibility requirement itself, and validated against the probes in
-`docs/modding/use-cases.md` (HP, conditional powers, missions). **Those probes are acceptance tests,
+the modding contracts (HP, conditional powers, missions). **Those probes are acceptance tests,
 never deliverables.** A modder wanting HP ships a code mod registering a damage hook and a
 `modify_property` verb; HP is then data. We never write HP — we make HP writable. If you find
 yourself implementing a probe, stop: you have misread this file.
@@ -120,8 +120,8 @@ populated by hardcoded imports. Three known blockers, in dependency order:
 Working in our favour: movement is already primitive-based (`_get_sliding_moves(directions, limit)`,
 `_get_one_step_moves(directions)`), so data-defined pieces map onto the existing engine closely.
 
-`docs/extensibility-and-change-impact.md` is an honest pre-refactor map of what currently forces
-core edits. It describes the old design; trust it as a survey of the problem, not of the target.
+The deleted legacy implementation is not a source of extension guidance. The current contracts
+define the supported extension surface.
 
 ## The mod model — decided
 
@@ -145,7 +145,7 @@ needs VM/gVisor/WASM). **Do not build a sandbox.** Instead, a manifest declares 
 code, and the UI surfaces it — a pure-data mod is genuinely safe to install, and most mods will be
 pure data. That is a real security property, and it is free.
 
-Rationale and evidence: `docs/modding/feasibility-study.md`.
+The active contract is data-first: code mods register verbs, and data mods compose content from them.
 
 ## The condition line
 

@@ -1,6 +1,6 @@
 # ADR-001 — Data format for mod content
 
-**Status:** accepted (roadmap C1 / D3)
+**Status:** accepted
 **Date:** 2026-07-16
 
 ## Context
@@ -32,7 +32,7 @@ Parsed with a library that actually implements 1.2 — `ruamel.yaml`, `pyyaml-co
 **Not stock PyYAML**, which implements YAML 1.1; its 1.2 core schema support is a
 [long-blocked pull request](https://github.com/yaml/pyyaml/issues/486).
 
-Paired with **strict schema validation** (see roadmap C4). Format choice and validation quality are
+Paired with **strict schema validation**. Format choice and validation quality are
 not independent decisions — validation is what makes this one survivable.
 
 ## Rationale

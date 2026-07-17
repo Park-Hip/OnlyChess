@@ -1,6 +1,6 @@
 # ADR-003 — Content validation and source positions
 
-**Status:** accepted (roadmap C4 / research backlog; unblocked by Wave 0 spike S1)
+**Status:** accepted
 **Date:** 2026-07-17
 
 ## Context
@@ -119,7 +119,7 @@ verbs earn, and the walk gets no more general than the registry it reads.
   contract is achievable rather than aspirational.
 - **The tree stays position-bearing end to end.** Nothing between parse and register may convert to
   plain dicts — that discards `.lc` irrecoverably and is invisible until an error fires. **This is a
-  standing invariant, not a style note**, and belongs in the gates (migration-plan S4).
+  standing invariant, not a style note**, and belongs in the gates.
 - **`ruamel` is load-bearing beyond ADR-001.** It was chosen for the 1.2 pin; it is now also the
   source of every error position. Replacing it means replacing both.
 - **The resolver has two sources and must consult both** — `.lc` for authored keys, the provenance
@@ -132,7 +132,7 @@ verbs earn, and the walk gets no more general than the registry it reads.
   rule (below) is what keeps that from mattering.
 - **"Actively reject stock PyYAML" cannot be a runtime import guard.** S1 confirmed `import yaml`
   succeeds and always will, since PyYAML is installed. It has to be a test or lint check on what
-  `parse.py` imports. Owner: migration-plan S4's standing gates.
+  `parse.py` imports. Owner: the standing loader gates.
 
 ## Alternatives rejected
 

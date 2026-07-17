@@ -1,6 +1,6 @@
 # ADR-002 — Conflict and override semantics
 
-**Status:** accepted (roadmap C5 / D5)
+**Status:** accepted
 **Date:** 2026-07-16
 
 ## Context
@@ -23,7 +23,7 @@ RimWorld shipped whole-content last-wins override, it produced mass conflicts, a
 XPath-based patching in alpha 17**. Afterwards, [two mods can modify different parts of the same Def
 without conflict](https://rimworldwiki.com/wiki/Modding_Tutorials/Compatibility).
 
-This is exactly the failure mode the roadmap told us to read prior art for. We should not
+This is the failure mode prior art warns about. We should not
 independently rediscover it.
 
 ## Decision
@@ -55,7 +55,7 @@ patches:
 > [the loader](../spec/loader-lifecycle.md#6-patch). This ADR decided the semantics and never said
 > what the file looked like; Gate 3 found the omission.
 
-**Load order derives from the dependency graph** (ADR pending, roadmap C2), making patch application
+**Load order derives from the dependency graph**, making patch application
 deterministic and reproducible.
 
 **Same-field collisions are detected and reported, never silent.** When two mods patch the same

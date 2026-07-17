@@ -247,23 +247,10 @@ For `slide`, you name a direction instead:
 And `limit:` is **how many squares**, counted normally. `limit: 2` means two squares. `limit:
 unlimited` means as far as it can go.
 
-### Giving it a picture
+### Presentation is not available yet
 
-```yaml
-sprite: frostmod:sprites/griffin
-```
-
-That points at a **folder**, and you put one picture in it per side:
-
-```
-mods/frostmod/assets/sprites/griffin/
-  white.png
-  black.png
-```
-
-Leave `sprite:` out entirely and the game looks for a folder named after your piece — so if you name
-the folder `griffin`, you can skip the line. **If a picture is missing, the game says so and refuses
-to load your mod.** It will not quietly draw something else and let you wonder.
+The current playable runtime renders letter glyphs for pieces. It does not load mod-provided sprites,
+sounds, themes, or HUD elements yet, so leave presentation fields out of a mod for now.
 
 ### Optional extras
 
