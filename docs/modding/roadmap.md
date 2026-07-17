@@ -8,7 +8,7 @@ has a target instead of a direction.
 
 ## ▶ START HERE — current status
 
-**Last updated:** 2026-07-17 · commit `8568118` · branch `refactor/mod-driven-prep`
+**Last updated:** 2026-07-17 · branch `refactor/mod-driven-prep`
 
 ### Where we are
 
@@ -18,27 +18,77 @@ has a target instead of a direction.
 | **Gate 1** | ✅ passed |
 | **B** — feasibility experiment | ✅ complete → [`feasibility-study.md`](feasibility-study.md) |
 | **Gate 2** | ✅ passed — mod power decided by evidence |
-| **C** — lock format + spec | 🔶 **in progress — 4 of 6 done** |
+| **C** — lock format + spec | 🔶 **in progress — 5 of 6 done** |
 | C1 format | ✅ [ADR-001](adr/001-data-format.md) — YAML, pinned to 1.2 core schema |
 | C2 mod package | ✅ [spec/mod-package.md](spec/mod-package.md) — manifest, IDs, semver, load order |
+| C3 content schemas | ✅ [spec/content-schemas.md](spec/content-schemas.md) — 6 content types, 3 vocabularies |
 | C5 conflict semantics | ✅ [ADR-002](adr/002-conflict-semantics.md) — addressable + 3 patch ops |
 | C6 status model | ✅ [spec/status-model.md](spec/status-model.md) — statuses as data |
-| **C3 content schemas** | ⬜ **← NEXT. The centerpiece.** |
-| C4 loader lifecycle | ⬜ not started |
+| **C4 loader lifecycle** | ⬜ **← NEXT.** Pipeline + error contract. |
 | **Gate 3 / D / E** | ⬜ not reached |
 
-Decisions closed: D1–D7. Retired: D11. Still open: D8 (mostly settled in `mod-package.md`), D9, D10.
+Decisions closed: D1–D7, D9 (verb vocabulary), D10 (open properties — the bag exists, base ships
+none). Retired: D11. Still open: D8 (mostly settled in `mod-package.md`).
 
-### Do this next: C3 — content schemas
+### Do this next: C4 — loader lifecycle
 
-One schema per content type, derived from the Phase A audit and Phase B verbs. **The status schema
-is already done** (C6) — do not redo it.
+The pipeline stage by stage — discover → parse → validate → resolve dependencies → order → register
+→ activate — and what a failure does at each stage.
 
-Write: **piece**, **event**, **ability**, **fusion**, **board layout**, plus the shared **selector**,
-**effect**, and **condition** vocabularies.
+Pin down the **error contract**: every content error names mod id, file, field, and expectation. The
+person reading it does not read Python. This is a spec deliverable, not a polish task. `CLAUDE.md`'s
+*fail loud, with attribution* and *validate at load, not at use* are the requirements.
 
-**Non-negotiable constraints — all are earned findings, not preferences. Violating any one of them
-means the schema cannot express the base game:**
+Two inputs from C3 that C4 must honour:
+
+- **Unknown keys are a load error.** C3 leans on this as its highest-value validation rule — it turns
+  a typo'd `limt: 3` from silent wrong behaviour into a message.
+- **`limit` is off by one** between schema (`3` = three squares) and engine (`range(1, limit)`). The
+  loader owns the conversion.
+
+Then Gate 3.
+
+### C3 is done — what it decided, and what it found
+
+Read [spec/content-schemas.md](spec/content-schemas.md). It specifies **piece, event, event pool,
+ability, fusion, board layout** plus the shared **selector / condition / effect** vocabularies.
+
+Headline decisions, each of which a fresh session should not relitigate without reading the file:
+
+- **`components: [base:rook, base:bishop]`** — one ordered field yields *both* selector axes.
+  `tag_any` tests membership, `primary` tests the first element. This is F3 resolved at the root:
+  the principle *is* the query, so it cannot drift out of sync with a new piece.
+- **`promote` is not a verb** — it is `transform` + `when: { at_promotion_rank: true }`. The audit
+  named a behaviour, not a primitive. Six effects, not seven.
+- **Event triggers are deferred, out loud** (F5). v1 events are pool-invoked only; "fire when a
+  queen is captured" is inexpressible. Cheap to add later because pieces need the bus anyway.
+- **Event pool is a sixth content type** — the ten events share *one* schedule that picks one at
+  random. Per-event scheduling would describe a different game.
+
+**Four findings that were not in the audit or Phase B.** Three are transcription hazards for D1; one
+is a real gap:
+
+1. **Player choice is unmodelled, and standard chess needs it.** Normal promotion offers Q/R/B/N
+   (`Board._resolve_pawn_promotion`); Phase B only looked at `pawn_sprint`, which auto-queens. Not an
+   effect, not a condition, not a selector — an *interaction*. C3 proposes `into: [list]` +
+   `choose: mover`. **It drags in a move-pipeline contract; E1 should expect it.**
+2. **`limit` is off by one** — engine `limit=4` means 3 squares. Schema says 3. Silent if
+   mis-transcribed from `fused.py`.
+3. **The pawn double-step changes meaning** — code gates on *rank*, schema gates on `has_moved`.
+   Reachable via `mat_quyen_cong_dan`'s colour conversion. C3 recommends `has_moved` (rank-gating
+   hardcodes board size, which UC12 forbids) and logs it as a *deliberate* change.
+4. **Stun does not stop abilities, and only `pawn_sprint` noticed.** A stunned bishop can snipe
+   today. F2's pattern in a new place; made visible, not fixed.
+
+Also: **fusion eligibility needs no field.** `can_fuse` / `has_fused` are redundant — the 6-entry
+table is already total (king, pawn, queen, and fused pieces simply appear in no row). Two engine
+predicates become deletable; logged for E1. This also means **ADR-002 still has no base-game patch
+consumer** — C3 looked for one and did not find one.
+
+### Constraints C3 was held to (retained for review)
+
+All are earned findings, not preferences. If C3 is revised, violating any one means the schema cannot
+express the base game:
 
 1. **Two selector axes** (F3) — `tag` ("contains a rook": Rook, Chancellor, Warden, **and**
    Inquisitor) and `primary` ("is primarily a rook": Rook, Chancellor, Warden, **not** Inquisitor).
@@ -60,8 +110,6 @@ means the schema cannot express the base game:**
 9. **Verbs are earned** — only what base-game content actually needs. No `modify_property`, no
    `grant_ap`, no counters. Those arrive via code mods.
 
-Then C4 (loader lifecycle + error contract), then Gate 3.
-
 ### Context a fresh session needs
 
 - `CLAUDE.md` is committed and loads automatically — it carries the constitution, the mod model, and
@@ -78,9 +126,14 @@ Then C4 (loader lifecycle + error contract), then Gate 3.
 
 - **Line up a non-coder for D3** (the non-coder test). Needs lead time. It is the only step that
   tests the project's actual goal rather than our belief about it.
-- Two flagged close calls, open to challenge: ADR-002 ships 3 patch ops with **no base-game
-  consumer**; ADR-001's YAML 1.2 pin adds a `ruamel.yaml` dependency to a project that currently
-  depends only on pygame.
+- **A game-design call, needed before `base:fusion` is written:** does a `credit`ed destroy trigger
+  fusion? `bishop_snipe` records a capture but does **not** fuse today. Under C3's schema
+  `credit: self` is indistinguishable from a capture, so a naive fusion hook would make snipe fuse
+  and change the game. Adjacent to the retired D11, but live regardless of HP.
+- Three flagged close calls, open to challenge: ADR-002 ships 3 patch ops with **no base-game
+  consumer** (C3 looked again and found none); ADR-001's YAML 1.2 pin adds a `ruamel.yaml`
+  dependency to a project that currently depends only on pygame; C3's `has_status` filter has no
+  base-game consumer either and exists only as `not_status`'s mirror.
 
 ---
 
@@ -395,8 +448,8 @@ Keep these as ADRs in `docs/modding/adr/`. Each is expensive to reverse once sch
 | ~~D6~~ | ~~Status effect model~~ | **decided: data statuses, 2 expiry policies** ([status-model](spec/status-model.md)) |
 | ~~D7~~ | ~~Base mod granularity~~ | **decided at Gate 1: split** (UC11) |
 | D8 | Versioning and compatibility policy | — |
-| D9 | Trigger/condition/effect vocabulary — the v1 verb set | Phase B |
-| D10 | Open piece properties | Phase B |
+| ~~D9~~ | ~~Trigger/condition/effect vocabulary — the v1 verb set~~ | **decided: 6 effects, 4 conditions, no event triggers in v1** ([content-schemas](spec/content-schemas.md)) |
+| ~~D10~~ | ~~Open piece properties~~ | **decided: `properties` bag exists (shape); base ships none** ([content-schemas](spec/content-schemas.md)) |
 | ~~D11~~ | ~~Fusion on capture or on kill, once HP exists~~ | **retired** — HP is a probe, never built; whoever adds it decides |
 
 ## Document inventory

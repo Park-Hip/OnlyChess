@@ -263,3 +263,18 @@ may erase them anyway.
 - `mat_quyen_cong_dan` respects shields when destroying but not when converting (F2) — unclear
 - Transform state policies disagree about whether statuses survive (F4) — unclear
 - Queen ignores poison entirely; safe only because the poison event never selects her (F1)
+
+**Added during C3** (found while writing the schemas against the source; see
+[`spec/content-schemas.md`](spec/content-schemas.md) → "What C3 found"):
+
+- **Stun does not stop abilities, and only one ability noticed.** `pawn_sprint` checks that its own
+  piece is not stunned; `bishop_snipe`, `knight_swap`, and `rook_shield` do not. A stunned bishop can
+  snipe today. This is **F2's pattern in a new place** — an invisible per-consumer inconsistency
+  nobody decided. Unclear whether deliberate.
+- **The pawn double-step is gated on rank, not `has_moved`.** `r == BOARD_ROWS - 2` for white. The
+  two rules diverge for a pawn converted by `mat_quyen_cong_dan`: an unmoved converted pawn sits on
+  the wrong rank for its new colour and permanently loses its double-step. Reachable. Probably
+  unintended, but it is a rules question, not a code one.
+- **`limit` is exclusive in `_get_sliding_moves`** (`range(1, limit)`), so Warden's "3 squares"
+  is written `limit=4`. Not a bug — `fused.py` comments it — but it is a transcription hazard for
+  Phase D1, and it is silent when got wrong.
