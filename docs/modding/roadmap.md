@@ -39,7 +39,8 @@ refactor has a target instead of a direction. It does — D1 wrote the whole bas
 | **Wave 0 · S1** — the `.lc` spike | ✅ **passed, 2026-07-17.** `ruamel.yaml>=0.18` declared (2nd dependency). All 6 checks green; 3 findings → below |
 | **ADR-003** — validation | ✅ **accepted, 2026-07-17** → [adr/003-validation.md](adr/003-validation.md). Registry-driven walk, **no library**; patch stage stamps provenance. Both libraries tested on real content, both rejected |
 | **Wave 0 · S2** — differential harness | ✅ **done, 2026-07-17.** `tests/oracle/` — +36 tests (182 → 218). **The old engine matches published perft exactly**, incl. Kiwipete d3 and start d4. Findings → below |
-| **Wave 1** — the seam | ⬜ **← NEXT.** Wave 0 is complete (S1 ✅, S2 ✅, S3 decided, S4 lands with Wave 1) |
+| **Wave 1** — the seam | ✅ **done, 2026-07-17.** `src/modding/` — api, registries, parse, errors, loader (stages 1/3/4/7/9). **S4's gates G1–G3 landed with it.** +137 tests (223 → 361). Findings → below |
+| **Wave 2** — walking skeleton | ⬜ **← NEXT.** `mods/skeleton/`; the game loads it and draws a piece |
 
 Decisions closed: D1–D10. D8 (versioning) is settled by `mod-package.md`'s Versioning section, and
 Gate 3 completed it — a mod now has an `id`, which is what MAJOR and dependency keys were implicitly
@@ -54,6 +55,60 @@ about. D9's verb set was **reopened by D1 and re-closed**, then **reopened by E2
 | **Asset ID scheme** | **Folder per piece, file per side** — `<mod>/assets/sprites/warden/<side_id>.png`. Extends to a board with any number of `sides` without string-mangling. Kills `assets.py`'s 20 hardcoded keys **and its silent Queen fallback**, which is `never silently skip malformed content` in the one place a modder's typo lands |
 | **Board + pool selection** | **A `game_mode` content type** — the tenth. Names a `board:` and its `pools:`; the player picks one in the existing menu. *Any engine rule for picking a board needs a rule for picking that rule*, and a player choice is the only terminator that does not make core name a mod. **Bonus: UC11 becomes data** — `base:vanilla` (`pools: []`) is standard chess as a *menu entry*, where before it needed a mod manager. Stage 9 now requires ≥1 `game_mode`, not ≥1 board |
 | **The castling bug** | **Fixed**, divergence list 4 → 5. The new architecture fixes it by *not* reproducing the hack; preserving it would mean writing code to reintroduce a bug. The F2/F4 precedent for preserving live behaviour was weighed and does not apply: **those are design choices somebody could have meant; this is a rules bug nobody designed** |
+
+### Wave 1 is done — the seam exists, and the base mods load through it
+
+`src/modding/` is the loader: `api.py` (the injected verb path), `registries.py`, `parse.py` (the
+ruamel chokepoint), `errors.py` (the error contract), `loader.py` (stages **1 discover, 3 parse,
+4 load code, 7 register, 9 activate**). Stages 2, 5, 6 and 8 are **not stubbed** — a stub that
+returns success is a lie that passes tests — and the reasons they are absent are written where they
+will land. +137 tests, 223 → 361, suite still ~2s.
+
+**The base mods D1 wrote on paper now load through a machine.** All 33 files parse; `base:fusion` and
+`base:events` register 10 pieces, 10 events, 3 statuses, a fusion table, a pool and a mode. That is
+the first time anything has read them other than a person, and it is the only check in this wave that
+could have caught the spec and the loader disagreeing. It did not.
+
+**`base:chess` is currently disabled, and that is the loader working.** Its manifest says
+`code: true` because it will register `castle` and `enpassant` at Wave 4; the `code/` directory does
+not exist yet. So the loader reports it and — per the failure policy — disables the mod **whole**, and
+not one of its ten pieces registers. Wave 4 closes it by writing the code, not by softening the rule.
+
+**Five findings, four from reviewing our own code and one that reviewed us:**
+
+1. **⚠️ ADR-001's pin has a trapdoor, and it was in the trust model's own field.** `bool(tree["code"])`
+   is correct under YAML 1.1 and inverts under 1.2: `code: no` parses to the *string* `"no"`, and
+   `bool("no")` is `True`. **The natural spelling of false silently meant true** in the one field that
+   decides whether a mod is advertised as running code, and the error quoted a `code: true` the modder
+   never wrote. The pin does not cause it — the pin stops YAML from guessing, which means **every
+   boolean field must now type-check itself**. Generalised into
+   [loader-lifecycle](spec/loader-lifecycle.md#️-every-boolean-field-must-type-check-because-yaml-12-makes-no-a-string)
+   as a stage-5 requirement, because it will recur in every schema and every affected field looks fine
+   in testing.
+2. **A non-UTF-8 file crashed the loader.** `UnicodeDecodeError` is a `ValueError`, so it escaped
+   `except OSError` and took the whole load down with a stack trace naming no mod — for the single
+   likeliest way a real modder's file fails to open (a Windows editor saving cp1252). The audience the
+   error contract exists for was the audience it crashed on.
+3. **Code mods could not span more than one file.** `spec_from_file_location` without
+   `submodule_search_locations` meant `from .castle import castle_fn` failed. **This closes
+   loader-lifecycle's open question** *"importable as a package, or exec'd from a path?"* — and the
+   question had predicted its own answer (*"affects whether a code mod can import its own submodules,
+   which it will want to"*). Wave 4 would have hit it immediately.
+4. **"Disabled whole" is a retraction, not a filter** — the two failure-policy rules pull against each
+   other, since *collect every error* means a mod is not known to be broken until every stage has run,
+   by which time it has already registered. The naive version half-loads and passes every test.
+   Recorded in the spec.
+5. **G2 caught a violation on its first run, in code an hour old.** Two error messages in `loader.py`
+   used `base:queen` as an example — core naming base-game content. **That is the gate paying for
+   itself before the wave that wrote it ended**, and it is the argument for §7's "make the invariants
+   executable" in one data point.
+
+**What the gates do not yet prove.** G1 is **half-armed and says so**: it asserts core registers no
+verbs at all (the strong form, armed now) and that disabling a mod removes its verbs (proven against a
+fixture), but the specific check §7 names — *disable `base:chess`, assert `castle` is gone* — needs
+Wave 4. G3's golden list is correctly **empty**. And every one of the five findings above passed G1,
+G2 and G3 while it was still a bug: the gates check architecture, not behaviour, exactly as §7 says.
+**Green gates are not green code.**
 
 ### S2 is done — the oracle has a ground truth, and the old engine passes it
 

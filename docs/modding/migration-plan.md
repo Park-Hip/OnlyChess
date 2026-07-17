@@ -346,13 +346,23 @@ Each wave ends with the game running and the oracle green. Sizes are relative, n
 | ~~**S1**~~ | ~~The `.lc` spike~~ | ✅ **Done, 2026-07-17. Passed.** `ruamel.yaml>=0.18` declared; all 6 checks green, incl. the unknown-key case and a path through a seq index. **Three findings** → [roadmap](roadmap.md#s1-is-done--the-lc-spike-passed-and-narrowed-adr-003): pydantic is disqualified on positions, jsonschema paths the unknown-key case worst, and **patch provenance is an unmodelled hole in the error contract**. |
 | ~~**S2**~~ | ~~The differential harness~~ | ✅ **Done, 2026-07-17.** `tests/oracle/` — FEN as the position description, an `EngineAdapter` seam, the comparison, legal-play position generation, and the divergence list with §4's cap enforced. **Scope grew by one thing, deliberately: published perft as external ground truth**, because old-vs-old is trivially green and cannot catch a bug in the harness itself. Findings → [roadmap](roadmap.md#s2-is-done--the-oracle-has-a-ground-truth-and-the-old-engine-passes-it). |
 | ~~**S3**~~ | ~~Asset ID scheme~~ | ✅ **Decided** (§6.1): folder per piece, file per side. The ~20 file renames are Wave 2 work. |
-| **S4** | **Standing gates G1–G3** (§7), written as the seam lands in Wave 1. | ~20 lines total, and they are the only checks that see the invariants. Cheap now; retrofitted checks find violations after they are load-bearing. |
+| ~~**S4**~~ | ~~Standing gates G1–G3~~ | ✅ **Done with Wave 1, 2026-07-17.** `tests/modding/test_gates.py`. Closer to 120 lines than 20 — G2 needs an AST walk, not a grep, so that core can keep explaining *why* in prose while never *naming* content in code. **G2 caught a real violation on its first run**, in code an hour old. G1 is half-armed until Wave 4 and says so. |
 
-### Wave 1 — The seam
+### ~~Wave 1 — The seam~~ ✅ done, 2026-07-17
 
-`api.py`, the registries, and enough loader to read one file: parse (with the PyYAML rejection),
-register, activate. The error contract from the first error it can produce — **not retrofitted**,
-because `file:line:col` is architecture and E1 §3.1 is a standing lesson about deferred verification.
+`src/modding/`: `api.py`, `registries.py`, `parse.py`, `errors.py`, `loader.py` — stages **1, 3, 4, 7,
+9**. Stages 2, 5, 6, 8 are **not stubbed**; the reasons are written where each will land. +137 tests
+(223 → 361). The base mods load through it: all 33 files parse, `base:fusion` and `base:events`
+register. `base:chess` is disabled whole until Wave 4 writes the `code/` its manifest promises —
+the loader is right and the fix is code, not a softer rule.
+
+Five findings → [roadmap](roadmap.md#wave-1-is-done--the-seam-exists-and-the-base-mods-load-through-it).
+The one that outlives the wave: **ADR-001's YAML 1.2 pin makes `bool(field)` a trapdoor** — `code: no`
+is the string `"no"` and `bool("no")` is `True`, so the natural spelling of false silently meant true
+in the trust model's own field. Every boolean field must type-check itself; stage 5 inherits that.
+
+The PyYAML rejection landed as ADR-003 said it must — a static check over what core imports, not a
+runtime guard — plus a check that only the chokepoint imports ruamel and that it pins `(1, 2)`.
 
 Nine stages are the target, not a big bang. They arrive as the content types that need them do.
 

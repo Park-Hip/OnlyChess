@@ -110,6 +110,7 @@ it is one assertion.
 | YAML syntax error | Mod disabled. Report `file:line:col` — the parser already knows both. |
 | File is not a mapping / has no `type` | Mod disabled. `type` is what makes folders cosmetic (mod-package.md). |
 | Unknown `type` | Mod disabled, listing the known types. |
+| **File is not UTF-8** | Mod disabled, naming the file and saying to re-save as UTF-8. **Added in Wave 1.** `UnicodeDecodeError` is a `ValueError`, so it escapes the obvious `except OSError` and takes the whole load down with a stack trace naming no mod. It is also the likeliest way a real modder's file fails to open — a Windows editor defaulting to cp1252, one accented character in a `name:` — which puts it squarely on the audience the contract exists for. |
 
 **Parse also captures source positions.** See [Source positions](#source-positions-the-constraint-that-decides-the-library).
 
@@ -245,6 +246,17 @@ Two rules, both from `CLAUDE.md`, both with teeth.
 Never half-loaded. A chess mod that loads every piece except the queen is worse than one that
 refuses — it produces a game that looks fine and is wrong, and the player has no way to know.
 
+> **Wave 1 found the cost this rule hides: it is a retraction, not a filter.** The two rules above
+> pull against each other. *Collect every error* means a mod is not known to be broken until every
+> stage has run over it; *disabled whole* means nothing it registered may survive. So registration
+> necessarily happens before the verdict, and disabling means **taking back** what already went in —
+> the loader drops a broken mod's content *and* any verbs it registered before it raised.
+>
+> The naive implementation filters at each stage and looks correct: a mod with one bad piece file
+> still registers its nine good ones, and every test passes, because a stage cannot know about an
+> error a later stage will find. Worth stating because it reads as bookkeeping and is not — it is the
+> queen-shaped hole this section exists to prevent.
+
 ### All errors are collected, then reported together
 
 **Not fail-fast.** The loader runs every stage to completion over every mod, gathers every error, and
@@ -286,6 +298,36 @@ ERROR  base:events  events/tai_xiu.yaml:12:5
 (`ValidationError`, `NoneType`), a schema fragment, and the word "deserialize". It also rules out
 being terse: `expected` must list the valid options, because a modder cannot look them up in a
 registry.
+
+### ⚠️ Every boolean field must type-check, because YAML 1.2 makes `no` a string
+
+**Found in Wave 1, in this loader's own `code:` field, which is the one field the trust model rests
+on.** It generalises to every boolean in every schema, so it belongs here rather than in a changelog.
+
+ADR-001 pins YAML 1.2 so that `on`, `no` and `yes` stay strings — the Norway problem. That is correct
+and it is the whole point of the pin. The trapdoor is what the *reader* does next:
+
+```python
+ships_code = bool(tree.get("code", False))    # `code: no` -> "no" -> True
+```
+
+`code: no` parses to the string `"no"`, and `bool("no")` is `True`. **The natural spelling of false
+silently means true**, and the resulting error quotes a `code: true` the modder never wrote. Under
+YAML 1.1 this line would have been correct; under 1.2 it inverts.
+
+So the pin does not *cause* this — it stops YAML from guessing, which means **every field that wants
+a boolean has to say so itself**. A schema field declared boolean must reject a string, and the error
+has to explain the surprise rather than just report it:
+
+```
+  problem:   `code:` is a line of text, not a true/false value
+  expected:  `code: true` or `code: false`. Note that `yes`, `no`, `on` and `off`
+             are ordinary words here, not true and false
+```
+
+**Consequence for [stage 5](#5-validate):** type-checking booleans is not optional polish, it is the
+other half of ADR-001. A validator that accepts any truthy value re-opens the Norway problem one
+field at a time — and every affected field will look fine in testing, because `code: true` works.
 
 ### Did-you-mean is a requirement, not a nicety
 
@@ -424,9 +466,18 @@ unreachable, because a dangling reference cannot survive load. Logged for E1.
   terminator that does not require core to name a mod. **Stage 9's requirement changes**: ≥1
   `game_mode`, not ≥1 board layout — strictly stronger, since `board:` is required and stage 8 links
   it.
-- **Is `code/__init__.py` importable as a package, or exec'd from a path?** Mods live outside
-  `sys.path`. Affects whether a code mod can `import` its own submodules, which it will want to.
-  Mechanical, but it shapes the folder contract in mod-package.md.
+- ~~**Is `code/__init__.py` importable as a package, or exec'd from a path?**~~ **Closed by Wave 1,
+  2026-07-17 — and the question's own prediction is what decided it.** It is loaded **from its path,
+  as a package**: `spec_from_file_location(name, entry, submodule_search_locations=[code/])`, with the
+  module inserted into `sys.modules` before its body runs and removed again if it raises.
+  §2.1's injected api had already made "importable?" cosmetic — a mod never reaches toward `src`
+  either way — so the only live half was the one this bullet flagged: *"affects whether a code mod can
+  `import` its own submodules, which it will want to."* It does want to. Without
+  `submodule_search_locations` the entry is not a package, `__path__` is unset, and
+  `from .castle import castle_fn` dies with *"attempted relative import with no known parent
+  package"* — forcing **every code mod into a single file**. `base:chess` hits that at Wave 4, where
+  `castle` and `enpassant` are not one-liners. The module name derives from the **mod id**, not the
+  folder, since the id is the thing guaranteed unique across a load.
 - **Reload.** The pipeline is specified as one-shot at startup. Hot reload is explicitly out of scope
   (roadmap, "Explicitly not doing yet"), but the frozen-vocabulary rule at stage 4 is what would make
   it hard later. Noted, not solved.
