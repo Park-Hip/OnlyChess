@@ -26,13 +26,25 @@ Never special-case the base mod in the engine, not even temporarily.
 |---|---|
 | Board geometry, move pipeline, turn lifecycle | Pieces, abilities, events, fusion rules |
 | Loader, registries, validation | Board layouts, event pools, tuning values |
-| Rendering, input, audio playback | Sprites, sounds, text |
+| The render loop, input dispatch, audio playback | Sprites, sounds, text, **HUD elements, themes** |
+
+**The UI row was amended on 2026-07-17, and the reason matters more than the change.** It used to
+read *"Rendering, input, audio playback | Sprites, sounds, text"* — putting everything drawn in core
+and leaving mods only the pictures. That **contradicted the prime directive above**: if a modder
+wants a chess clock and cannot draw one without editing `src/`, then by this document's own rule that
+is *"a defect in the engine, not a task for the modder."* The table was the thing that was wrong.
+
+**Core owns the loop; mods own what goes in it.** Core draws, dispatches input, and plays audio —
+mods **register** what to draw. A timer mod registers a HUD element; a theme mod registers a palette.
+Neither gets to call into pygame directly, and core never names one. See UC16–UC17 in
+`docs/modding/use-cases.md`.
 
 Core may never:
 
 - import a concrete piece, event, ability, or fusion rule
 - name specific content (`if piece_code == "Q"`, `if event_key == "tai_xiu"`)
 - hardcode the piece roster, event pool, or fusion table
+- **hardcode a HUD element, panel, or colour** that a mod could have registered
 - treat `mods/base/` differently from any other mod
 
 When a change requires core to know about a specific piece or event, stop. That is the signal
@@ -53,6 +65,21 @@ where a modder could have done it.
 The **shape** is fixed and non-negotiable: trigger → condition → effect, over content with open
 properties, an event bus, and a move/capture pipeline with hookable stages. Retrofitting that later
 means rewriting everything above it, and without it seamless extension is impossible.
+
+**Every state change is an action, and every action has an inverse.** Nothing — no effect, no event,
+no ability, no mod — mutates game state directly; it emits actions, and the engine records them.
+Added 2026-07-17, when undo became a requirement (UC16), and it belongs in *shape* rather than
+*vocabulary* for a reason worth understanding:
+
+> Undo does not replay effects. **It reverses the recorded log.** So it never asks what an effect
+> *meant*, only what it *did* — which means it works for a mod's effect the engine has never heard
+> of, including a random one. The alternative (replay from a captured RNG seed) forces every random
+> effect to draw from an RNG core owns, and a code mod calling `random.random()` silently breaks it.
+> An action log cannot be broken that way, because the outcome is recorded rather than recomputed.
+
+This is the whole *"prefer the version where a modder could have done it"* rule paying out: undo is
+not a feature we build, it is a property the shape has. **Write the effect verbs as direct mutations
+and undo becomes unbuildable without rewriting all of them.**
 
 The **vocabulary** is earned. Add a verb when real content cannot be expressed without it — never on
 speculation. Generality no content exercises is dead weight that constrains every future refactor.

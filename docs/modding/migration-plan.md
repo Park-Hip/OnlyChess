@@ -369,6 +369,20 @@ Old engine still runs the real game. **This is the first moment anything is prov
 **Oracle gate:** new vs old move generation for the six standard pieces, no castle/enpassant.
 Every difference is a bug or on the divergence list.
 
+> ⚠️ **UC16 (undo) lands here or nowhere.** Added 2026-07-17 as a product requirement. Undo reverses
+> a **recorded action log** rather than replaying effects — which is what makes it work for a mod's
+> effect the engine has never heard of, including a random one (see
+> [use-cases §UC16](use-cases.md#uc16--undo-and-why-the-mechanism-is-the-whole-decision)). The
+> requirement it imposes is one rule: **effects emit actions; they never mutate state directly.**
+>
+> `Move`-as-actions (§2.3) already covers moves. **Wave 3 must extend it to the effect engine**, and
+> Wave 5's effect verbs must obey it. Written as direct mutations, all six need rewriting to add undo
+> later — so this is a shape decision with a deadline, not a feature to schedule.
+>
+> **Also unblocks E1's landmine**: the move log mixes `Move` objects with `{"ability_turn": color}`
+> dicts, and E1 predicted *"any future undo feature pops whatever is on top."* One turn-record type
+> is now required rather than tidy.
+
 ### Wave 4 — `base:chess`
 
 `castle` + `enpassant` registered through `api` (**the dogfooding test — assert it with a recording
@@ -409,7 +423,8 @@ tests, which is the thing this whole project exists to remove.
 | **Performance.** Interpreted move-gen inside `get_valid_moves`'s simulate-everything loop | ~900 move-gens/turn today; a data-driven layer adds a constant factor | Irrelevant at human speed and 60fps. **Do not optimise.** It would matter for an AI, which is out of scope. |
 | **The oracle's divergence list grows** until it explains everything | The failure mode that makes it worthless | Cap it. Four entries are known. **A fifth needs a written argument**, not a shrug. ✅ **Now executable** — `tests/oracle/divergences.py` carries the list and `test_divergences.py` enforces the cap, so a sixth fails the suite instead of slipping in. ⚠️ **The count is ambiguous** and S2 did not invent an answer: §0 names three but says "four", this row says four, roadmap's E2 table says "4 → 5". Reconcile before Wave 3. |
 | ~~**`.lc` doesn't work** as specified~~ | ~~Genuinely unknown~~ | ✅ **Retired — S1 ran it and it works.** See [ADR-003](adr/003-validation.md). |
-| **Scope creep into UI** | 2,000 lines, tempting, unrelated | Four touch points (§5). Nothing else. |
+| **Scope creep into UI** | 2,000 lines, tempting, unrelated | Four touch points (§5). Nothing else. ⚠️ **Amended 2026-07-17: "nothing else" is no longer true as a *destination*, but still holds as *rebuild scope*.** UC17 (a mod adds a clock / a live theme) is now a requirement, and `CLAUDE.md`'s core/content table was amended to allow it — the old table contradicted the prime directive. **The four touch points remain the plan through cutover**; the HUD registry is post-cutover work, because it can be added without rewriting the engine. Do not let UC17 expand Waves 1–6. |
+| **UC16 (undo) misses its window** | **New, 2026-07-17, and the only one here with a deadline** | Undo reverses a recorded action log, so it needs **every state change to be an action** — effects emit, never mutate. §2.3 already commits to this for `Move`; Wave 3 must extend it to the effect engine. **Six effect verbs written as direct mutations make undo unbuildable without rewriting all six.** There is no cheap retrofit, and E1 already flagged the move log's `Move`/dict mix as the landmine undo would detonate. |
 
 ---
 

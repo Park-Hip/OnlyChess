@@ -343,6 +343,8 @@ written down and owned:
 | ~~`.lc` position mapping~~ | loader-lifecycle | ✅ **Closed by S1, 2026-07-17** — spiked, all 6 checks pass. See below |
 | ~~Validation library~~ | loader-lifecycle | ✅ **Closed by [ADR-003](adr/003-validation.md)** — registry-driven walk, no library. pydantic and jsonschema both tested and rejected |
 | ~~Patch provenance~~ | found by S1 | ✅ **Closed by [ADR-003](adr/003-validation.md)** — stage 6 stamps `(mod_id, file, line:col)` on fields it writes |
+| **UC16 — undo / Ctrl-Z** | **new requirement, 2026-07-17** | **Owner: Wave 3, and it has a deadline.** Undo reverses a recorded action log, so *effects must emit actions, never mutate*. Free if Wave 3 does it; needs all six effect verbs rewritten if it doesn't. → [use-cases](use-cases.md#uc16--undo-and-why-the-mechanism-is-the-whole-decision) |
+| **UC17 — UI mods** (clock, live theme) | **new requirement, 2026-07-17** | **`CLAUDE.md` amended** — its core/content table contradicted its own prime directive. Needs a HUD registry + a real-time tick. **Post-cutover; must not expand Waves 1–6** |
 | **Selector context** | **unwritten until E2** | `friendly:`/`of: self` presuppose a `self`; an event has none. Needs a stage-5 rule |
 | **Status stacking** | status-model, left open | The engine cannot leave it open. Proposal: most-restrictive wins |
 | **`choose:` fence** | content-schemas finding 2 | Implementable only where the choice precedes the move; needs validation |

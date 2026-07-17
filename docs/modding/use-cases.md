@@ -44,6 +44,99 @@ Ranked. Cost cites audit findings. UC13–15 are stated project goals from Gate 
 | **UC13** | *(probe)* Pieces have HP; captures deal damage instead of removing | Rule bender | **very hard** | capture is atomic; no custom piece properties |
 | **UC14** | *(probe)* A piece gains a power when a condition is met | Content adder | **hard** | all abilities are active/AP-gated; no conditions |
 | **UC15** | *(probe)* Missions that track progress and grant rewards | Content adder | **hard** | new content type; no counters; no reward vocabulary |
+| **UC16** | **Undo / Ctrl-Z the last turn** | Player *(new persona)* | **medium** | **shape, not vocabulary** — needs every state change to be a reversible action. Free if Wave 3 does it; unbuildable if it doesn't |
+| **UC17** | **A mod adds UI — a chess clock, a live colour theme** | UI modder *(new persona)* | **hard** | rendering was core-only until CLAUDE.md was amended. Needs a UI extension surface the rebuild did not plan for |
+
+**UC16–17 added 2026-07-17, by the project owner, after Wave 0.** They are **features, not probes** —
+the distinction that governs UC13–15 does not apply here. Both are wanted in the product.
+
+---
+
+## UC16 — Undo, and why the mechanism is the whole decision
+
+**The requirement is ordinary; the game is not.** Chess undo is trivial. *This* game has random
+events, fusion that merges two pieces into one, and statuses that tick — so "undo the last turn"
+has to reverse things that were never designed to be reversed.
+
+**Decided: undo reverses a recorded action log. It does not replay effects.**
+
+migration-plan §2.3 already commits to `Move` being a list of actions (`Relocate`, `Remove`,
+`Replace`) with one `undo(action)` per type, because `get_valid_moves` needs to simulate and roll
+back thousands of times per turn. **UC16 is that same mechanism, extended from moves to every state
+change** — including what effects, events and abilities do.
+
+**Why this beats the obvious alternative, and why it is an extensibility decision rather than a game
+design one.** The competing option is to capture an RNG seed per turn and replay deterministically.
+It works for the base game and **fails the moment a mod is involved**: seeds require every random
+effect to draw from an RNG core owns, so a code mod calling `random.random()` breaks undo silently.
+An action log cannot break that way — it records *what happened*, never *why*, so it reverses a
+third-party effect the engine has never heard of exactly as well as `tai_xiu`.
+
+That is the project's own rule applied literally: *prefer the version of the work where a modder could
+have done it.* Undo stops being a feature and becomes **a property the shape has**.
+
+| | Action log ✅ | RNG seed replay ❌ |
+|---|---|---|
+| A mod's custom effect | reversed; no engine knowledge needed | must use core's RNG or it breaks |
+| A code mod using `random` | works | **silently broken** |
+| Fusion (2 pieces → 1) | `Replace` inverts | works |
+| Cost | effects must emit actions, never mutate | seed plumbing through every effect |
+
+**The one hard requirement, and its deadline: effects emit actions; they never mutate state
+directly.** This must land with the effect engine in **Wave 3**. Write the six effect verbs as direct
+mutations and undo is unbuildable without rewriting all six. There is no cheap retrofit.
+
+**What is *not* decided, deliberately.** Whether a player may undo past a random event to fish for a
+better roll is **policy**, not mechanism — a balance question, and mods will disagree about it. The
+action log makes either answer implementable, which is the point. Do not bake one in.
+
+> ⚠️ **E1 already found the landmine, before undo was a requirement.**
+> `engine-gap-analysis.md` §on the move log: *"`_rollback_last_move` pops the log and immediately
+> touches `move.piece_moved`. On a dict that is an `AttributeError` … any future undo feature pops
+> whatever is on top. A landmine, not a bug."* The move log mixes `Move` objects with
+> `{"ability_turn": color}` dicts. **UC16 is precisely the feature E1 predicted would detonate it**,
+> and the fix it named — one turn-record type covering moves and abilities — is now required rather
+> than tidy.
+
+---
+
+## UC17 — UI mods, and the contradiction they exposed
+
+**The requirement:** a mod can add a chess clock, or switch the piece colour scheme at runtime.
+
+**This was impossible by construction, and CLAUDE.md has been amended.** The core/content table read
+*"Rendering, input, audio playback | Sprites, sounds, text"* — everything drawn was core, and mods got
+only the pictures. migration-plan §4 reinforced it: *"Scope creep into UI → Four touch points.
+Nothing else."*
+
+**But the table contradicted the prime directive sitting three paragraphs above it**, which says that
+if a feature can only be added by editing core, *"that is a defect in the engine, not a task for the
+modder."* A timer mod that cannot draw a clock is exactly that. The prime directive is the older and
+stronger claim, so **the table was what was wrong** — this is a correction, not a new ambition.
+
+**The line now: core owns the loop, mods own what goes in it.** Core draws, dispatches input, plays
+audio. Mods *register* what to draw — a HUD element, a palette. No mod calls pygame directly; core
+never names a mod's panel.
+
+**What the two examples actually need**, which is smaller than "make the UI moddable" sounds:
+
+| Capability | Status |
+|---|---|
+| A quantity that counts down | ✅ **exists** — `resource` (`base:ap`) already models per-side quantities. A clock is a resource in seconds |
+| Somewhere to draw it | ❌ **missing** — no HUD registry. This is the real gap |
+| A real-time tick | ❌ **missing** — the engine is turn-based; the 60fps loop exists in `main.py` but nothing turn-side listens to wall-clock time |
+| Lose on flag fall | ⚠️ **needs a game-over condition**, which core currently hardcodes as checkmate/stalemate |
+| A live colour theme | ❌ **missing** — `assets.py` builds fixed paths at load; nothing re-reads them |
+
+**Note what this reveals: a clock is mostly a `resource` plus a place to put it.** The vocabulary is
+closer than the plumbing — which is the usual shape of this project's findings, and a decent sign the
+spec is sound.
+
+**Sequencing, honestly stated.** UC17 is **not** Wave 1–4 work; the rebuild's scope is the engine, and
+the UI's four touch points remain the plan through cutover. But **UC16's deadline is real and UC17's
+is not**: undo constrains the effect engine in Wave 3, whereas a HUD registry can be added after the
+engine runs without rewriting it. Do not let UC17 expand the rebuild. Do not let UC16 slip past
+Wave 3.
 
 ---
 
