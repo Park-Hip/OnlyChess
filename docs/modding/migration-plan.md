@@ -333,7 +333,7 @@ Each wave ends with the game running and the oracle green. Sizes are relative, n
 
 | # | Work | Why first |
 |---|---|---|
-| **S1** | **The `.lc` spike.** Parse a nested mapping round-trip with `ruamel`; recover `file:line:col` for a key three levels down. | `loader-lifecycle`'s **highest-risk unknown**. It decides ADR-003 and the parser's architecture, and it is ~an hour. Deciding without it is vibes. |
+| ~~**S1**~~ | ~~The `.lc` spike~~ | ✅ **Done, 2026-07-17. Passed.** `ruamel.yaml>=0.18` declared; all 6 checks green, incl. the unknown-key case and a path through a seq index. **Three findings** → [roadmap](roadmap.md#s1-is-done--the-lc-spike-passed-and-narrowed-adr-003): pydantic is disqualified on positions, jsonschema paths the unknown-key case worst, and **patch provenance is an unmodelled hole in the error contract**. |
 | **S2** | **The differential harness**, old-vs-old. A position description → both engines; compare move sets. | The safety net for every wave after. Build it while it is trivially green. |
 | ~~**S3**~~ | ~~Asset ID scheme~~ | ✅ **Decided** (§6.1): folder per piece, file per side. The ~20 file renames are Wave 2 work. |
 | **S4** | **Standing gates G1–G3** (§7), written as the seam lands in Wave 1. | ~20 lines total, and they are the only checks that see the invariants. Cheap now; retrofitted checks find violations after they are load-bearing. |

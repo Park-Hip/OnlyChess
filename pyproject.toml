@@ -6,4 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "pygame>=2.6.1",
+    # YAML 1.2 core schema + source positions for the mod loader's error contract.
+    # Stock PyYAML is 1.1-only (the Norway problem) and discards line/col. See ADR-001.
+    "ruamel.yaml>=0.18",
 ]

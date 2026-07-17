@@ -171,6 +171,14 @@ typo through a lens of someone else's patch, and blame the wrong person. Validat
 patching would miss patch-induced breakage entirely. Both passes are needed, and each blames whoever
 last touched the field.
 
+**Patches stamp provenance on every field they write** ([ADR-003](../adr/003-validation.md)). A
+patched-in key was never parsed from the target file, so it has no `.lc` entry — and S1 confirmed
+`.lc` *raises* `KeyError` rather than returning nothing. Since this stage re-validates, the naive
+resolver would **crash on the loader's own error path**, for exactly the mods that are hardest to
+debug by hand. Each `set` / `add` therefore records `(mod_id, file, line:col)` — the position in the
+**patch's** file — in a side table keyed by node identity. That is what lets the row above ("blame
+the patch, not the original author") carry a position instead of a shrug.
+
 ### 7. Register
 
 Normalize author-facing data into engine form, then populate the registries.
@@ -318,10 +326,20 @@ that parses to plain dicts means re-parsing every file at error time and re-deri
 thrown away. **Decide it before the loader is written**, which is the whole reason this is in the
 spec and not in the code.
 
-> ⚠️ **Unspiked.** `ruamel` is not installed (the project's only declared dependency is `pygame`),
-> and Gate 4 forbids implementation code, so **the `.lc` mapping is specified but unverified**. It
-> is the highest-risk unknown in this document. First thing to test in E's walking skeleton: parse
-> a nested mapping round-trip, and recover line:col for a key three levels down.
+> ✅ **Spiked and confirmed** (Wave 0 S1, 2026-07-17; `ruamel.yaml` 0.19.1, now a declared
+> dependency). All three steps work as specified: round-trip mode retains `.lc`, a path three levels
+> down resolves, and it resolves *through a sequence index* — `execute[0].filter.not_stat` reproduces
+> verbatim and points at the key token, not its value. **Unknown keys carry positions**, which is the
+> case that matters: a schema violation is by definition a key the schema cannot describe, so the
+> resolver walks the parsed tree rather than the schema.
+>
+> ✅ **The one hole S1 found is closed by [ADR-003](../adr/003-validation.md): patched-in keys have
+> no position here**, and `.lc` *raises* `KeyError` rather than returning nothing. Since
+> [stage 6](#6-patch) re-validates after patching, a patch introducing a bad key would crash the
+> resolver on the loader's own error path. The position is real but lives in the **patch's** file, so
+> **the patch stage stamps `(mod_id, file, line:col)` on every field it writes**, and the resolver
+> consults `.lc` first, the provenance table second. Step 3 above therefore has two sources; a
+> resolver that knows only `.lc` is incomplete.
 
 ## Validation library — criteria, and why the obvious answers do not fit
 
@@ -330,7 +348,7 @@ Writing the contract suggests the framing is off. Four constraints, in the order
 
 | # | Constraint | Consequence |
 |---|---|---|
-| 1 | **Source positions** (above) | Neither library helps. Solved by the parser and a resolver, whichever validator wins. |
+| 1 | **Source positions** (above) | ⚠️ **This row was wrong; S1 tested it.** Not neutral: **pydantic v2 destroys positions by construction** (it copies input into new model objects; `.lc` does not survive), while **jsonschema validates in place and preserves them**. On the constraint ranked first, the two libraries differ decisively. The resolver is still ours either way. |
 | 2 | **The vocabulary is runtime-extensible** | Code mods register verbs at stage 4, so `effect` is a discriminated union over a registry that does not exist at import time. jsonschema (schema-as-data) builds this naturally; pydantic needs `create_model` gymnastics against a moving target. |
 | 3 | **All errors, not the first** | Both support it. Not a discriminator. |
 | 4 | **We write our own message layer regardless** | jsonschema's `anyOf` errors ("is not valid under any of the given schemas") are unusable for this audience; pydantic v2's are better but still Python-shaped (`Input should be a valid string`). Either way we translate. |
@@ -350,6 +368,17 @@ the library in **ADR-003 during Phase E**, after the `.lc` spike — because the
 real input, and deciding without it would be picking on vibes. What C4 *does* settle: **the contract
 is the requirement, and the library serves it.** Any candidate that cannot produce the error block
 above is disqualified regardless of its other merits.
+
+> ✅ **Settled by [ADR-003](../adr/003-validation.md), 2026-07-17: the third option — a
+> registry-driven walk, no library.** C4's last sentence turned out to be the whole decision: both
+> candidates were tested on the real `pawn.yaml`, and **both fail to produce the error block above.**
+> pydantic destroys positions by construction — so row 1 of the table is wrong, and the libraries are
+> *not* neutral on positions. jsonschema preserves them, but `oneOf` cannot discriminate a runtime
+> union: given `limit` → `limt` it reports `absolute_path: ['moves', 0]`, names the bad key only
+> inside prose, and emits a false sub-error per arm (`'leap' was expected` — when `type: slide` was
+> correct). **The walk gets written either way**, so a library underneath it adds a dependency and
+> errors we discard. Discriminating on `type` first turns an unknown key into a set difference, and
+> `.lc.key(key)` positions the typo itself.
 
 ---
 
@@ -418,5 +447,6 @@ carried into Gate 3, all deliberate and all recorded:
 | Player choice (promotion) | content-schemas.md, finding 2 | **Real gap.** Needs a move-pipeline home |
 | `credit` → fusion? | content-schemas.md | Recommendation recorded; human decides |
 | Board layout selection | this doc | Needs an owner in Phase D |
-| `.lc` position mapping | this doc | Unspiked; highest-risk unknown |
-| Validation library | this doc | Deliberately deferred to ADR-003 (Phase E) |
+| ~~`.lc` position mapping~~ | this doc | ✅ **Closed by Wave 0 S1** — spiked, confirmed, `ruamel` declared |
+| ~~Validation library~~ | this doc | ✅ **Closed by [ADR-003](../adr/003-validation.md)** — registry-driven walk, no library |
+| ~~Patch provenance~~ | this doc, found by S1 | ✅ **Closed by [ADR-003](../adr/003-validation.md)** — stage 6 stamps `(mod_id, file, line:col)` on fields it writes |

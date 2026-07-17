@@ -36,7 +36,9 @@ refactor has a target instead of a direction. It does — D1 wrote the whole bas
 | **E** | ✅ **complete — 2 of 2.** Preparation is over |
 | E1 engine gap analysis | ✅ [`engine-gap-analysis.md`](engine-gap-analysis.md) — 3 known blockers confirmed, 9 new, 2 live bugs |
 | E2 migration order | ✅ [`migration-plan.md`](migration-plan.md) — **rebuild the core behind the loader; old engine as oracle.** 7 waves |
-| **First line of code** | ⬜ **← NEXT, and unblocked.** All 3 decisions made ([migration-plan §6](migration-plan.md)). Starts with Wave 0's `.lc` spike |
+| **Wave 0 · S1** — the `.lc` spike | ✅ **passed, 2026-07-17.** `ruamel.yaml>=0.18` declared (2nd dependency). All 6 checks green; 3 findings → below |
+| **ADR-003** — validation | ✅ **accepted, 2026-07-17** → [adr/003-validation.md](adr/003-validation.md). Registry-driven walk, **no library**; patch stage stamps provenance. Both libraries tested on real content, both rejected |
+| **Wave 0 · S2** — differential harness | ⬜ **← NEXT.** The last Wave 0 item before the seam (S4's gates land with Wave 1) |
 
 Decisions closed: D1–D10. D8 (versioning) is settled by `mod-package.md`'s Versioning section, and
 Gate 3 completed it — a mod now has an `id`, which is what MAJOR and dependency keys were implicitly
@@ -51,6 +53,59 @@ about. D9's verb set was **reopened by D1 and re-closed**, then **reopened by E2
 | **Asset ID scheme** | **Folder per piece, file per side** — `<mod>/assets/sprites/warden/<side_id>.png`. Extends to a board with any number of `sides` without string-mangling. Kills `assets.py`'s 20 hardcoded keys **and its silent Queen fallback**, which is `never silently skip malformed content` in the one place a modder's typo lands |
 | **Board + pool selection** | **A `game_mode` content type** — the tenth. Names a `board:` and its `pools:`; the player picks one in the existing menu. *Any engine rule for picking a board needs a rule for picking that rule*, and a player choice is the only terminator that does not make core name a mod. **Bonus: UC11 becomes data** — `base:vanilla` (`pools: []`) is standard chess as a *menu entry*, where before it needed a mod manager. Stage 9 now requires ≥1 `game_mode`, not ≥1 board |
 | **The castling bug** | **Fixed**, divergence list 4 → 5. The new architecture fixes it by *not* reproducing the hack; preserving it would mean writing code to reintroduce a bug. The F2/F4 precedent for preserving live behaviour was weighed and does not apply: **those are design choices somebody could have meant; this is a rules bug nobody designed** |
+
+### S1 is done — the `.lc` spike passed, and narrowed ADR-003
+
+**The highest-risk unknown is closed.** `ruamel.yaml` 0.19.1 retains positions in round-trip mode, a
+field path three levels down resolves to `line:col`, and it resolves **through a sequence index** —
+the spec's own `execute[0].filter.not_stat` example reproduces verbatim, pointing at the typo's key
+token rather than its value. **The critical check was the unknown key**: a schema violation is *by
+definition* a key the schema cannot describe, so the resolver had to walk the parsed tree, where the
+bad key is simply present. It does. `loader-lifecycle`'s three-step architecture works as specified.
+
+**The Norway problem is now confirmed on real content, not a fixture.** Parsing
+`mods/base-chess/pieces/pawn.yaml` with both parsers: ruamel yields the key `'on'`, PyYAML yields
+`True`, and the pawn's entire promotion rule hangs off it. The 1.2 pin is load-bearing exactly as
+ADR-001 claimed, and ruamel fixes it with no configuration.
+
+**Three findings the spike was not looking for — all three now closed by
+[ADR-003](adr/003-validation.md), which S1 unblocked and which was written the same day:**
+
+1. **ADR-003 is closer to decided than C4 thought — and C4 is wrong on its own constraint 1.** C4 says
+   source positions are library-independent ("neither library helps"). **Tested, both installed:
+   pydantic v2 *destroys* positions by construction** — it copies input into new model objects, and
+   `.lc` does not survive. jsonschema validates **in place** and preserves it. That is not neutral:
+   on the constraint C4 ranked *first*, pydantic is actively disqualifying, because recovering
+   positions would mean keeping the original tree alongside the model and walking it by field path
+   anyway — writing the resolver regardless, and paying for pydantic on top.
+2. **…but jsonschema does not win by default.** Its `additionalProperties` error reports the path of
+   the **parent** (`['filter']`) and names the offending key only inside prose
+   (`"'not_stat' was unexpected"`). Pointing at the typo would mean regexing the message. **The
+   unknown-key case is the single most likely modder error, and it is the one jsonschema paths
+   worst** — which strengthens C4's un-listed third option, a registry-driven validator, rather than
+   settling for its second.
+3. **Patch provenance is an unmodelled gap** — new, and a genuine hole in the error contract. `.lc`
+   raises `KeyError` for a key that was not parsed from the file. ADR-002 patches then **re-validates
+   at stage 6**, so a patch that introduces a bad key produces an error the contract says must carry
+   `file:line:col` — and the naive resolver **crashes** instead. The position exists; it is just in
+   the *patch's* file, not the target's. **The tree needs to carry provenance, not just position**,
+   or the loader's own error path becomes the thing that breaks. Cheap now, architectural later.
+   ✅ **Closed:** the patch stage stamps `(mod_id, file, line:col)` on every field it writes.
+
+**ADR-003's decision, in one line:** a **registry-driven walk, no library** — because the head-to-head
+showed the walk gets written *either way*. Given the real `pawn.yaml` with `limit` → `limt`,
+jsonschema's `oneOf` reported `absolute_path: ['moves', 0]` plus seven sub-errors, three of them false
+(`'leap' was expected` — `type: slide` was correct); the walk produced the contract's block exactly —
+`pieces/pawn.yaml:11:35 · field: moves[0].limt` — in ~25 lines. **This is the pawn's third payoff**:
+it is the fixture that exercises a runtime-registered verb (`enpassant`), so it is the one file where
+constraint 2 and the unknown-key rule land together.
+
+**One smaller note.** `loader-lifecycle` requires the chokepoint to *actively reject stock PyYAML*.
+It cannot be a runtime import guard — `import yaml` succeeds in this environment and always will,
+since PyYAML is installed. It has to be a test or lint check on what `parse.py` imports.
+
+Spike scripts are scratchpad throwaways, deliberately: Wave 0 is de-risk, not product code. The
+findings above are the deliverable.
 
 ### E2 is done — preparation is over
 
@@ -237,8 +292,9 @@ written down and owned:
 | ~~Board layout selection~~ | loader-lifecycle | ✅ **Closed by E2** — `game_mode` content type. Same answer as pool selection |
 | ~~Pool selection~~ | unwritten until D3 | ✅ **Closed by E2** — same question, same answer |
 | ~~Asset ID scheme~~ | mod-package, C3 | ✅ **Closed by E2** — folder per piece, file per side |
-| `.lc` position mapping | loader-lifecycle | **Unspiked; highest-risk unknown.** Wave 0 spike S1 — *the next thing to do* |
-| Validation library | loader-lifecycle | Deferred to ADR-003 — unblocked the moment S1 lands |
+| ~~`.lc` position mapping~~ | loader-lifecycle | ✅ **Closed by S1, 2026-07-17** — spiked, all 6 checks pass. See below |
+| ~~Validation library~~ | loader-lifecycle | ✅ **Closed by [ADR-003](adr/003-validation.md)** — registry-driven walk, no library. pydantic and jsonschema both tested and rejected |
+| ~~Patch provenance~~ | found by S1 | ✅ **Closed by [ADR-003](adr/003-validation.md)** — stage 6 stamps `(mod_id, file, line:col)` on fields it writes |
 | **Selector context** | **unwritten until E2** | `friendly:`/`of: self` presuppose a `self`; an event has none. Needs a stage-5 rule |
 | **Status stacking** | status-model, left open | The engine cannot leave it open. Proposal: most-restrictive wins |
 | **`choose:` fence** | content-schemas finding 2 | Implementable only where the choice precedes the move; needs validation |
@@ -370,6 +426,13 @@ which is architecture rather than a flag; and (b) **the vocabulary is runtime-ex
 libraries are bad at and the verb registry already solves, since by stage 4 it *is* a schema. A
 registry-driven validator is a third option the backlog doesn't list. **Deferred to ADR-003 in Phase
 E, deliberately**, because the `.lc` spike is a real input and deciding without it is vibes.
+
+> ✅ **Resolved — [ADR-003](adr/003-validation.md) picked C4's own third option.** The deferral paid
+> off twice: the spike settled it, **and it caught C4 being wrong in the paragraph above.** "Source
+> positions, which neither library provides" is false — pydantic *destroys* them, jsonschema
+> preserves them, and that difference alone disqualifies pydantic on the constraint C4 ranked first.
+> Chalk up a fourth instance of this project's characteristic defect: **a plausible claim about
+> library behaviour that nobody ran.**
 
 ### C3 is done — what it decided, and what it found
 
@@ -778,7 +841,7 @@ documented by people who hit them at scale.
 | **MtG Forge / card DSLs** | Non-coders authoring "trigger + effect + duration" cards. Nearest thing to your events. | **High** |
 | **Dota 2** data-driven abilities | Already surveyed; go deeper on where the data model gave out and why. | Medium |
 | Format ergonomics for non-coders | Feeds C1. The comment question is the crux. | Medium |
-| ~~Python schema validation (pydantic v2 vs jsonschema)~~ | **Reframed by C4.** Error quality can't be the criterion — we write our own message layer either way. The real constraints are source positions (neither library helps; it's the parser's job) and a runtime-extensible vocabulary (both are bad at it; the verb registry already *is* a schema). Now blocked on the `.lc` spike → ADR-003, Phase E. | Deferred |
+| ~~Python schema validation (pydantic v2 vs jsonschema)~~ | ✅ **Decided: neither** → [ADR-003](adr/003-validation.md). Reframed by C4, then settled by testing both on the real `pawn.yaml`. **The framing was wrong twice over:** error quality can't decide it (we write the message layer either way), *and* C4's "neither library helps on positions" was false — **pydantic destroys them by construction**. jsonschema preserves positions but its `oneOf` cannot discriminate a runtime union: it reports the parent path with the bad key in prose, plus false sub-errors per arm. **The library saves nothing** — producing the contract's block means writing the registry walk regardless. | **Closed** |
 | Pygame hot-reload feasibility | Iteration speed for modders. Nice-to-have; do not let it shape the spec. | Low |
 | Asset loading from mod folders | Sprites/sounds from arbitrary paths; `src/ui/assets.py` currently builds fixed paths. | Low |
 
@@ -817,7 +880,7 @@ Written as the phases produce them — not up front.
 - Phase D → `mods/base-chess/**`, `mods/base-fusion/**`, `mods/base-events/**` (data files —
   **written**), `d1-findings.md` (**written**), `modder-guide.md` (**written**; D3 awaits a tester)
 - Phase E → `engine-gap-analysis.md` (**written**), `migration-plan.md` (**written**),
-  `adr/003-validation.md` (blocked on the `.lc` spike — Wave 0)
+  `adr/003-validation.md` (**unblocked** — S1 landed 2026-07-17 and narrowed it to two candidates)
 - Ongoing → `adr/`
 
 The existing `docs/*.md` describe the **pre-refactor** design. They are an accurate map of the
