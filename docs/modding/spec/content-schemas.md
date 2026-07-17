@@ -7,12 +7,15 @@
 **Derived from:** [`content-audit.md`](../content-audit.md) (what exists),
 [`feasibility-study.md`](../feasibility-study.md) (what is expressible).
 
-**There are nine content types.** Seven are specified here — **piece**, **event**, **event pool**,
-**ability**, **fusion**, **board layout**, **resource**. **status** is specified in
+**There are ten content types.** Eight are specified here — **piece**, **event**, **event pool**,
+**ability**, **fusion**, **board layout**, **resource**, **game mode**. **status** is specified in
 [status-model.md](status-model.md) and **patch** in [Patches](#patch), but both are content types
 like any other: they live in files, they declare `type` and `id`, and the loader treats them
 identically. Plus the four shared vocabularies they compose from: **trigger**, **selector**,
 **condition**, **effect**.
+
+> **`game_mode` was added in E2**, after the loader lifecycle and the modder guide independently hit
+> the same unanswered question. See [Game mode](#game-mode).
 
 ## How to read this
 
@@ -37,8 +40,8 @@ replaces: <id>            # optional, rare — ADR-002's blunt instrument. See P
 ```
 
 `type` is what makes folders cosmetic (mod-package.md). The loader reads `type`, never the path.
-The nine legal values are the nine content types: `piece`, `event`, `event_pool`, `ability`,
-`fusion`, `board`, `status`, `patch`, `resource`.
+The ten legal values are the ten content types: `piece`, `event`, `event_pool`, `ability`,
+`fusion`, `board`, `status`, `patch`, `resource`, `game_mode`.
 
 **Parameterless choices are written bare; parameterised ones are a single-key mapping.** This is a
 convention the schemas already use everywhere and never stated, which made it look like several
@@ -730,9 +733,21 @@ what they mean. A modder's `mymod:mana` works on day one, and `base:ap` gets no 
 `ActionPointTracker.gain_for_move` counts completed moves per side and awards on the interval.
 
 > **Not here: "using an ability ends your turn."** D1 initially read `ability_used_this_turn` as
-> missing tuning, and it is not. `Ability.use` calls `finish_ability_turn`, so spending an ability
-> *is* spending your turn — that is the **turn lifecycle**, which `CLAUDE.md` puts squarely in core.
-> It is not a resource, not a cost, and not content. Left alone deliberately.
+> missing tuning, and it is not. Spending an ability *is* spending your turn — that is the **turn
+> lifecycle**, which `CLAUDE.md` puts squarely in core. It is not a resource, not a cost, and not
+> content. Left alone deliberately.
+>
+> ⚠️ **Corrected by E1 — the rule is not in core today; it is not implemented at all.** This box
+> originally argued the point from the code: *"`Ability.use` calls `finish_ability_turn`, so spending
+> an ability is spending your turn."* E1 verified otherwise
+> ([engine-gap-analysis](../engine-gap-analysis.md) §2.3): `ability_used_this_turn` is **vestigial**
+> — set `True` and back to `False` inside one synchronous call, so `can_use`'s read never sees it —
+> and `can_use` never checks `white_to_move` either. **White can use two abilities in a row, the
+> second on black's turn**, and the engine allows it. Only the UI's input gating prevents it.
+>
+> The conclusion stands: this belongs in core, not in a resource. But it is **a rule E2 must build,
+> not preserve** — once abilities are data, core is the only caller and the UI's accidental
+> enforcement disappears, handing every data-defined ability an unlimited-actions exploit.
 
 ---
 
@@ -924,6 +939,88 @@ coupling that blocks UC12.
 `forward: up` is meaningless without knowing which end of the board is up, and `promotes_at: 0` is a
 row index into this specific `size`. Splitting them would create two files that are only ever correct
 together.
+
+---
+
+# Game mode
+
+**Added by E2** ([migration-plan](../migration-plan.md) §6.2). A mode is a playable configuration: a
+board, and the event pools that run on it.
+
+```yaml
+type: game_mode
+id: base:advanced
+name: Advanced
+board: base:standard
+pools: [base:main_pool]
+```
+
+## The question it answers, and why nothing else could
+
+[loader-lifecycle](loader-lifecycle.md) → Open asked *"which board layout does a session use?"* when
+several are registered, and marked it as needing an owner in Phase D. It never got one. Writing
+[modder-guide](../modder-guide.md) surfaced **the identical question for event pools** — a modder's
+event fires only if some pool lists it, and nothing said which pool is live.
+
+**They are one question:** *which of the N registered X is active?* And it has a hard constraint that
+kills the obvious answers: **core may never name a mod**, so "the base one" is not available, and a
+total conversion (UC12) that replaces `base:chess` must still boot.
+
+**The recursion is what makes this a content type rather than a setting.** Any engine rule for
+picking a board needs a rule for picking *that* rule. The recursion has to terminate somewhere, and
+the only legitimate terminator is **a player choice** — which already exists, in `menu_screen.py`.
+So: modes are registered content, the engine requires ≥1, and the player picks one. The engine still
+names no mod; it names a *kind*.
+
+`mode_config.py` is this type's ancestor, which is what earns it under the vocabulary rule — this is
+not a new mechanic, it is an existing hardcoded one becoming data.
+
+## What it buys, beyond answering the question
+
+**UC11 stops being a disable chain and becomes data:**
+
+```yaml
+# base:chess — no dependency on base:events, so `pools` cannot reference one
+type: game_mode
+id: base:vanilla
+name: Standard Chess
+board: base:standard
+pools: []                    # ← UC11: vanilla chess, as a menu entry
+```
+
+Until now, "disabling `base:events` must yield playable standard chess" was the requirement, and it
+required a *mod manager*. With a mode, **standard chess is a menu option in the shipped game**, and
+the disable path still works as a second route. The requirement is met twice, one of which a player
+can actually reach.
+
+Note where each mode has to live, and that the dependency rules force it:
+
+| Mode | Lives in | Because |
+|---|---|---|
+| `base:vanilla` | `base:chess` | References only `base:standard`. **No `base:events` dependency** — which is exactly UC11's constraint, now enforced by the ID it doesn't mention |
+| `base:advanced` | `base:events` | References `base:main_pool`, so it must live where that ID is visible |
+
+`base:fusion` ships no mode: it adds pieces and a fusion table, and applies to whichever mode is
+running. That is D2's boundary holding up under a new content type without adjustment — a decent sign
+the split was cut in the right place.
+
+## Fields
+
+| Field | Meaning |
+|---|---|
+| `board` | the board layout id this mode plays on — required |
+| `pools` | event pools to run; `[]` is legal and means "no events" |
+| `name` | what the menu shows |
+
+**`pools` is a list because the schema costs nothing by allowing it**, not because base content needs
+two. One pool is the base game. If a reviewer wants it narrowed to a single `pool:`, nothing breaks —
+but two mods each contributing a pool to one mode is the obvious first thing the ecosystem will want,
+and a list is how they do it without patching each other.
+
+> **Stage 9 changes.** [loader-lifecycle](loader-lifecycle.md)'s activation requirement was "at least
+> one board layout is registered". It becomes **at least one `game_mode`** — which transitively
+> requires a board, since `board:` is required and stage 8 links it. Strictly stronger, still names
+> no mod.
 
 ---
 

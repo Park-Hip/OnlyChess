@@ -7,6 +7,12 @@ source for behaviour rather than the audit's summary of it. No loader, no engine
 **Written:** 34 files — 3 manifests · 10 pieces · 4 abilities · 10 events · 1 event pool · 1 fusion
 table (6 pairs) · 3 statuses · 1 board layout · 1 resource.
 
+> **36 as of E2.** `base:vanilla` and `base:advanced` were added when the `game_mode` content type
+> closed board-and-pool selection ([migration-plan §6.2](migration-plan.md)). Worth noting **D1's
+> method caught nothing here** — the gap was invisible from inside the base mod, because the question
+> *"which board is active?"* only exists once a **second** mod registers one. The base game cannot
+> exercise it. That is a real limit of D1 as a test, and the first thing it has failed to find.
+
 > **Resolved since first writing.** All eight gaps below are now closed or consciously parked, and
 > the spec and the files reflect it. Two needed a human call and got one:
 >
@@ -121,7 +127,7 @@ is not:
 | `STARTING_AP` | 0 | `constants.py` |
 | `MAX_AP` | 5 | `constants.py` |
 | `AP_GAIN_MOVE_INTERVAL` | 2 | `constants.py` |
-| one ability per turn | — | `Ability.can_use` reads `game_state.ability_used_this_turn` |
+| ~~one ability per turn~~ | — | ❌ **Wrong — corrected by E1.** `can_use` reads `ability_used_this_turn`, but the flag is vestigial and the read never sees `True`. There is **no** one-ability-per-turn rule in the engine; the UI enforces it by accident. See [engine-gap-analysis](engine-gap-analysis.md) §2.3 |
 
 None has a content type. **UC1 and UC2 are the two highest-ranked use cases in the project** —
 "change an ability's AP cost", "change an event's duration or odds" — and while both are literally

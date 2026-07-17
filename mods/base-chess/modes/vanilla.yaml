@@ -1,0 +1,20 @@
+# Standard chess: no events, no surprises.
+#
+# THIS FILE IS UC11. The requirement was "disabling base:events must yield a
+# playable standard chess game" — which was true, and which a player could only
+# reach through a mod manager that does not exist. As a mode, vanilla chess is a
+# menu entry in the shipped game, and the disable path still works as a second
+# route. The requirement is met twice; one of them is reachable.
+#
+# Note what this file does NOT mention: base:events, or any ID belonging to it.
+# That is not restraint, it is arithmetic — base:chess must not depend on
+# base:events (UC11), so `pools` here CANNOT reference base:main_pool even if
+# someone wanted it to. The dependency rules place this file in base:chess and
+# base:advanced in base:events without anyone choosing.
+
+type: game_mode
+id: base:vanilla
+name: Standard Chess
+
+board: base:standard
+pools: []          # the empty list is legal and load-bearing: a game with no events

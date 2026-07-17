@@ -120,10 +120,31 @@ Consequences, all of them improvements:
 - **One tick site instead of N.** `_is_piece_on_board` — copy-pasted into three events, each an
   O(64) board scan — is deleted outright (F6).
 
-⚠️ **This changes what "active event" means to the UI.** `render_panels` currently displays events
-that are active *because their status is still ticking*. Once statuses are independent, an event is
-instant and there is nothing to display. The UI should show **statuses on pieces**, which is what
-players actually care about. Flag for the migration plan — it is a real UI change, not a detail.
+> ### ❌ Corrected by E1 — the UI warning below was wrong
+>
+> This section originally warned: *"This changes what 'active event' means to the UI. `render_panels`
+> currently displays events that are active because their status is still ticking. Once statuses are
+> independent, an event is instant and there is nothing to display."*
+>
+> **`render_panels` does not read `active_events`. Nothing in `src/ui/` does.**
+> ([engine-gap-analysis](../engine-gap-analysis.md) §3.1.) The panels draw AP, captured pieces,
+> material, turn number and a countdown. The only UI reads of event state are the warning banner
+> (`message_log.py:175` → `queued.warning_active`) and the executed-message lines
+> (`game_screen.py:354`), and **both survive the status rewrite untouched.** The flagged migration
+> does not exist.
+>
+> **What is real is smaller and points the other way:** `render_board.py:122` draws the shield via
+> `getattr(piece, "is_shielded", False)`. That one call site must become a generic status read, or a
+> modder's `mymod:ward` is invisible on the board. The conclusion below — *the UI should show statuses
+> on pieces* — stands; the claim about what the UI does today did not.
+>
+> Kept rather than deleted because **how it got here matters**: it described plausible behaviour
+> nobody checked against the file. That is the same defect as `random_zone` (D1 finding 8) and the
+> message model (finding 7) — three documents, one failure mode. Treat every unverified claim about
+> `src/` in this spec as suspect until E-phase code touches it.
+
+The UI should show **statuses on pieces**, which is what players actually care about — see the
+correction above for what that does and does not require.
 
 ## Stacking
 

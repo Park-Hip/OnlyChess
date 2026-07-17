@@ -1,8 +1,10 @@
 # Preparation Roadmap: Mod-Driven OnlyChess
 
-**Status:** preparation phase. No implementation code until Gate 4.
-**Goal of this phase:** produce a spec that provably expresses the existing game, so the refactor
-has a target instead of a direction.
+**Status:** ✅ **preparation complete.** Phases A–E done; Gate 4 passed on one leg (D3 untested — see
+below). **Code may begin**, once the three decisions in "Waiting on the human" are made.
+**Goal of this phase, achieved:** produce a spec that provably expresses the existing game, so the
+refactor has a target instead of a direction. It does — D1 wrote the whole base game against it.
+**Where the work continues:** [`migration-plan.md`](migration-plan.md) is the live document from here.
 
 ---
 
@@ -27,22 +29,189 @@ has a target instead of a direction.
 | C6 status model | ✅ [spec/status-model.md](spec/status-model.md) — statuses as data |
 | **Gate 3** | ✅ **passed** — 9 defects found and fixed; see below |
 | **D** | 🔶 in progress — 1 of 3 |
-| D1 base mod on paper | ✅ [`mods/`](../../mods/) — 34 files → [d1-findings.md](d1-findings.md) |
+| D1 base mod on paper | ✅ [`mods/`](../../mods/) — 36 files → [d1-findings.md](d1-findings.md). *(+2 modes, added by E2)* |
 | D2 base mod granularity | ✅ decided at Gate 1: split. Boundaries proved by D1 |
-| D3 non-coder test | ⬜ **← NEXT.** Needs a person; see "Waiting on the human" |
-| **Gate 4** | ⬜ blocked on D3 |
-| **E** | ⬜ not reached |
+| D3 non-coder test | ⏸️ **deferred, not done** → guide written ([`modder-guide.md`](modder-guide.md)), never tested. No tester available |
+| **Gate 4** | ⚠️ **passed on one leg** — base-game condition met, non-coder condition **untested**. See below |
+| **E** | ✅ **complete — 2 of 2.** Preparation is over |
+| E1 engine gap analysis | ✅ [`engine-gap-analysis.md`](engine-gap-analysis.md) — 3 known blockers confirmed, 9 new, 2 live bugs |
+| E2 migration order | ✅ [`migration-plan.md`](migration-plan.md) — **rebuild the core behind the loader; old engine as oracle.** 7 waves |
+| **First line of code** | ⬜ **← NEXT, and unblocked.** All 3 decisions made ([migration-plan §6](migration-plan.md)). Starts with Wave 0's `.lc` spike |
 
 Decisions closed: D1–D10. D8 (versioning) is settled by `mod-package.md`'s Versioning section, and
 Gate 3 completed it — a mod now has an `id`, which is what MAJOR and dependency keys were implicitly
-about. D9's verb set was **reopened by D1 and re-closed**: nine content types (`resource` added), the
-message templates cut to two, `fuses_on` and `origin` added. Retired: D11.
+about. D9's verb set was **reopened by D1 and re-closed**, then **reopened by E2 and re-closed**:
+**ten** content types now (`resource` from D1, `game_mode` from E2), the message templates cut to two,
+`fuses_on` and `origin` added. Retired: D11.
 
-### Do this next: D3 — and it needs a person
+**E2's three, decided 2026-07-17** — full reasoning in [migration-plan §6](migration-plan.md):
+
+| Decision | Answer |
+|---|---|
+| **Asset ID scheme** | **Folder per piece, file per side** — `<mod>/assets/sprites/warden/<side_id>.png`. Extends to a board with any number of `sides` without string-mangling. Kills `assets.py`'s 20 hardcoded keys **and its silent Queen fallback**, which is `never silently skip malformed content` in the one place a modder's typo lands |
+| **Board + pool selection** | **A `game_mode` content type** — the tenth. Names a `board:` and its `pools:`; the player picks one in the existing menu. *Any engine rule for picking a board needs a rule for picking that rule*, and a player choice is the only terminator that does not make core name a mod. **Bonus: UC11 becomes data** — `base:vanilla` (`pools: []`) is standard chess as a *menu entry*, where before it needed a mod manager. Stage 9 now requires ≥1 `game_mode`, not ≥1 board |
+| **The castling bug** | **Fixed**, divergence list 4 → 5. The new architecture fixes it by *not* reproducing the hack; preserving it would mean writing code to reintroduce a bug. The F2/F4 precedent for preserving live behaviour was weighed and does not apply: **those are design choices somebody could have meant; this is a rules bug nobody designed** |
+
+### E2 is done — preparation is over
+
+Read [migration-plan.md](migration-plan.md). It answers the question the roadmap never asked.
+
+**It is a rebuild, and pretending otherwise costs us the licence to get the shape right.** Counted
+against the spec: ~1,300 of `src/`'s ~2,400 engine lines *become data*, and ~700 of the rest are
+rewritten (E1's `Move`, the two pipelines, `GameState`). What survives migration is a grid, the UI,
+and a test suite. **But rebuilds die**, and this one has a working game and 182 green tests to lose.
+
+**The resolution — and the whole argument rests on one thing: keep the old engine alive as a
+differential oracle.** Build the new engine behind the loader; `main.py` runs the old one until the
+new one plays a full game; then cut over and delete. This is unusually cheap here for a reason that
+does not generalise: **there is no ongoing feature work** — the roadmap froze the old engine months
+ago — so the strangler's usual killer (every feature costs double) is zero. And *"generate 10,000
+positions, assert both engines agree"* is worth more than the 182 tests. **It is an
+equality-modulo-a-written-list test**, because the spec has deliberate divergences (the pawn's
+`has_moved` double-step, `max` stacking, the castling fix). That is the feature: every difference is
+a bug or it is on a list short enough to review.
+
+**The finding that shapes the architecture — and the best evidence yet that the spec is right.**
+`capture:`, `castle`'s `include_castle=False` hack, and a **live chess bug** are one missing concept.
+`square_under_attack` asks *"does any enemy **move** end here?"* when it should ask *"does any enemy
+piece **threaten** here?"* — and for pawns those differ in **both** directions. Verified: **the engine
+offers `e1g1` while a black pawn on e2 attacks f1.** Castling through an attacked square, standard
+chess, no mods. The field that fixes it — `capture: allowed/false/only` — **is already in the schema**,
+earned by the pawn, for an unrelated reason, and the engine never reads it. A move part generating
+*moves* and *threats* separately dissolves all three at once. **The schema is ahead of the engine in
+more places than this one; the rebuild should hunt for them rather than port hacks forward.**
+
+**Three structural decisions worth not relitigating:**
+
+- **The verb path is an injected `api` object, not an import** (`register(api)`). It kills
+  loader-lifecycle's open sys.path question, makes privilege *impossible to hide* rather than merely
+  forbidden, and — the real prize — **makes the dogfooding claim an executable test**: hand `base:chess`
+  a recording fake and assert what it registers.
+- **A `Move` is a list of actions**, not a bag of content-shaped booleans. Castle is two `Relocate`s;
+  en passant is a `Relocate` + a `Remove` elsewhere; `is_pawn_promotion` ceases to exist. **Rollback
+  becomes reversing actions**, deleting six hand-written inverse methods, and F8's relocation contract
+  *is* `Relocate`. A code mod's `drop` verb returns actions and needs no engine change.
+- **One capture bus.** A capturing move emits `displaced=True`; `credit: self` emits `displaced=False`;
+  capture tracking and `base:fusion` both listen. This is how E1's two drifted pipelines unify, and it
+  makes `fuses_on` a filter on a real field instead of a rationale for an accident.
+
+**Seven waves**, each ending green: de-risk (the `.lc` spike, the oracle harness, the asset scheme) →
+the seam → **walking skeleton** → engine core → `base:chess` → fusion + events → cutover.
+
+**Planning also found four things the spec did not** — most importantly that **selector context is
+unmodelled**: `friendly:`, `of: self` and `include_self` all presuppose an acting piece, and **an
+event step has no `self`.** No base event uses them, so nothing is broken — but nothing *says* a
+selector's legal keys depend on where it sits, so stage 5 cannot catch it, and a modder writing
+`friendly: true` in an event gets a crash at fire time. That is precisely the failure the loader
+exists to prevent.
+
+### E1 is done — what it found
+
+Read [engine-gap-analysis.md](engine-gap-analysis.md). Every file in `src/` read against the spec;
+claims that were cheap to test were tested rather than argued.
+
+**The three known blockers are all real, and none is the biggest problem.** The one that outranks
+them: **`Move.__init__` knows what a pawn is.** Every `Move` — thousands per turn, in move
+generation's inner loop — reads `PAWN_CODE` and the board's edges to set `is_pawn_promotion`. The
+engine's most-constructed object is content-aware, and it is **upstream of the piece migration**,
+because data-defined pieces still build `Move`s.
+
+**The ability path and the move path have already drifted.** `finish_ability_turn` duplicates three
+of the five post-move systems inline and silently omits the other two (capture tracking and fusion).
+That is why `bishop_snipe` hand-calls `record_capture` — and **it is the real reason snipe does not
+fuse.** Not displacement: the ability path never calls the fusion system at all. `fuses_on:
+displacing_captures` still reproduces today's behaviour for all four abilities and is still the
+better rule, but it is **behaviour-preserving and mechanism-changing**, and the spec presents its
+rationale as archaeology. Recorded so the next reader does not go hunting for a displacement check
+that isn't there.
+
+**Two live defects, both verified by driving the engine:**
+
+- **A transformed piece keeps a status forever.** `viec_nhe_vol_cao` stuns a pawn; `comeout` turns it
+  into a queen, copying `is_active = False`; the event's cleanup looks for the *pawn*, doesn't find
+  it, and **the queen is frozen for the rest of the game.** Unreachable at stock tuning (one event
+  per 10 turns, statuses last ≤3) — and **reachable the moment `every:` drops below the longest
+  duration, which is the exact knob the spec turns into data and the Tuner reaches for first.** This
+  is the strongest argument yet for the status system going first: the spec's model fixes it by
+  construction, and it validates `preserve: all_except_identity` as *more correct* than today rather
+  than merely equivalent.
+- **The engine enforces no turn rule for abilities.** `ability_used_this_turn` is vestigial — set and
+  unset inside one call, so its only read never sees `True` — and `can_use` never checks
+  `white_to_move`. White can snipe twice, the second time on black's turn. Only the UI prevents it.
+  **E2 must build this rule, not preserve it:** once abilities are data, core is the only caller and
+  the accidental enforcement vanishes.
+
+**E1 also caught the spec being wrong about the engine, twice** — both now corrected in place:
+status-model's "`render_panels` displays active events" warning (**nothing in `src/ui/` reads
+`active_events`**; the flagged migration does not exist), and content-schemas' claim that the
+one-ability-per-turn rule is already core's. **That is three instances of one failure** — with
+`random_zone` (D1 finding 8) and the message model (finding 7) — all *plausible claims about source
+that nobody checked against source*. It is this project's characteristic defect. Treat every
+unverified claim about `src/` in the spec as suspect until E-phase code touches it.
+
+**E2's ordering gains two steps, both before the loader:** strip content out of `Move` and unify the
+turn record; then unify the two pipelines and build the missing turn rule. Neither is large; both are
+upstream of everything the loader feeds. See [§6](engine-gap-analysis.md).
+
+### ⚠️ Gate 4 was passed on one leg — read this before trusting the spec
+
+**Decided 2026-07-17, knowingly.** Gate 4 has two conditions. **The first is met**: D1 wrote the entire
+base game against the spec and it expressed it. **The second is untested**: no non-coder has ever read
+[`modder-guide.md`](modder-guide.md), because no tester was available and the project chose not to wait.
+
+**What this costs, stated plainly so nobody rediscovers it the hard way.** D3 is the only step that
+tests the project's actual goal rather than our belief about it — everything else, D1 included, is us
+grading our own homework. Skipping it means **the mod API is unvalidated against the audience
+`CLAUDE.md` names in its prime directive.** The specific exposure is *field names*: `CLAUDE.md` makes
+them API, so if D3 would have found `preserve` or `not_status` unlearnable, renaming them is a
+find-and-replace across 34 files today and a MAJOR bump plus a refactor once the engine reads them.
+That window closes as Phase E proceeds.
+
+**Why it was judged acceptable:** the likely D3 finding is "the guide is confusing" (free to fix, any
+time) rather than "the schema is wrong" (costly later). D1 is real evidence for that — the vocabulary
+transcribed the whole base game cleanly. It is a bet, not a proof, and it is recorded here as a bet.
+
+**D3 is deferred, not deleted, and it is cheap.** The guide is written. The moment any person who did
+not write this spec is available — a classmate, a friend, anyone who can edit a text file — hand it to
+them for 45 minutes: *add a piece and an event*. Watch for the pool patch, `tag_any` vs `primary`, and
+`[forward, right]` offsets, in that order. **Record where they stall, not whether they finish**; a
+tester who finishes by asking us three questions has failed the gate.
+
+### D3 — the guide exists; the tester never did
 
 **D1's eight gaps are all closed or consciously parked**, and both decisions that needed a human have
 been made. **Nothing else in Phase D is blocked, and nothing is blocked on the spec.** D3 is the only
-thing between here and Gate 4, and it cannot start without a non-coder to hand the guide to.
+thing between here and Gate 4.
+
+**The guide is written** — [`modder-guide.md`](modder-guide.md), derived from the four spec documents,
+every example checked against the real files in `mods/`. It teaches the D3 task (a piece and an event)
+end to end, plus reference cards for the other seven content types. It states up front that the loader
+does not exist and the mod is written on paper, because a tester who discovers that alone will read it
+as their own failure.
+
+**What remains is the person, and only the person.** Everything before this point is us grading our own
+homework; D3 is the first and only step that tests the project's actual goal.
+
+#### Two findings from writing it
+
+**1. ADR-002's "no consumer" flag is now misleading, and should be re-read before anyone acts on it.**
+An event cannot schedule itself — it fires from `base:main_pool`, whose `members:` a third-party mod
+may not edit directly. So **the first mod anybody writes needs an `add` patch**, and D3's own task is
+what forces it. The recorded claim ("3 patch ops with no base-game consumer") stays literally true —
+the base mod does not patch itself — but the honest summary is now *the patch ops are load-bearing for
+the second mod in the ecosystem*. That is a far stronger case for ADR-002 than the speculation flag it
+currently carries. It also means **`op: add` is on the critical path for D3**: a tester who cannot
+write the patch cannot make their event fire, so the patch section is the guide's real difficulty
+spike, not the event schema.
+
+**2. Pool selection is an unowned gap, and it is the same gap as board-layout selection.**
+[loader-lifecycle](spec/loader-lifecycle.md) → Open asks *"which board layout does a session use?"*
+when several are registered, and marks it as needing an owner in Phase D. **The identical question
+exists for `event_pool` and is written down nowhere.** If a mod defines its own pool rather than
+patching `base:main_pool`, nothing in the spec says whether both pools run, one wins, or it is an
+error. The guide steers to the patch — correct advice either way — but a guide should not be what
+settles this by omission. Added to the gap table below; the two should be answered together, since
+"which of the N registered X is active" is one question asked twice.
 
 Two decisions taken after D1, both worth not relitigating:
 
@@ -65,9 +234,14 @@ written down and owned:
 | Event triggers (F5) | content-schemas | Deferred out loud; v1 is pool-invoked only |
 | **Player choice** (promotion) | content-schemas, finding 2 | **Real gap.** Needs a move-pipeline home |
 | ~~`credit` → fusion?~~ | content-schemas | ✅ **decided after D1:** `fuses_on: displacing_captures` |
-| Board layout selection | loader-lifecycle | Needs an owner in Phase D |
-| `.lc` position mapping | loader-lifecycle | **Unspiked; highest-risk unknown** |
-| Validation library | loader-lifecycle | Deliberately deferred to ADR-003 (Phase E) |
+| ~~Board layout selection~~ | loader-lifecycle | ✅ **Closed by E2** — `game_mode` content type. Same answer as pool selection |
+| ~~Pool selection~~ | unwritten until D3 | ✅ **Closed by E2** — same question, same answer |
+| ~~Asset ID scheme~~ | mod-package, C3 | ✅ **Closed by E2** — folder per piece, file per side |
+| `.lc` position mapping | loader-lifecycle | **Unspiked; highest-risk unknown.** Wave 0 spike S1 — *the next thing to do* |
+| Validation library | loader-lifecycle | Deferred to ADR-003 — unblocked the moment S1 lands |
+| **Selector context** | **unwritten until E2** | `friendly:`/`of: self` presuppose a `self`; an event has none. Needs a stage-5 rule |
+| **Status stacking** | status-model, left open | The engine cannot leave it open. Proposal: most-restrictive wins |
+| **`choose:` fence** | content-schemas finding 2 | Implementable only where the choice precedes the move; needs validation |
 
 ### D1 is done — what it found
 
@@ -282,27 +456,37 @@ express the base game:
 
 ### Waiting on the human
 
-- **Line up a non-coder for D3 — this is now the blocking step.** Everything else in Phase D is done.
-  It needs lead time, and it is the only step that tests the project's actual goal rather than our
-  belief about it. Settle the three D1 schema decisions first so they are not handed a spec with a
-  known-broken event.
-- **A game-design call, needed before `base:fusion` is written:** does a `credit`ed destroy trigger
-  fusion? `bishop_snipe` records a capture but does **not** fuse today. Under C3's schema
-  `credit: self` is indistinguishable from a capture, so a naive fusion hook would make snipe fuse
-  and change the game. Adjacent to the retired D11, but live regardless of HP.
-  **A recommendation is recorded** in [content-schemas](spec/content-schemas.md) → "does `credit`
-  trigger fusion?": keep `credit` as one concept, let the capture carry whether the capturer
-  displaced, and let `base:fusion` declare which captures it fuses on. Note the constraint that
-  closes off the obvious alternative — `base:chess` owns `bishop_snipe` and cannot reference
-  `base:fusion` (UC11), so **the ability cannot opt out of fusion by name**. The decision must live
-  in `base:fusion` regardless of which way it goes.
-  **D1 sharpened this:** whichever way you decide, `type: fusion` has no field to write the answer in
-  (`match:` and `rules:`, nothing else). The recommendation is currently unimplementable as data, so
-  this is a schema task as well as a game-design call. See [d1-findings](d1-findings.md) gap 1.
-- Three flagged close calls, open to challenge: ADR-002 ships 3 patch ops with **no base-game
-  consumer** (C3 looked again and found none); ADR-001's YAML 1.2 pin adds a `ruamel.yaml`
-  dependency to a project that currently depends only on pygame; C3's `has_status` filter has no
-  base-game consumer either and exists only as `not_status`'s mirror.
+✅ **All three blocking decisions were made on 2026-07-17.** Recorded with their reasoning in
+[migration-plan §6](migration-plan.md); summarised in "Decisions closed" below. **Nothing is waiting
+on the human.** The only item left is D3, which is deferred rather than blocking.
+
+⚠️ **One constraint that is not a preference:** E1 §5.1's frozen-piece bug is unreachable only because
+`every: 10` is currently a Python constant. **The event pool must not ship as tunable data before
+Wave 3's status system lands**, or the first Tuner who sets `every: 2` gets permanently frozen pieces
+and no explanation.
+
+- **Line up a non-coder for D3 — deferred, not dead, and now the only thing Gate 4 is missing.**
+  Everything else in Phase D is done, the D1 schema decisions are settled, and
+  [`modder-guide.md`](modder-guide.md) is written. It needs lead time, and it is the only step that
+  tests the project's actual goal rather than our belief about it.
+  **What to watch when they try it**, in the order they are likely to bite: (1) the pool patch — an
+  event that never fires is the one failure that looks like the guide worked; (2) `tag_any` vs
+  `primary`, the only place a wrong-but-plausible choice survives review; (3) `[forward, right]`
+  offsets, which are the guide's one genuinely unintuitive idea. **Record where they stall, not
+  whether they finish** — a tester who finishes by asking us three questions has failed the gate, and
+  a gate that passes on our own coaching tests nothing.
+- ~~**A game-design call: does a `credit`ed destroy trigger fusion?**~~ **Closed** — decided after D1:
+  no, displacement does. `fuses_on: displacing_captures`, recorded above and in
+  [content-schemas](spec/content-schemas.md) → `destroy`. Nothing is waiting on it.
+- Two flagged close calls, open to challenge: ADR-001's YAML 1.2 pin adds a `ruamel.yaml` dependency
+  to a project that currently depends only on pygame; C3's `has_status` filter has no base-game
+  consumer and exists only as `not_status`'s mirror.
+  **The third is withdrawn.** ADR-002's "3 patch ops with no base-game consumer" was the weakest of
+  the three and is no longer a fair summary: writing the modder guide showed that **the first
+  third-party mod cannot ship an event without `op: add`**, because pools own the schedule and a mod
+  may not edit `base:main_pool` directly. Still no *base-game* consumer, and the wording above is
+  still literally accurate — but read as "kept on speculation" it is now wrong, and a reviewer acting
+  on it could cut a feature D3 depends on.
 
 ---
 
@@ -631,8 +815,9 @@ Written as the phases produce them — not up front.
 - Phase C → `spec/mod-package.md`, `spec/content-schemas.md`, `spec/loader-lifecycle.md`,
   `spec/status-model.md` — **all written**
 - Phase D → `mods/base-chess/**`, `mods/base-fusion/**`, `mods/base-events/**` (data files —
-  **written**), `d1-findings.md` (**written**), `modder-guide.md` (D3)
-- Phase E → `engine-gap-analysis.md`, `migration-plan.md`, `adr/003-validation.md`
+  **written**), `d1-findings.md` (**written**), `modder-guide.md` (**written**; D3 awaits a tester)
+- Phase E → `engine-gap-analysis.md` (**written**), `migration-plan.md` (**written**),
+  `adr/003-validation.md` (blocked on the `.lc` spike — Wave 0)
 - Ongoing → `adr/`
 
 The existing `docs/*.md` describe the **pre-refactor** design. They are an accurate map of the

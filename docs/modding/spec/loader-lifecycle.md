@@ -213,8 +213,9 @@ game, possibly never in testing. Here it is a message before the window opens.
 
 Hand the populated registries to the game.
 
-**The engine's only structural requirement: at least one board layout is registered.** A game with
-no board cannot start.
+**The engine's only structural requirement: at least one `game_mode` is registered.** A game with no
+mode cannot start — and a mode requires a `board:`, so this subsumes the older "≥1 board layout" rule
+rather than replacing it. (Updated by E2; see [content-schemas](content-schemas.md) → Game mode.)
 
 Note what this deliberately is *not*: a requirement that `base:chess` loaded. Core may never name a
 mod (`CLAUDE.md`, prime directive), so "the base game is missing" is not a thing the engine can
@@ -223,7 +224,7 @@ boot. The engine requires a *board*, not a *specific* board.
 
 | Failure | Response |
 |---|---|
-| Zero board layouts registered | Refuse to start, reporting the **root cause**, not the symptom. See below. |
+| Zero `game_mode`s registered | Refuse to start, reporting the **root cause**, not the symptom. See below. |
 
 ---
 
@@ -387,9 +388,13 @@ unreachable, because a dangling reference cannot survive load. Logged for E1.
 
 ## Open
 
-- **Which board layout does a session use?** Stage 9 requires ≥1 registered; it does not say which is
-  active when two mods offer one. That is mode selection, and `mode_config.py` is its ancestor. Needs
-  an owner in Phase D — it is the last thing standing between the loader and a running game.
+- ~~**Which board layout does a session use?**~~ **Closed by E2** — and it was the same question as
+  "which event pool?", which the modder guide surfaced independently. Answer: a **`game_mode` content
+  type** ([content-schemas](content-schemas.md) → Game mode) naming a board and its pools, with the
+  player picking one in the menu. The recursion terminates in a player choice, which is the only
+  terminator that does not require core to name a mod. **Stage 9's requirement changes**: ≥1
+  `game_mode`, not ≥1 board layout — strictly stronger, since `board:` is required and stage 8 links
+  it.
 - **Is `code/__init__.py` importable as a package, or exec'd from a path?** Mods live outside
   `sys.path`. Affects whether a code mod can `import` its own submodules, which it will want to.
   Mechanical, but it shapes the folder contract in mod-package.md.

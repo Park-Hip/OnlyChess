@@ -1,0 +1,20 @@
+# The game as it actually ships: standard chess plus the ten-event cycle.
+# Replaces mode_config.py, which is this content type's ancestor and the reason
+# it is earned — an existing hardcoded mechanic becoming data, not a new one.
+#
+# This mode lives in base:events rather than base:chess because it names
+# base:main_pool, and an ID is only visible where its mod is a dependency. Its
+# sibling base:vanilla lives in base:chess for the mirror-image reason. Nobody
+# decided that split; the dependency rules did.
+#
+# Fusion is deliberately absent from this file. base:fusion adds pieces and a
+# fusion table and applies to whichever mode is running — it ships no mode of its
+# own and needs no mention here. That is D2's boundary holding up under a content
+# type invented long after it was drawn.
+
+type: game_mode
+id: base:advanced
+name: Advanced
+
+board: base:standard
+pools: [base:main_pool]

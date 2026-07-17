@@ -177,7 +177,13 @@ reported.
 
 - **Where do mods live?** `mods/` beside the executable, or a per-user data directory? Affects
   packaging and whether a game update can clobber mods.
-- **Asset ID scheme.** Sprites and sounds need addressing too (`mymod:sprites/dragon`), and
-  `src/ui/assets.py` currently builds fixed paths.
+- ~~**Asset ID scheme.**~~ **Closed by E2.** `sprite: base:sprites/warden` resolves to
+  **`<mod>/assets/sprites/warden/<side_id>.png`** — a folder per piece, one file per side. Chosen over
+  a flat `warden_white.png` because it extends to a board with any number of `sides` without
+  string-mangling, and over per-side declarations in the piece file because that mapping is entirely
+  mechanical. Replaces `assets.py`'s 20 hardcoded `f"{color}{code}"` keys.
+  ⚠️ **`load_images`' Queen fallback must die with it**: a missing sprite currently prints a warning
+  and silently renders a queen, which is `CLAUDE.md`'s *never silently skip malformed content* in the
+  one place a modder's typo lands. It becomes a load error.
 - **Does `engine:` gate the verb vocabulary or the loader contract?** They will version differently
   once code mods register verbs.
