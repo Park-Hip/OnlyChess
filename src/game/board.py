@@ -33,7 +33,7 @@ class Board:
             self.grid[1][c] = Pawn(BLACK, (1, c))
             self.grid[BOARD_ROWS - 2][c] = Pawn(WHITE, (BOARD_ROWS - 2, c))
             self.grid[BOARD_ROWS - 1][c] = self.create_piece(WHITE, STANDARD_PIECE_ORDER[c], (BOARD_ROWS - 1, c))
-            
+
     def create_piece(self, color, name, pos):
         """Create a board piece through the shared piece registry."""
         return create_piece(name, color, pos)

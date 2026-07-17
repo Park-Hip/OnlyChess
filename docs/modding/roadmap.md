@@ -1,10 +1,12 @@
 # Preparation Roadmap: Mod-Driven OnlyChess
 
-**Status:** ✅ **preparation complete.** Phases A–E done; Gate 4 passed on one leg (D3 untested — see
-below). **Code may begin**, once the three decisions in "Waiting on the human" are made.
+**Status:** ✅ **preparation complete.** Phases A–E are done; Gate 4 passed on one leg (D3 remains
+untested — see below). The decisions are closed and Wave 1 has landed; this document is now a
+historical preparation record.
 **Goal of this phase, achieved:** produce a spec that provably expresses the existing game, so the
 refactor has a target instead of a direction. It does — D1 wrote the whole base game against it.
-**Where the work continues:** [`migration-plan.md`](migration-plan.md) is the live document from here.
+**Where the work continues:** [the refactor status](../refactor/status.md) is the live state;
+[`migration-plan.md`](migration-plan.md) is the target-architecture detail.
 
 ---
 
@@ -40,7 +42,8 @@ refactor has a target instead of a direction. It does — D1 wrote the whole bas
 | **ADR-003** — validation | ✅ **accepted, 2026-07-17** → [adr/003-validation.md](adr/003-validation.md). Registry-driven walk, **no library**; patch stage stamps provenance. Both libraries tested on real content, both rejected |
 | **Wave 0 · S2** — differential harness | ✅ **done, 2026-07-17.** `tests/oracle/` — +36 tests (182 → 218). **The old engine matches published perft exactly**, incl. Kiwipete d3 and start d4. Findings → below |
 | **Wave 1** — the seam | ✅ **done, 2026-07-17.** `src/modding/` — api, registries, parse, errors, loader (stages 1/3/4/7/9). **S4's gates G1–G3 landed with it.** +137 tests (223 → 361). Findings → below |
-| **Wave 2** — walking skeleton | ⬜ **← NEXT.** `mods/skeleton/`; the game loads it and draws a piece |
+| **Wave 2** — walking skeleton | ✅ **done, 2026-07-17.** `mods/skeleton/` validates, links, loads its own sprite, and renders a piece. 370 tests green (3 skipped). |
+| **Wave 3** — engine core | ✅ **done, 2026-07-17.** Isolated data-defined move generation, reversible actions/turns/statuses, and the first old-vs-new oracle gate. See [`../refactor/wave-3-engine-core.md`](../refactor/wave-3-engine-core.md). |
 
 Decisions closed: D1–D10. D8 (versioning) is settled by `mod-package.md`'s Versioning section, and
 Gate 3 completed it — a mod now has an `id`, which is what MAJOR and dependency keys were implicitly
@@ -52,7 +55,7 @@ about. D9's verb set was **reopened by D1 and re-closed**, then **reopened by E2
 
 | Decision | Answer |
 |---|---|
-| **Asset ID scheme** | **Folder per piece, file per side** — `<mod>/assets/sprites/warden/<side_id>.png`. Extends to a board with any number of `sides` without string-mangling. Kills `assets.py`'s 20 hardcoded keys **and its silent Queen fallback**, which is `never silently skip malformed content` in the one place a modder's typo lands |
+| **Asset ID scheme** | **Folder per piece, file per side** — `<mod>/assets/sprites/warden/<side-namespace>/<side-name>.png`. It keeps namespaced side IDs portable on Windows, extends to any number of sides, and kills `assets.py`'s hardcoded keys plus its silent Queen fallback. |
 | **Board + pool selection** | **A `game_mode` content type** — the tenth. Names a `board:` and its `pools:`; the player picks one in the existing menu. *Any engine rule for picking a board needs a rule for picking that rule*, and a player choice is the only terminator that does not make core name a mod. **Bonus: UC11 becomes data** — `base:vanilla` (`pools: []`) is standard chess as a *menu entry*, where before it needed a mod manager. Stage 9 now requires ≥1 `game_mode`, not ≥1 board |
 | **The castling bug** | **Fixed**, divergence list 4 → 5. The new architecture fixes it by *not* reproducing the hack; preserving it would mean writing code to reintroduce a bug. The F2/F4 precedent for preserving live behaviour was weighed and does not apply: **those are design choices somebody could have meant; this is a rules bug nobody designed** |
 
@@ -900,9 +903,10 @@ If they cannot, the spec has failed its stated goal, and that is worth knowing n
 after the engine is built. This is the only step that tests the actual project goal rather than our
 belief about it. Everything else tests internal consistency.
 
-> ### Gate 4
+> ### Gate 4 (historical completion criterion)
 > The spec expresses the entire base game, and a non-coder can author content from the guide alone.
-> **Code may begin.**
+> **Code could begin once the stated condition was met.** Wave 1 has since landed; see
+> [the refactor status](../refactor/status.md).
 
 ---
 

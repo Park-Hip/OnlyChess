@@ -533,9 +533,9 @@ class RealBaseModsTests(unittest.TestCase):
         self.result = load(REPO_ROOT / "mods")
         self.manifests, self.discover_errors = discover(REPO_ROOT / "mods")
 
-    def test_all_three_base_mods_are_discovered(self):
+    def test_base_mods_and_the_walking_skeleton_are_discovered(self):
         self.assertEqual(
-            [m.mod_id for m in self.manifests], ["base:chess", "base:events", "base:fusion"]
+            [m.mod_id for m in self.manifests], ["base:chess", "base:events", "base:fusion", "skeleton:demo"]
         )
         self.assertEqual(self.discover_errors, [])
 
@@ -576,8 +576,8 @@ class RealBaseModsTests(unittest.TestCase):
 
     def test_the_mods_that_do_not_owe_code_load_their_content(self):
         populated = {name for name, reg in self.result.registries.content.items() if len(reg)}
-        self.assertEqual(populated, {"event", "event_pool", "fusion", "game_mode", "piece", "status"})
-        self.assertEqual(self.result.mods, ("base:events", "base:fusion"))
+        self.assertEqual(populated, {"board", "event", "event_pool", "fusion", "game_mode", "piece", "status"})
+        self.assertEqual(self.result.mods, ("base:events", "base:fusion", "skeleton:demo"))
 
 
 if __name__ == "__main__":

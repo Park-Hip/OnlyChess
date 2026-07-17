@@ -10,6 +10,11 @@ project. It keeps the base game fully standard-chess-legal, then layers on captu
 **fusion**, resource-gated **active abilities**, and periodic **global events** that force both
 players to adapt mid-game.
 
+> **Refactor in progress.** The playable runtime described below is the legacy engine and remains
+> the comparison oracle while the mod-driven engine is rebuilt. If you are contributing to the
+> refactor, start with [the refactor status](docs/refactor/status.md), not the legacy architecture
+> section of this README.
+
 ## What Makes It Different
 
 - **Fusion:** capture the right piece with the right piece and the capturer transforms into a
@@ -78,7 +83,11 @@ Compatibility entrypoint (forwards to the same `src.main.main()`):
 uv run python main.py
 ```
 
-## Architecture & OOP Design
+## Legacy Runtime Architecture & OOP Design
+
+This section describes the currently playable, pre-mod architecture. It is useful when comparing
+behaviour during the refactor, but it is not the target design. The target keeps the engine loop in
+`src/` and moves all game content, including base chess, into `mods/`.
 
 OnlyChess is organized around a central `GameState`, but `GameState` does not own every rule —
 it coordinates focused collaborators instead:
@@ -102,7 +111,7 @@ Move execution runs through an ordered list of post-move systems (capture tracki
 AP gain → shield expiry → event ticking), so new post-move mechanics slot in as one more system
 rather than a new branch in `GameState`.
 
-## Extensibility
+## Legacy Extension Seams
 
 The goal is that most new features are additive, not invasive:
 
@@ -115,6 +124,9 @@ The goal is that most new features are additive, not invasive:
 Honest limits: new piece identities still need constants, new persistent state may need a
 `GameState` field, and mechanics touching both moves and ability turns need care around
 `GameState.finish_ability_turn()`.
+
+For the replacement extension model and the migration waves, see
+[docs/refactor/start-here.md](docs/refactor/start-here.md).
 
 ## Tech Stack
 

@@ -5,7 +5,8 @@
 rather than argue, it was tested; those are marked **verified** and the transcript is reproducible.
 **Scope:** what in `src/` blocks the spec, and what that implies for E2's ordering.
 
-**Input to:** [E2 migration plan](migration-plan.md) (not yet written).
+**Input to:** the completed [E2 migration plan](migration-plan.md). This is a historical analysis;
+current wave status lives in [docs/refactor/status.md](../refactor/status.md).
 **Reads against:** [content-schemas](spec/content-schemas.md), [status-model](spec/status-model.md),
 [loader-lifecycle](spec/loader-lifecycle.md), [mod-package](spec/mod-package.md).
 

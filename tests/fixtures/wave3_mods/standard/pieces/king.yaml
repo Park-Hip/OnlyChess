@@ -1,0 +1,4 @@
+type: piece
+id: fixture:king
+properties: { royal: true }
+moves: [{ type: slide, dirs: all, limit: 1 }]

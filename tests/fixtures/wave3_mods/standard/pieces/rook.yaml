@@ -1,0 +1,3 @@
+type: piece
+id: fixture:rook
+moves: [{ type: slide, dirs: orthogonal, limit: unlimited }]

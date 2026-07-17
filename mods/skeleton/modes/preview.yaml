@@ -1,0 +1,5 @@
+type: game_mode
+id: skeleton:preview
+name: Walking Skeleton Preview
+board: skeleton:preview_board
+pools: []

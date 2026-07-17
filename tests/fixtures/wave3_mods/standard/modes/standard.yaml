@@ -1,0 +1,5 @@
+type: game_mode
+id: fixture:standard
+name: Wave 3 Standard
+board: fixture:board
+pools: []

@@ -1,0 +1,6 @@
+type: piece
+id: fixture:pawn
+moves:
+  - { type: slide, dirs: forward, limit: 1, capture: false }
+  - { type: slide, dirs: forward, limit: 2, capture: false, when: { has_moved: false } }
+  - { type: slide, dirs: forward_diagonal, limit: 1, capture: only }

@@ -1,0 +1,12 @@
+type: board
+id: skeleton:preview_board
+size: [1, 1]
+sides:
+  - id: skeleton:blue
+    forward: down
+    promotes_at: 0
+    moves_first: true
+rows:
+  - row: 0
+    side: skeleton:blue
+    pieces: [skeleton:beacon]

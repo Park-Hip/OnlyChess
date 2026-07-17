@@ -1,0 +1,4 @@
+type: piece
+id: fixture:knight
+moves:
+  - { type: leap, offsets: [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]] }

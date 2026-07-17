@@ -11,11 +11,13 @@ wheels/
 /md
 CONTEXT.md
 
-# Course-era internal docs stay local. docs/modding/ is the modding spec and IS
-# tracked — it is the documentation modders read.
+# Course-era internal docs stay local. docs/modding/ is the modding spec and
+# docs/refactor/ is the live contributor path; both are tracked.
 # Note: /docs/* not docs/ — git will not descend into an excluded directory, so
 # the negation below only works if the directory itself stays unexcluded.
 /docs/*
 !/docs/modding/
+!/docs/refactor/
+!/docs/refactor/**
 mode.md
 AGENTS.md

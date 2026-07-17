@@ -1,14 +1,15 @@
 # E2 — Migration plan and target architecture
 
-**Status:** plan-only (roadmap E2). No implementation code. Written after
+**Status:** active migration plan. Wave 0 is complete and Wave 1 (the loader seam) landed in
+commit `ada54c6`; the remaining waves are planned here. Written after
 [E1](engine-gap-analysis.md).
 **Decides:** rebuild-vs-migrate, the target architecture, the wave order, the walking skeleton.
 **Priority, stated once and applied throughout:** *extensibility is the goal; the game is the test of
 it.* Where the two conflict below, extensibility wins and the cost is written down.
 
 > **All three blocking decisions are settled** (§6, 2026-07-17): folder-per-piece assets, a
-> `game_mode` content type, and the castling bug fixed. **Wave 0 is unblocked** — the only work left
-> before code is the `.lc` spike.
+> `game_mode` content type, and the castling bug fixed. **Wave 0 and Wave 1 are complete.** The
+> current boundary and next wave are maintained in [docs/refactor/status.md](../refactor/status.md).
 
 ---
 
@@ -345,7 +346,7 @@ Each wave ends with the game running and the oracle green. Sizes are relative, n
 |---|---|---|
 | ~~**S1**~~ | ~~The `.lc` spike~~ | ✅ **Done, 2026-07-17. Passed.** `ruamel.yaml>=0.18` declared; all 6 checks green, incl. the unknown-key case and a path through a seq index. **Three findings** → [roadmap](roadmap.md#s1-is-done--the-lc-spike-passed-and-narrowed-adr-003): pydantic is disqualified on positions, jsonschema paths the unknown-key case worst, and **patch provenance is an unmodelled hole in the error contract**. |
 | ~~**S2**~~ | ~~The differential harness~~ | ✅ **Done, 2026-07-17.** `tests/oracle/` — FEN as the position description, an `EngineAdapter` seam, the comparison, legal-play position generation, and the divergence list with §4's cap enforced. **Scope grew by one thing, deliberately: published perft as external ground truth**, because old-vs-old is trivially green and cannot catch a bug in the harness itself. Findings → [roadmap](roadmap.md#s2-is-done--the-oracle-has-a-ground-truth-and-the-old-engine-passes-it). |
-| ~~**S3**~~ | ~~Asset ID scheme~~ | ✅ **Decided** (§6.1): folder per piece, file per side. The ~20 file renames are Wave 2 work. |
+| ~~**S3**~~ | ~~Asset ID scheme~~ | ✅ **Decided** (§6.1) and proven by Wave 2's skeleton. The legacy sprite migration remains a cutover task; Wave 2 does not modify the old runtime's assets. |
 | ~~**S4**~~ | ~~Standing gates G1–G3~~ | ✅ **Done with Wave 1, 2026-07-17.** `tests/modding/test_gates.py`. Closer to 120 lines than 20 — G2 needs an AST walk, not a grep, so that core can keep explaining *why* in prose while never *naming* content in code. **G2 caught a real violation on its first run**, in code an hour old. G1 is half-armed until Wave 4 and says so. |
 
 ### ~~Wave 1 — The seam~~ ✅ done, 2026-07-17
@@ -368,8 +369,10 @@ Nine stages are the target, not a big bang. They arrive as the content types tha
 
 ### Wave 2 — Walking skeleton
 
-`mods/skeleton/` — one manifest, one board layout, one piece. The game loads it and draws the piece.
-Old engine still runs the real game. **This is the first moment anything is proven end to end.**
+`mods/skeleton/` — one manifest, one board layout, one piece, and one required `game_mode`. The
+selected mod validates and links `game_mode → board → piece`, loads its own sprite, and draws the
+piece in an isolated preview. The legacy engine still runs the real game. **This is the first moment
+anything is proven end to end.**
 
 ### Wave 3 — Engine core
 
@@ -466,10 +469,13 @@ The three blockers are closed. Recorded with their reasoning so a later session 
 
 ### 6.1 ✅ Asset ID scheme — **folder per piece, file per side**
 
-`sprite: base:sprites/warden` resolves to **`<mod>/assets/sprites/warden/<side_id>.png`**.
+`sprite: base:sprites/warden` resolves to
+**`<mod>/assets/sprites/warden/<side-namespace>/<side-name>.png`**.
 
 Chosen over a flat `warden_white.png` because it **extends to a board with any number of `sides`
-without string-mangling** — a three-sided total conversion adds a third file and no new concept. And
+without string-mangling** — a three-sided total conversion adds a third file and no new concept. A
+namespaced side ID cannot be a Windows filename (`base:white.png` is illegal), so its namespace is a
+directory rather than punctuation in a filename. And
 over declaring sprites per side inside the piece file, because that mapping is entirely mechanical
 and would cost two lines in every piece for nothing.
 

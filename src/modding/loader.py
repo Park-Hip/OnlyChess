@@ -1,20 +1,16 @@
 """The loader — enough of the nine stages to read a mod, register it, and hand it over.
 
-Wave 1 implements **1 discover, 3 parse, 4 load code, 7 register, 9 activate**. The other
-four are not stubbed, because a stub that returns success is a lie that passes tests:
+Wave 1 implements **1 discover, 3 parse, 4 load code, 7 register, 9 activate**. Wave 2 adds
+an opt-in **5 validate** and **8 link** path for the three content types its preview consumes.
+The remaining work is not stubbed, because a stub that returns success is a lie that passes tests:
 
 - **2 resolve** (graph, cycles, the originator rule) arrives with the first mod that has a
   dependency. Until then, load order is the tie-break rule — mod id, alphabetically.
-- **5 validate** arrives with the first content type that has a schema. Note the ordering
-  constraint it lands under: `resolve -> load code -> validate`, because validation needs
-  the verb vocabulary, the vocabulary is not complete until code mods have registered, and
-  code mods must run in dependency order. Validating before resolving is not a style
-  preference; it is impossible.
 - **6 patch** arrives with ADR-002's ops.
-- **8 link** arrives when there is a second content type to point at.
+- Validation/linking for the other seven content types arrive with their engine consumers.
 
-Until stage 5 exists, content is registered unvalidated. That is a real gap and it is
-recorded here rather than hidden behind a `def validate(): pass`.
+Unsupported content remains registry-only. That is a real gap and it is recorded here rather
+than hidden behind a `def validate(): pass`.
 
 **Errors are collected, not fail-fast.** The loader runs every stage over every mod and
 reports everything at once. A non-coder with six typos should learn about six typos, not
@@ -29,12 +25,14 @@ import sys
 import traceback
 from dataclasses import dataclass, field, replace
 from pathlib import Path
-from typing import Optional
+from typing import Iterable, Optional
 
 from .api import ModApi, ModApiError
 from .errors import ContentError, ModLoadError
+from .linking import LinkedContent, link_content
 from .parse import CONTENT_SUFFIX, ParsedFile, describe_shape, parse_file, read_yaml
 from .registries import Registries, is_valid_id
+from .validation import validate_content
 
 MANIFEST_NAME = "manifest.yaml"
 CODE_DIR = "code"
@@ -66,6 +64,8 @@ class LoadResult:
     registries: Registries
     mods: tuple[str, ...] = ()
     errors: list[ContentError] = field(default_factory=list)
+    linked: Optional[LinkedContent] = None
+    mod_roots: dict[str, Path] = field(default_factory=dict)
 
     @property
     def ok(self) -> bool:
@@ -424,14 +424,35 @@ def register_content(files: list[ParsedFile], registries: Registries) -> list[Co
     return errors
 
 
-def load(mods_dir: Path) -> LoadResult:
-    """Run the stages Wave 1 implements, over every mod in a directory.
+def load(
+    mods_dir: Path,
+    *,
+    enabled_mod_ids: Optional[Iterable[str]] = None,
+    validate: bool = False,
+    link: bool = False,
+) -> LoadResult:
+    """Run the loader over enabled mods, optionally including Wave 2 validation/linking.
 
     Returns a result rather than raising, so a caller can report every error at once. See
-    `activate` for the check that decides whether the game can start.
+    `activate` for the check that decides whether the game can start. `validate` and `link`
+    are explicit until every registered content type has an engine consumer; the walking
+    skeleton enables both and the Wave 1 registry-contract tests leave both disabled.
     """
     registries = Registries()
     manifests, errors = discover(mods_dir)
+    requested = set(enabled_mod_ids) if enabled_mod_ids is not None else None
+    if requested is not None:
+        found = {manifest.mod_id for manifest in manifests}
+        for mod_id in sorted(requested - found):
+            errors.append(
+                ContentError(
+                    mod_id="<engine>",
+                    file="<startup>",
+                    problem=f"enabled mod '{mod_id}' is not installed",
+                    expected="an id from a discovered mod manifest",
+                )
+            )
+        manifests = [manifest for manifest in manifests if manifest.mod_id in requested]
 
     files: list[ParsedFile] = []
     for manifest in manifests:
@@ -440,6 +461,12 @@ def load(mods_dir: Path) -> LoadResult:
         errors.extend(problems)
 
     errors.extend(load_code(manifests, registries))
+
+    # Wave 2 is the first consumer of content schemas.  The legacy Wave 1 loader contract
+    # intentionally remains raw until a caller asks for a linked playable slice; otherwise
+    # its registry-only tests would start claiming unsupported types were playable.
+    if validate:
+        errors.extend(validate_content(files))
 
     # A mod with any error is disabled whole, so its content never reaches the registries in
     # the first place — but a mod can only be known to be broken once every stage before
@@ -453,8 +480,21 @@ def load(mods_dir: Path) -> LoadResult:
     for mod_id in {error.mod_id for error in errors}:
         registries.drop(mod_id)
 
+    linked = None
+    if link:
+        linked, link_errors = link_content(registries)
+        errors.extend(link_errors)
+        for mod_id in {error.mod_id for error in link_errors}:
+            registries.drop(mod_id)
+
     loaded = tuple(m.mod_id for m in manifests if m.mod_id not in {e.mod_id for e in errors})
-    return LoadResult(registries=registries, mods=loaded, errors=errors)
+    return LoadResult(
+        registries=registries,
+        mods=loaded,
+        errors=errors,
+        linked=linked,
+        mod_roots={manifest.mod_id: manifest.root for manifest in manifests},
+    )
 
 
 def activate(result: LoadResult) -> Registries:
