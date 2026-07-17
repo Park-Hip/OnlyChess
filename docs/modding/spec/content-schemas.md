@@ -179,12 +179,37 @@ An effect changes the game. This is the complete v1 list — the audit's capabil
 `credit:` records the removal against a side's capture tally. Without it, a destroyed piece simply
 leaves the board — which is what all five destroying events do.
 
-> **Open — does `credit` trigger fusion?** `bishop_snipe` today calls `record_capture` directly and
-> does **not** fuse. Under this schema, `credit: self` is indistinguishable from a capture, so a
-> naive fusion hook would make snipe fuse and change the game. Either `credit` means "scoring only"
-> (and fusion listens to moves, not credits), or fusion needs its own explicit trigger. **Resolve in
-> D1 before writing `base:fusion`.** This is adjacent to the retired D11 but is not the same
-> question, and it is live regardless of HP.
+> ### Open — does `credit` trigger fusion? *(recommendation below; human decides)*
+>
+> `bishop_snipe` calls `record_capture` directly and does **not** fuse. Under this schema
+> `credit: self` is indistinguishable from a capture, so a naive fusion hook would make snipe fuse
+> and change the game. **Resolve before writing `base:fusion`.** Adjacent to the retired D11, but
+> live regardless of HP.
+>
+> **A dependency constraint settles most of this.** `bishop_snipe` belongs to `base:chess`; fusion
+> belongs to `base:fusion`; and `base:chess` must not reference `base:fusion`, because disabling
+> fusion has to leave standard chess playable (UC11). **The ability therefore cannot opt out of
+> fusion by name** — that whole family of answers is closed. The decision has to live in
+> `base:fusion`.
+>
+> **Recommended:**
+>
+> 1. **`credit` stays one concept** — "this counts as a capture by self" — emitting one capture on
+>    the bus. Splitting it into scoring-credit and fusion-credit creates two near-identical concepts,
+>    and every future listener (a mission counter, a bounty mod) must guess which one it wants. Half
+>    will guess wrong and nothing will tell them. It also makes scoring a privileged core listener,
+>    when scoring is arguably content.
+> 2. **The capture carries whether the capturer displaced** onto the square. That is a move-pipeline
+>    fact, not a content fact, so the engine can expose it without naming content. It is also what
+>    fusion means physically: the fused piece is placed on the captured square.
+> 3. **`base:fusion` declares which captures it fuses on.** To preserve today's behaviour exactly:
+>    displacing captures only.
+>
+> The point is not that this answers the question — it is that it moves the question **out of the
+> engine and into a data file**, where changing the answer is a one-line edit rather than a refactor.
+> A modder's `mymod:assassinate` emits a capture; `base:fusion`'s rule decides; someone who wants
+> remote captures to fuse patches that condition (ADR-002). Consistent with `CLAUDE.md`: we don't
+> settle the mechanic, we make the mechanic settleable.
 
 ## `transform`
 
@@ -543,6 +568,7 @@ The explicit ordered-pair table (F10). **Do not derive it from a rule.**
 ```yaml
 type: fusion
 id: base:fusion_table
+match: { capturer: exact, captured: primary }     # ← see finding 6; do not omit
 rules:
   - { capturer: base:knight, captured: base:bishop, into: base:archbishop }
   - { capturer: base:bishop, captured: base:knight, into: base:archbishop }
@@ -555,6 +581,33 @@ rules:
 `capturer` and `captured` are distinct keys, so the asymmetry survives transcription. Any schema
 modelling this as an unordered pair silently breaks the game: `(Rook, Bishop)` → Warden but
 `(Bishop, Rook)` → Inquisitor.
+
+## `match` — the two sides use different axes
+
+**This is the third appearance of F3's two axes, and it is not optional.** `FusionManager.handle_move`
+resolves the two sides differently:
+
+```python
+capturing_code = capturing_piece.get_piece_code()                      # exact identity
+captured_code  = getattr(captured_piece, "primary_component_code", …)  # primary axis
+```
+
+So `captured: base:bishop` means **"is primarily a bishop"** — which includes **Inquisitor**
+(Bishop+Rook). A Rook capturing an Inquisitor fuses into a Warden today. Reading `captured` as an
+exact ID silently deletes that behaviour, and it is reachable in any game where a fused piece gets
+taken.
+
+| Capture | Captured's primary | Lookup | Result |
+|---|---|---|---|
+| Rook takes Bishop | bishop | `(rook, bishop)` | Warden |
+| Rook takes **Inquisitor** | **bishop** | `(rook, bishop)` | **Warden** ✅ |
+| Rook takes **Archbishop** | **knight** | `(rook, knight)` | **Chancellor** ✅ |
+| Rook takes **Warden** | **rook** | `(rook, rook)` | not in table → nothing |
+| Bishop takes **Chancellor** | **rook** | `(bishop, rook)` | **Inquisitor** ✅ |
+
+`match` is declared rather than implied because the asymmetry is invisible otherwise, and because a
+modder writing their own fusion-like table needs to be able to choose. The base table's value is
+`{ capturer: exact, captured: primary }`.
 
 The principle is "the capturer's movement dominates" — and it is **only half-applied**: knight pairs
 collapse to Archbishop regardless of direction, both components full. A derivation rule would have to
@@ -571,6 +624,12 @@ special-case knights, which is a table with extra steps.
 >
 > The table is already total. **No `can_fuse` field, in core or in content** — one fewer concept, one
 > fewer thing to keep in sync. Logged for E1: two engine predicates become deletable.
+>
+> ⚠️ **This depends on `match.capturer: exact` and breaks without it.** Were the capturer matched on
+> the `primary` axis, a Warden (primary: rook) capturing a bishop would look up `(rook, bishop)` and
+> fuse into a second Warden — precisely what `can_fuse()` exists to prevent. The two halves of
+> `match` are load-bearing for different reasons: `captured: primary` preserves fusing *with* fused
+> pieces, `capturer: exact` prevents fusing *as* one.
 >
 > This also means base:fusion has **no reason to patch base:chess**, which leaves ADR-002's
 > "three patch ops with no base-game consumer" flag exactly where it was. I looked for a consumer
@@ -630,8 +689,8 @@ together.
 
 # What C3 found that the audit and Phase B did not
 
-Writing the schemas against the source surfaced four things. Three are transcription hazards for D1;
-one is a genuine gap.
+Writing the schemas against the source surfaced five things. Three are transcription hazards for D1;
+one is a genuine gap; one is a correction to this spec's own first draft.
 
 ### Finding 2 — normal promotion needs a player choice
 
@@ -695,12 +754,28 @@ Added to the audit's bug list. **Do not fix it in C3.**
 See [the hazard box](#-migration-hazard--limit-is-off-by-one). Mechanical, silent, and it will bite
 whoever transcribes `fused.py`.
 
+### Finding 6 — fusion's two sides match on different axes
+
+`FusionManager.handle_move` reads the capturer by **exact identity** and the captured piece by its
+**primary component**. So `(rook, bishop) → Warden` also fires when a Rook takes an *Inquisitor*,
+because Inquisitor is primarily a bishop.
+
+Neither the audit's fusion table nor Phase B's "the ordered-pair table transcribes directly" records
+this. **The first draft of this spec got it wrong**, reading `captured` as an exact ID, which would
+have silently removed fusion-with-fused-pieces from the game — a behaviour that fires in any game
+where a fused piece is taken.
+
+This is **F3's two axes appearing a third time**, in the one place nobody thought to look for them.
+The audit found the axes in event selectors and ability owners; they were in the fusion table all
+along. That is a decent argument that `components` earning both axes is not a convenience but a
+structural property of this game. See [`match`](#match--the-two-sides-use-different-axes).
+
 ---
 
 # Open
 
 - **Does `credit` trigger fusion?** ([above](#destroy)) — must be answered before `base:fusion` is
-  written. Not the retired D11; live regardless of HP.
+  written. Recommendation recorded; the call is a human's. Not the retired D11; live regardless of HP.
 - **Player choice is a new concept** (finding 2) — needs a home in the move pipeline. C4 or E1.
 - **`material` may belong in `properties`** ([above](#properties--the-open-bag-d10)) — depends on
   whether scoring is engine or base-game UI.
@@ -722,7 +797,7 @@ Every verb in the audit's capability surface has a home:
 | Durations — instant, N turns | status-model.md ✅ |
 | Statuses — poison, stun, immobilize, shield | status-model.md (4 → 3) ✅ |
 | Messaging — compact notation, `"0x"` | `message` / `empty_message` ✅ |
-| Fusion asymmetry | ordered-pair table ✅ |
+| Fusion asymmetry | ordered-pair table + `match` (two axes again — finding 6) ✅ |
 | Two selector axes (F3) | `components` → `tag_any` / `primary` ✅ |
 | Pawn, King | opaque verbs registered by `base:chess` ✅ |
 | Board size, layout, sides | board layout ✅ |

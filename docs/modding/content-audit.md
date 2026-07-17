@@ -99,6 +99,13 @@ But the principle is **only half-applied** — knight pairs collapse to one resu
 direction, with both components full. Do not try to derive fusion results from a rule. Keep the
 explicit 6-entry table (finding **F10**).
 
+> **Correction (found during C3).** This table is accurate but incomplete about *matching*.
+> `FusionManager.handle_move` reads the capturer by **exact code** and the captured piece by
+> **`primary_component_code`**. So the "Captured" column above means *"is primarily a"*, not *"is
+> a"* — a Rook taking an **Inquisitor** (primarily a bishop) fuses into a Warden, and a Bishop
+> taking a **Chancellor** (primarily a rook) fuses into an Inquisitor. Fusing *with* fused pieces is
+> live behaviour that this table's six rows do not show. See F3 — the two axes are here too.
+
 ---
 
 ## Capability surface

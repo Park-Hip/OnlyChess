@@ -65,8 +65,8 @@ Headline decisions, each of which a fresh session should not relitigate without 
 - **Event pool is a sixth content type** — the ten events share *one* schedule that picks one at
   random. Per-event scheduling would describe a different game.
 
-**Four findings that were not in the audit or Phase B.** Three are transcription hazards for D1; one
-is a real gap:
+**Five findings that were not in the audit or Phase B.** Three are transcription hazards for D1; one
+is a real gap; one is a correction to C3's own first draft:
 
 1. **Player choice is unmodelled, and standard chess needs it.** Normal promotion offers Q/R/B/N
    (`Board._resolve_pawn_promotion`); Phase B only looked at `pawn_sprint`, which auto-queens. Not an
@@ -79,11 +79,19 @@ is a real gap:
    hardcodes board size, which UC12 forbids) and logs it as a *deliberate* change.
 4. **Stun does not stop abilities, and only `pawn_sprint` noticed.** A stunned bishop can snipe
    today. F2's pattern in a new place; made visible, not fixed.
+5. **Fusion's two sides match on different axes**, and C3's first draft got this wrong.
+   `FusionManager` reads the capturer by **exact identity** and the captured piece by its **primary
+   component** — so `(rook, bishop) → Warden` also fires when a Rook takes an *Inquisitor*. Reading
+   `captured` as an exact ID silently deletes fusion-with-fused-pieces. Now carried by an explicit
+   `match: { capturer: exact, captured: primary }`. **This is F3's two axes appearing a third time**,
+   in the one place nobody thought to look — decent evidence that the axes are structural to this
+   game rather than a convenience.
 
 Also: **fusion eligibility needs no field.** `can_fuse` / `has_fused` are redundant — the 6-entry
 table is already total (king, pawn, queen, and fused pieces simply appear in no row). Two engine
-predicates become deletable; logged for E1. This also means **ADR-002 still has no base-game patch
-consumer** — C3 looked for one and did not find one.
+predicates become deletable; logged for E1. **This holds only because `match.capturer` is `exact`** —
+match the capturer on `primary` and a Warden would fuse into a second Warden. This also means
+**ADR-002 still has no base-game patch consumer** — C3 looked for one and did not find one.
 
 ### Constraints C3 was held to (retained for review)
 
@@ -130,6 +138,12 @@ express the base game:
   fusion? `bishop_snipe` records a capture but does **not** fuse today. Under C3's schema
   `credit: self` is indistinguishable from a capture, so a naive fusion hook would make snipe fuse
   and change the game. Adjacent to the retired D11, but live regardless of HP.
+  **A recommendation is recorded** in [content-schemas](spec/content-schemas.md) → "does `credit`
+  trigger fusion?": keep `credit` as one concept, let the capture carry whether the capturer
+  displaced, and let `base:fusion` declare which captures it fuses on. Note the constraint that
+  closes off the obvious alternative — `base:chess` owns `bishop_snipe` and cannot reference
+  `base:fusion` (UC11), so **the ability cannot opt out of fusion by name**. The decision must live
+  in `base:fusion` regardless of which way it goes.
 - Three flagged close calls, open to challenge: ADR-002 ships 3 patch ops with **no base-game
   consumer** (C3 looked again and found none); ADR-001's YAML 1.2 pin adds a `ruamel.yaml`
   dependency to a project that currently depends only on pygame; C3's `has_status` filter has no
