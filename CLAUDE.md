@@ -144,6 +144,21 @@ Data formats become bad programming languages one convenience at a time. This is
 - Comment only non-obvious rules or math — not what the code already says.
 - Explain the reasoning behind design choices.
 
+### Always end with TLDR and Next
+
+Every response finishes with these two, in this order, however short the task:
+
+- **TLDR** — what happened or what was found, in a sentence or two. The answer to "just tell me."
+- **Next** — the single most useful thing to do now, and who has to do it. If it is blocked on the
+  human, say so and say why. If there is genuinely nothing, say that rather than inventing work.
+
+Keep both short; the detail goes above them, not inside them. **Next** is one recommendation, not a
+menu — if there is a real fork, recommend one and name the alternative in a clause.
+
+This exists because this project is long-running, heavily documented, and easy to lose the thread of
+across sessions. A reply that is correct but leaves the reader hunting for the state of play has
+failed at the only thing they needed it for.
+
 ## Commands
 
 ```
