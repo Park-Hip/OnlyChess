@@ -4,7 +4,9 @@ from .registry import register_ability
 
 @register_ability
 class PawnKamikaze(Ability):
-    ability_name = "pawn_kamikaze"
+    """Sacrifice a pawn to destroy surrounding non-king pieces."""
+
+    ability_key = "pawn_kamikaze"
     display_name = "Pawn Kamikaze"
     ap_cost = 3
     owner_piece_codes = (PAWN_CODE,)

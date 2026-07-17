@@ -30,10 +30,6 @@ _PIECE_LETTER = {
     "R": "R",
     "Q": "Q",
     "K": "K",
-    "A": "A",    # Archbishop (fused)
-    "C": "C",    # Chancellor (fused)
-    "W": "W",    # Warden (fused Rook-Bishop)
-    "I": "I",    # Inquisitor (fused Bishop-Rook)
 }
 
 # --- Layout constants ---

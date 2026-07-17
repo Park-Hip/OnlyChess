@@ -1,5 +1,8 @@
 """Shared constants for board rules and game-domain values."""
 
+import os
+import sys
+
 # Screen sizing
 BOARD_WIDTH = 512
 BOARD_HEIGHT = 512
@@ -24,8 +27,6 @@ BISHOP_CODE = "B"
 ROOK_CODE = "R"
 QUEEN_CODE = "Q"
 KING_CODE = "K"
-ARCHBISHOP_CODE = "A"
-CHANCELLOR_CODE = "C"
 STANDARD_PIECE_ORDER = [
     ROOK_CODE,
     KNIGHT_CODE,
@@ -41,10 +42,6 @@ STANDARD_PIECE_ORDER = [
 WHITE = "w"
 BLACK = "b"
 
-# Fusion rules
-WARDEN_CODE = "W"       # Rook capturing Bishop
-INQUISITOR_CODE = "I"   # Bishop capturing Rook
-
 # Action Points
 STARTING_AP = 0
 MAX_AP = 5
@@ -55,8 +52,6 @@ EVENT_CYCLE_TURNS = 10
 EVENT_WARNING_OFFSET = 8
 EVENT_EXECUTE_OFFSET = 9
 
-import os
-import sys
 
 def get_resource_path(relative_path):
     """Get absolute path to resource, works for dev and for PyInstaller."""

@@ -3,20 +3,16 @@
 import unittest
 
 from src.constants import (
-    ARCHBISHOP_CODE,
     BISHOP_CODE,
     BLACK,
-    CHANCELLOR_CODE,
-    INQUISITOR_CODE,
     KING_CODE,
     KNIGHT_CODE,
     PAWN_CODE,
     QUEEN_CODE,
     ROOK_CODE,
-    WARDEN_CODE,
     WHITE,
 )
-from src.pieces import Archbishop, Bishop, Chancellor, King, Knight, Pawn, Queen, Rook, create_piece, get_registered_piece_codes
+from src.pieces import Bishop, King, Knight, Pawn, Queen, Rook, create_piece, get_registered_piece_codes
 
 
 class PieceRegistryTests(unittest.TestCase):
@@ -29,8 +25,6 @@ class PieceRegistryTests(unittest.TestCase):
         self.assertIsInstance(create_piece(ROOK_CODE, BLACK, (0, 0)), Rook)
         self.assertIsInstance(create_piece(QUEEN_CODE, WHITE, (7, 3)), Queen)
         self.assertIsInstance(create_piece(KING_CODE, BLACK, (0, 4)), King)
-        self.assertIsInstance(create_piece(ARCHBISHOP_CODE, WHITE, (4, 4)), Archbishop)
-        self.assertIsInstance(create_piece(CHANCELLOR_CODE, BLACK, (3, 3)), Chancellor)
 
     def test_registry_reports_registered_piece_codes(self):
         self.assertEqual(
@@ -42,10 +36,6 @@ class PieceRegistryTests(unittest.TestCase):
                 ROOK_CODE,
                 QUEEN_CODE,
                 KING_CODE,
-                ARCHBISHOP_CODE,
-                CHANCELLOR_CODE,
-                WARDEN_CODE,
-                INQUISITOR_CODE,
             },
         )
 

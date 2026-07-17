@@ -1,6 +1,6 @@
 """Bishop Snipe ability."""
 
-from ..constants import BISHOP_CODE
+from ..constants import BISHOP_CODE, KING_CODE
 from .base import Ability, is_enemy_piece
 from .registry import register_ability
 
@@ -17,6 +17,8 @@ class BishopSnipe(Ability):
     def is_valid_target(self, game_state, piece, target_square):
         target = game_state.board.get_piece_at(target_square[0], target_square[1])
         if not is_enemy_piece(piece, target):
+            return False
+        if target.get_piece_code() == KING_CODE:
             return False
         if getattr(target, "is_shielded", False):
             return False

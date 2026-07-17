@@ -9,7 +9,6 @@ from ..constants import (
     INFO_PANEL_HEIGHT,
     SQ_SIZE,
 )
-from .ui_constants import COLOR_DARK, COLOR_LIGHT
 
 
 def get_board_colors():
@@ -101,6 +100,26 @@ def draw_highlights(screen, game_state, valid_moves, selected_square, square_siz
         screen.blit(valid_surface, (target_col * square_size, target_row * square_size + info_panel_height))
 
 
+def get_dynamic_sprite(piece, images, square_size):
+    """Retrieve or generate the cached dynamic sprite for a fused piece."""
+    if not getattr(piece, "has_fused", False) or len(piece.fusion_components) <= 1:
+        return images[piece.get_sprite_key()]
+        
+    comps = list(piece.fusion_components)
+    if piece.primary_component_code in comps:
+        comps.remove(piece.primary_component_code)
+        
+    comps.sort()
+    cache_key = piece.get_sprite_key() + "_fused_" + "_".join(comps)
+    
+    if cache_key not in images:
+        from .assets import generate_dynamic_sprite
+        base_image = images[piece.get_sprite_key()]
+        images[cache_key] = generate_dynamic_sprite(base_image, comps, square_size)
+        
+    return images[cache_key]
+
+
 def draw_pieces(screen, board_grid, images, dragged_square=(), dimension=DIMENSION, square_size=SQ_SIZE, info_panel_height=INFO_PANEL_HEIGHT):
     """Draw all board pieces except a currently dragged one."""
     for row in range(dimension):
@@ -109,8 +128,9 @@ def draw_pieces(screen, board_grid, images, dragged_square=(), dimension=DIMENSI
                 continue
             piece = board_grid[row][col]
             if piece:
+                image = get_dynamic_sprite(piece, images, square_size)
                 screen.blit(
-                    images[piece.get_sprite_key()],
+                    image,
                     p.Rect(col * square_size, row * square_size + info_panel_height, square_size, square_size),
                 )
 
@@ -138,11 +158,8 @@ def draw_dragged_piece(screen, game_state, dragged_square, images, mouse_pos, sq
     piece = game_state.board.get_piece_at(row, col)
     if piece is None:
         return
-    image = images[piece.get_sprite_key()]
+    image = get_dynamic_sprite(piece, images, square_size)
     screen.blit(image, p.Rect(mouse_pos[0] - square_size // 2, mouse_pos[1] - square_size // 2, square_size, square_size))
-
-
-
 
 
 def draw_endgame_text(screen, text, board_width=BOARD_WIDTH, board_height=BOARD_HEIGHT, info_panel_height=INFO_PANEL_HEIGHT):
@@ -158,10 +175,23 @@ def draw_endgame_text(screen, text, board_width=BOARD_WIDTH, board_height=BOARD_
     screen.blit(text_object, text_location.move(2, 2))
 
 
+def draw_event_warnings(screen, game_state, square_size=SQ_SIZE, info_panel_height=INFO_PANEL_HEIGHT):
+    """Draw red highlights on squares warned by an impending event."""
+    queued = game_state.event_manager.queued_event
+    if queued and getattr(queued, "warning_active", False):
+        if hasattr(queued, "_iter_warning_squares"):
+            surface = p.Surface((square_size, square_size))
+            surface.set_alpha(100)
+            surface.fill(p.Color("#B85450"))  # Red warning tint
+            for row, col in queued._iter_warning_squares():
+                screen.blit(surface, (col * square_size, row * square_size + info_panel_height))
+
+
 def draw_game_board(screen, game_state, valid_moves, selected_square, images, dragging, mouse_pos, fonts=None):
     """Render the full board area for the current frame."""
     draw_board(screen, fonts=fonts)
     draw_highlights(screen, game_state, valid_moves, selected_square)
+    draw_event_warnings(screen, game_state)
     draw_pieces(screen, game_state.board.grid, images, selected_square if dragging else ())
     draw_shield_overlays(screen, game_state.board.grid)
     if dragging and selected_square:

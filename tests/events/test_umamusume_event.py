@@ -2,10 +2,11 @@
 
 import unittest
 
-from src.constants import ARCHBISHOP_CODE, BLACK, BOARD_COLS, BOARD_ROWS, KING_CODE, KNIGHT_CODE, QUEEN_CODE, WHITE
+from src.constants import BLACK, BOARD_COLS, BOARD_ROWS, KING_CODE, KNIGHT_CODE, QUEEN_CODE, ROOK_CODE, WHITE
 from src.events import Umamusume
 from src.game.board import GameState
-from src.pieces import Archbishop, King, Queen
+from src.pieces import King, Queen
+from src.pieces.dynamic_fused import DynamicFusedPiece
 
 
 class UmamusumeEventTests(unittest.TestCase):
@@ -51,18 +52,18 @@ class UmamusumeEventTests(unittest.TestCase):
         self.assertEqual(game_state.board.get_piece_at(7, 3).get_piece_code(), KNIGHT_CODE)
         self.assertNotEqual(game_state.board.get_piece_at(7, 3).get_piece_code(), QUEEN_CODE)
 
-    def test_execute_permanently_transforms_fused_piece_to_knight(self):
+    def test_execute_transforms_dynamic_fused_piece_to_knight(self):
+        """A DynamicFusedPiece should also be transformed to a plain knight."""
         game_state = GameState()
         game_state.board.grid = [[None for _ in range(BOARD_COLS)] for _ in range(BOARD_ROWS)]
-        archbishop = Archbishop(WHITE, (4, 4))
-        game_state.board.set_piece_at(4, 4, archbishop)
+        fused = DynamicFusedPiece(WHITE, ROOK_CODE, [ROOK_CODE, KNIGHT_CODE], (4, 4))
+        game_state.board.set_piece_at(4, 4, fused)
         game_state.board.set_piece_at(7, 4, King(WHITE, (7, 4)))
         game_state.board.set_piece_at(0, 4, King(BLACK, (0, 4)))
         event = Umamusume(game_state)
 
         event.execute()
 
-        self.assertEqual(archbishop.get_piece_code(), ARCHBISHOP_CODE)
         self.assertEqual(game_state.board.get_piece_at(4, 4).get_piece_code(), KNIGHT_CODE)
 
 if __name__ == "__main__":

@@ -56,8 +56,13 @@ class MenuScreen(Screen):
         if self.new_game_rect.collidepoint(mouse_pos):
             self.next_screen = GameScreen(self.shared)
         elif self.load_game_rect.collidepoint(mouse_pos):
-            # TODO: Implement load game
-            pass
+            from ..game.save_system import load_game
+            try:
+                gs = load_game()
+                if gs is not None:
+                    self.next_screen = GameScreen(self.shared, game_state=gs)
+            except Exception as e:
+                print("Failed to load game:", e)
         elif self.options_rect.collidepoint(mouse_pos):
             from .options_screen import OptionsScreen
             self.next_screen = OptionsScreen(self.shared)

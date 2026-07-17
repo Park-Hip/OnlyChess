@@ -35,8 +35,9 @@ class MaterialScoringTests(unittest.TestCase):
         move = Move((4, 4), (4, 6), game_state.board.grid)
         game_state.make_move(move, is_real_move=True)
 
-        # Rook (5) captures Knight (3), triggering fusion into Chancellor (8).
-        self.assertEqual(game_state.get_material_advantage(), 8)
+        # Rook (5) captures Knight (3), triggering dynamic fusion.
+        # DynamicFusedPiece inherits base piece material value (Rook = 5).
+        self.assertEqual(game_state.get_material_advantage(), 5)
 
 
 if __name__ == "__main__":

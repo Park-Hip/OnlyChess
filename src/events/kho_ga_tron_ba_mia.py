@@ -4,16 +4,12 @@ import random
 
 
 from ..constants import (
-    ARCHBISHOP_CODE,
     BISHOP_CODE,
     BLACK,
     BOARD_COLS,
     BOARD_ROWS,
-    CHANCELLOR_CODE,
-    INQUISITOR_CODE,
     KNIGHT_CODE,
     ROOK_CODE,
-    WARDEN_CODE,
     WHITE,
 )
 from ..game.state_helpers import format_piece_fan, format_square
@@ -27,7 +23,13 @@ class KhoGaTronBaMia(ChessEvent):
 
     event_key = "kho_ga_tron_ba_mia"
     POISON_DURATION = 3
-    ELIGIBLE_CODES = (ROOK_CODE, KNIGHT_CODE, BISHOP_CODE, ARCHBISHOP_CODE, CHANCELLOR_CODE, WARDEN_CODE, INQUISITOR_CODE)
+    
+    def _is_eligible(self, piece):
+        if piece.get_piece_code() in (ROOK_CODE, KNIGHT_CODE, BISHOP_CODE):
+            return True
+        if getattr(piece, "has_fused", False):
+            return True
+        return False
 
     def __init__(self, game_state):
         super().__init__(game_state)
@@ -46,7 +48,7 @@ class KhoGaTronBaMia(ChessEvent):
                     continue
                 if piece.color != target_color:
                     continue
-                if piece.get_piece_code() in self.ELIGIBLE_CODES:
+                if self._is_eligible(piece):
                     pieces.append(piece)
         return pieces
 

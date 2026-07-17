@@ -3,7 +3,7 @@
 import pygame as p
 
 from ...abilities import use_ability
-from ...constants import BLACK, BOARD_HEIGHT, BOARD_WIDTH, INFO_PANEL_HEIGHT, WHITE
+from ...constants import BLACK, BOARD_HEIGHT, BOARD_WIDTH, INFO_PANEL_HEIGHT, WHITE, WIDTH, HEIGHT
 from ...game.board import GameState
 from ...game.move import Move
 from ..ability_menu import (
@@ -62,7 +62,7 @@ class GameScreen(Screen):
     Screen refactor.
     """
 
-    def __init__(self, shared):
+    def __init__(self, shared, game_state=None):
         super().__init__()
         self.shared = shared
         self.fonts = shared.fonts
@@ -70,19 +70,31 @@ class GameScreen(Screen):
         self.images = shared.images
         self.sound_player = shared.sound_player
 
-        self.game_state = GameState()
+        self.game_state = game_state if game_state is not None else GameState()
         self.valid_moves = self.game_state.get_valid_moves()
         self.message_log = MessageLog()
+        
+        if game_state is not None:
+            self.message_log.add_event(self._get_display_turn(), "Game Loaded", "highlight")
+
         self.input_state = InputState()
         self.logged_event_ids = set()
         self.show_help = False
         self.move_made = False
+        self.show_pause_menu = False
 
         (
             self.restart_button_rect,
             self.main_menu_button_rect,
             self.quit_button_rect,
         ) = self._build_game_over_button_rects()
+        
+        self.pause_resume_rect = p.Rect(0, 0, GAME_OVER_BUTTON_WIDTH * 1.5, GAME_OVER_BUTTON_HEIGHT)
+        self.pause_resume_rect.center = (WIDTH // 2, HEIGHT // 2 - 50)
+        self.pause_save_rect = p.Rect(0, 0, GAME_OVER_BUTTON_WIDTH * 1.5, GAME_OVER_BUTTON_HEIGHT)
+        self.pause_save_rect.center = (WIDTH // 2, HEIGHT // 2)
+        self.pause_main_menu_rect = p.Rect(0, 0, GAME_OVER_BUTTON_WIDTH * 1.5, GAME_OVER_BUTTON_HEIGHT)
+        self.pause_main_menu_rect.center = (WIDTH // 2, HEIGHT // 2 + 50)
 
     @staticmethod
     def _build_game_over_button_rects():
@@ -115,6 +127,8 @@ class GameScreen(Screen):
         if event.type == p.KEYDOWN:
             if event.key == p.K_h:
                 self.show_help = not self.show_help
+            elif event.key == p.K_ESCAPE:
+                self.show_pause_menu = not self.show_pause_menu
         elif event.type == p.MOUSEBUTTONDOWN:
             if self._handle_mouse_down(p.mouse.get_pos(), event.button):
                 return
@@ -134,6 +148,10 @@ class GameScreen(Screen):
 
     def _handle_mouse_down(self, mouse_pos, button):
         """Route a mouse-down click. Returns True if fully consumed here."""
+        if self.show_pause_menu:
+            self._handle_pause_menu_click(mouse_pos)
+            return True
+
         if self.show_help:
             if get_help_modal_close_rect().collidepoint(mouse_pos):
                 self.show_help = False
@@ -163,6 +181,19 @@ class GameScreen(Screen):
             self.next_screen = MenuScreen(self.shared)
         elif self.quit_button_rect.collidepoint(mouse_pos):
             self.should_quit = True
+
+    def _handle_pause_menu_click(self, mouse_pos):
+        """Resolve a click on the pause menu buttons."""
+        if self.pause_resume_rect.collidepoint(mouse_pos):
+            self.show_pause_menu = False
+        elif self.pause_save_rect.collidepoint(mouse_pos):
+            from ...game.save_system import save_game
+            save_game(self.game_state)
+            self.message_log.add_event(self._get_display_turn(), "Game Saved to save_game.json", "highlight")
+            self.show_pause_menu = False
+        elif self.pause_main_menu_rect.collidepoint(mouse_pos):
+            from .menu_screen import MenuScreen
+            self.next_screen = MenuScreen(self.shared)
 
     # ---- move and ability resolution ----
 
@@ -268,7 +299,7 @@ class GameScreen(Screen):
             self.valid_moves = self.game_state.get_valid_moves()
             self.move_made = False
 
-        if not self.show_help and self.input_state.promotion_move_pending is None:
+        if not self.show_help and not self.show_pause_menu and self.input_state.promotion_move_pending is None:
             self.game_state.update_timer(dt)
 
         self._update_cursor(p.mouse.get_pos())
@@ -412,6 +443,34 @@ class GameScreen(Screen):
 
         if self.show_help:
             draw_help_overlay(surface, self.fonts)
+            
+        if self.show_pause_menu:
+            self._draw_pause_menu(surface)
+
+    def _draw_pause_menu(self, surface):
+        """Draw the pause menu overlay."""
+        overlay = p.Surface((WIDTH, HEIGHT), p.SRCALPHA)
+        overlay.fill((0, 0, 0, 180))
+        surface.blit(overlay, (0, 0))
+        
+        button_font = self.fonts["normal"]
+        title_font = self.fonts["title"]
+        
+        title_surface = title_font.render("PAUSED", True, ACCENT_GOLD)
+        title_rect = title_surface.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 120))
+        surface.blit(title_surface, title_rect)
+        
+        buttons = (
+            (self.pause_resume_rect, "Resume"),
+            (self.pause_save_rect, "Save Game"),
+            (self.pause_main_menu_rect, "Main Menu"),
+        )
+        for rect, label in buttons:
+            p.draw.rect(surface, CARD_BG, rect, border_radius=GAME_OVER_BUTTON_BORDER_RADIUS)
+            p.draw.rect(surface, ACCENT_GOLD, rect, width=GAME_OVER_BUTTON_BORDER_WIDTH, border_radius=GAME_OVER_BUTTON_BORDER_RADIUS)
+            text_surface = button_font.render(label, True, TEXT_PRIMARY)
+            text_rect = text_surface.get_rect(center=rect.center)
+            surface.blit(text_surface, text_rect)
 
     def _draw_game_over_buttons(self, surface):
         """Draw the Restart / Main Menu / Quit buttons below the endgame text."""

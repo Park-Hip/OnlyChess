@@ -5,7 +5,9 @@ import unittest
 from src.abilities import get_abilities_for_piece, get_ability, get_registered_ability_keys
 from src.constants import BOARD_COLS, BOARD_ROWS, WHITE
 from src.game.board import GameState
-from src.pieces import Archbishop, King, Knight
+from src.pieces import King, Knight
+from src.pieces.dynamic_fused import DynamicFusedPiece
+from src.constants import BISHOP_CODE, KNIGHT_CODE
 
 
 class AbilityRegistryTests(unittest.TestCase):
@@ -24,8 +26,8 @@ class AbilityRegistryTests(unittest.TestCase):
         self.assertEqual(get_ability("pawn_sprint").ap_cost, 1)
 
     def test_fused_piece_gets_component_abilities(self):
-        archbishop = Archbishop(WHITE, (4, 4))
-        ability_keys = [ability.ability_key for ability in get_abilities_for_piece(archbishop)]
+        fused = DynamicFusedPiece(WHITE, KNIGHT_CODE, [KNIGHT_CODE, BISHOP_CODE], (4, 4))
+        ability_keys = [ability.ability_key for ability in get_abilities_for_piece(fused)]
 
         self.assertIn("knight_swap", ability_keys)
         self.assertIn("bishop_snipe", ability_keys)

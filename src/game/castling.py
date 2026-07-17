@@ -78,6 +78,6 @@ def update_castle_rights_for_move(castle_rights, move):
 
 def get_piece_moves(piece, game_state, include_castle=True):
     """Return moves while keeping castling control local to king logic."""
-    if piece.get_piece_code() == KING_CODE:
+    if piece.get_piece_code() == KING_CODE and hasattr(piece, "get_castle_moves"):
         return piece.get_possible_moves(game_state, include_castle=include_castle)
     return piece.get_possible_moves(game_state)

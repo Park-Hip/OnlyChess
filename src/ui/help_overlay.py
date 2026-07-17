@@ -73,18 +73,20 @@ def _draw_fusion_column(screen, font, small_font, modal_rect):
     col_x = modal_rect.x + 25
     screen.blit(font.render("Fusions", True, TEXT_PRIMARY), (col_x, modal_rect.y + 70))
 
-    fusions = [
-        ("Knight + Bishop", "Archbishop", "Moves as Knight or Bishop"),
-        ("Rook + Knight", "Chancellor", "Moves as Rook or Knight"),
-        ("Rook + Bishop", "Warden", "+ max 3 sq. diagonal"),
-        ("Bishop + Rook", "Inquisitor", "+ max 3 sq. orthogonal"),
+    info_lines = [
+        "Any piece capturing another piece",
+        "gains the captured piece's moves.",
+        "",
+        "Fusion is unlimited — a piece can",
+        "absorb multiple movement types.",
+        "",
+        "Fused pieces show +CODE text",
+        "(e.g. +N+B) on their sprite.",
     ]
     y = modal_rect.y + 100
-    for pair, result, desc in fusions:
-        screen.blit(small_font.render(pair, True, TEXT_PRIMARY), (col_x, y))
-        screen.blit(small_font.render("= " + result, True, ACCENT_GOLD), (col_x + 10, y + 20))
-        screen.blit(small_font.render(desc, True, TEXT_SECONDARY), (col_x + 10, y + 40))
-        y += 65
+    for line in info_lines:
+        screen.blit(small_font.render(line, True, TEXT_PRIMARY), (col_x, y))
+        y += 22
 
 
 def _draw_ability_column(screen, font, small_font, modal_rect):

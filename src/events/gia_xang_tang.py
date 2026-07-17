@@ -1,7 +1,7 @@
 """Gia Xang Tang event implementation."""
 
 
-from ..constants import BOARD_COLS, BOARD_ROWS, CHANCELLOR_CODE, KNIGHT_CODE, ROOK_CODE, WARDEN_CODE
+from ..constants import BOARD_COLS, BOARD_ROWS, KNIGHT_CODE, ROOK_CODE
 from ..pieces import create_piece
 from .base import ChessEvent
 from .registry import register_event
@@ -25,11 +25,17 @@ class GiaXangTang(ChessEvent):
         for row in range(BOARD_ROWS):
             for col in range(BOARD_COLS):
                 piece = self.gs.board.get_piece_at(row, col)
-                if piece and piece.get_piece_code() in (ROOK_CODE, CHANCELLOR_CODE, WARDEN_CODE):
-                    new_knight = create_piece(KNIGHT_CODE, piece.color, (row, col))
-                    new_knight.has_moved = piece.has_moved
-                    self.gs.board.replace_piece_at(row, col, new_knight)
-                    transformed = True
+                if piece:
+                    # Check if the piece is a rook or has rook components
+                    has_rook = piece.get_piece_code() == ROOK_CODE
+                    if not has_rook and getattr(piece, "has_fused", False):
+                        has_rook = ROOK_CODE in getattr(piece, "fusion_components", [])
+                        
+                    if has_rook:
+                        new_knight = create_piece(KNIGHT_CODE, piece.color, (row, col))
+                        new_knight.has_moved = piece.has_moved
+                        self.gs.board.replace_piece_at(row, col, new_knight)
+                        transformed = True
                     
         if transformed:
             self.execution_messages.append("(All) R=N")

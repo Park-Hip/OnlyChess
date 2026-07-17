@@ -32,10 +32,9 @@ Players can fuse pieces through combat. When a piece captures an enemy piece, th
 
 | Capturing Piece | Captured Piece | Result | Description |
 |-----------------|----------------|--------|-------------|
-| Knight | Bishop | **Archbishop** | Moves like both a Knight and a Bishop. Extremely deadly in closed positions. |
-| Rook | Knight | **Chancellor** | Moves like both a Rook and a Knight. Excellent for mating nets. |
-| Rook | Bishop | **Warden** | Heavy Rook. Moves orthogonally without limit, plus diagonally up to 3 squares. |
-| Bishop | Rook | **Inquisitor** | Heavy Bishop. Moves diagonally without limit, plus orthogonally up to 3 squares. |
+| Any Piece | Any Enemy Piece (Except King) | **DynamicFusedPiece** | Absorbs the movement capabilities of the captured piece. |
+
+*Note: The new Dynamic Fusion system allows pieces to continuously absorb enemy pieces. There are no hardcoded combinations.*
 
 ### Fused Piece Rules
 
@@ -139,13 +138,13 @@ To break the predictability of standard chess, "Global Events" occur periodicall
 
 **Effect:**
 - All pieces on the board **except Kings** are permanently transformed into Knights.
-- This includes fused pieces (Archbishop, Chancellor, etc.).
+- This includes fused pieces.
 - Transformed pieces lose access to their original abilities and fused movement. They move only as standard Knights.
 
 **Duration:** **Permanent** for the remainder of the game. Pieces do not revert.
 
 **Consequences:**
-- Fused pieces (Archbishop, Chancellor) are **permanently lost** — they become standard Knights and never return to their fused form. Both original components are effectively gone.
+- Fused pieces are **permanently lost** — they become standard Knights and never return to their fused form. All original components are effectively gone.
 - The board becomes an all-Knight army for both sides, fundamentally changing endgame strategy.
 - Players lose access to all non-Knight abilities (Snipe, Shield, Sprint, Swap) for the rest of the game, unless a future event (e.g., Comeout) reintroduces a piece with ability access. Existing AP remains and can be used if ability-eligible pieces later appear.
 
@@ -158,7 +157,7 @@ To break the predictability of standard chess, "Global Events" occur periodicall
 
 **Effect:**
 - All Rooks on the board are permanently transformed into Knights.
-- **Chancellors (Rook + Knight fused):** Become standard Knights permanently. The Chancellor is lost forever — no reversion.
+- **Fused Pieces:** Become standard Knights permanently. The fused state is lost forever — no reversion.
 - Bishops, Queens, and other non-Rook pieces are unaffected.
 
 **Duration:** Permanent for the remainder of the game.
@@ -259,8 +258,7 @@ To break the predictability of standard chess, "Global Events" occur periodicall
 - **Rook (poisoned):** Can move 1 square orthogonally (up, down, left, right).
 - **Bishop (poisoned):** Can move 1 square diagonally.
 - **Knight (poisoned):** **Cannot move at all.** The Knight's L-shaped jump requires 2 squares of movement, which is impossible. The piece is effectively paralyzed for 3 turns.
-- **Archbishop (poisoned):** Moves like a poisoned Bishop only (1 square diagonally). The Knight component is non-functional.
-- **Chancellor (poisoned):** Moves like a poisoned Rook only (1 square orthogonally). The Knight component is non-functional.
+- **DynamicFusedPiece (poisoned):** Moves like a poisoned piece of its primary component only (1 square). Extra movement capabilities are non-functional.
 - **Queen:** Cannot be selected (only Rook/Knight/Bishop are eligible).
 
 **Duration:** 3 turns per player. Each player tracks their own poisoned piece independently. After 3 of their own moves, the poison wears off.

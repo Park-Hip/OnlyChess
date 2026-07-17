@@ -34,12 +34,12 @@ See [`mode.md`](mode.md) for the full advanced-mode design document.
 
 ### Fusion Pairs
 
+In the new **Dynamic Fusion** system, there are no hardcoded combinations.
+When a piece captures an enemy piece, it dynamically absorbs its movement capabilities.
+
 | Capturing Piece | Captured Piece | Result | Movement |
 |---|---|---|---|
-| Knight | Bishop | **Archbishop** | Knight + Bishop |
-| Rook | Knight | **Chancellor** | Rook + Knight |
-| Rook | Bishop | **Warden** | Unlimited orthogonal + diagonal up to 3 |
-| Bishop | Rook | **Inquisitor** | Unlimited diagonal + orthogonal up to 3 |
+| Any Piece | Any Enemy Piece | **DynamicFusedPiece** | Gains the combined movement of all pieces it has captured. Fusion is unlimited. |
 
 ### Action Points & Abilities
 
