@@ -38,3 +38,21 @@ class StatusDef:
 class StatusInstance:
     definition: StatusDef
     remaining: int | None
+
+
+@dataclass(frozen=True)
+class ResourceDef:
+    id: str
+    starting: int
+    maximum: int
+    gain: dict
+
+
+@dataclass(frozen=True)
+class AbilityDef:
+    id: str
+    owner: dict
+    cost: dict
+    target: object
+    effect: object
+    when: dict

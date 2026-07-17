@@ -415,9 +415,10 @@ two-phase runner, bindings. Ten events.
 **Gate G4 goes live here** (§7): the probe fixtures. By Wave 5 the `api` is complete enough that "a
 code mod adds HP as a verb, a data mod uses it" either works or names the missing capability.
 
-### Wave 6 — Cutover and delete
+### Wave 6 — Cutover and delete — complete
 
-`main.py` → the new engine. Delete the old core. Then the deletion list from E1 §4.
+`main.py` now starts the loader-backed engine session. The old core and implementation-specific
+tests are deleted; runtime interaction tests cover promotion, abilities, fusion, and event scheduling.
 
 **On the 182 tests: they are restructured, not ported.** Most of them test that a rook slides in
 straight lines — which is now `mods/base-chess/pieces/rook.yaml`, and the test splits into "the

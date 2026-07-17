@@ -553,31 +553,22 @@ class RealBaseModsTests(unittest.TestCase):
         self.assertEqual(self.result.registries.content["piece"].get("base:warden").mod_id, "base:fusion")
         self.assertEqual(self.result.registries.content["status"].get("base:poison").mod_id, "base:events")
 
-    def test_base_chess_is_disabled_whole_while_it_owes_code(self):
-        # base:chess declares `code: true` because it will register castle and enpassant at
-        # Wave 4. The code/ directory does not exist yet, and the loader is right to say so
-        # rather than let a mod quietly not do what its manifest claims.
-        #
-        # The consequence is the failure policy working: base:chess is disabled *whole*, so
-        # not one of its ten pieces registers. Half-loading it would be worse than refusing
+    def test_base_chess_loads_through_its_declared_code_entry(self):
+        # Wave 4 supplies the promised package; no base-game bypass exists.
+        # Its content and opaque verbs arrive through the public loader path.
         # — a chess mod with no king looks fine until someone tries to play.
         #
         # When Wave 4 writes base:chess/code/, this whole test goes; it is a description of
         # a temporary state, not a requirement.
-        self.assertEqual(len(self.result.errors), 1)
-        error = self.result.errors[0]
-        self.assertEqual(error.mod_id, "base:chess")
-        self.assertIn("no code/__init__.py", error.problem)
-
-        self.assertNotIn("base:chess", self.result.mods)
-        for entry in self.result.registries.content["piece"]:
-            self.assertNotEqual(entry.mod_id, "base:chess")
-        self.assertEqual(len(self.result.registries.content["resource"]), 0)
+        self.assertEqual(self.result.errors, [])
+        self.assertIn("base:chess", self.result.mods)
+        self.assertEqual(self.result.registries.verbs["move_type"].ids(), ("base:castle", "base:enpassant"))
+        self.assertEqual(self.result.registries.content["resource"].get("base:ap").mod_id, "base:chess")
 
     def test_the_mods_that_do_not_owe_code_load_their_content(self):
         populated = {name for name, reg in self.result.registries.content.items() if len(reg)}
-        self.assertEqual(populated, {"board", "event", "event_pool", "fusion", "game_mode", "piece", "status"})
-        self.assertEqual(self.result.mods, ("base:events", "base:fusion", "skeleton:demo"))
+        self.assertEqual(populated, {"ability", "board", "event", "event_pool", "fusion", "game_mode", "piece", "resource", "status"})
+        self.assertEqual(self.result.mods, ("base:chess", "base:events", "base:fusion", "skeleton:demo"))
 
 
 if __name__ == "__main__":

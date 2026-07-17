@@ -5,6 +5,7 @@ type: piece
 id: base:king
 name: King
 material: 0
+properties: { royal: true }
 
 moves:
   - { type: slide, dirs: all, limit: 1 }

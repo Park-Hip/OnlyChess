@@ -34,7 +34,9 @@ def _require_text(parsed: ParsedFile, field: str) -> list[ContentError]:
 
 
 def _validate_piece(parsed: ParsedFile) -> list[ContentError]:
-    errors = _require_text(parsed, "sprite")
+    errors = _require_text(parsed, "id")
+    if "sprite" in parsed.tree:
+        errors.extend(_require_text(parsed, "sprite"))
     moves = parsed.tree.get("moves")
     if not isinstance(moves, list):
         errors.append(parsed.error("must be a list", field=("moves",), expected="`moves: []` for an inert preview piece"))
@@ -82,8 +84,12 @@ def _validate_board(parsed: ParsedFile) -> list[ContentError]:
         if row.get("side") not in side_ids:
             errors.append(parsed.error("does not name a declared side", field=path + ("side",), expected="one of this board's side ids"))
         pieces = row.get("pieces")
-        if not (isinstance(pieces, list) and len(pieces) == columns and all(isinstance(piece, str) for piece in pieces)):
-            errors.append(parsed.error("must name one piece id for every column", field=path + ("pieces",), expected=f"a list of {columns} piece ids"))
+        fill = row.get("fill")
+        if pieces is not None:
+            if not (isinstance(pieces, list) and len(pieces) == columns and all(isinstance(piece, str) for piece in pieces)):
+                errors.append(parsed.error("must name one piece id for every column", field=path + ("pieces",), expected=f"a list of {columns} piece ids"))
+        elif not isinstance(fill, str):
+            errors.append(parsed.error("must use `pieces` or `fill`", field=path, expected=f"a list of {columns} piece ids or one fill id"))
     return errors
 
 
@@ -95,8 +101,35 @@ def _validate_game_mode(parsed: ParsedFile) -> list[ContentError]:
     return errors
 
 
+def _validate_fusion(parsed: ParsedFile) -> list[ContentError]:
+    rules = parsed.tree.get("rules")
+    if not isinstance(rules, list):
+        return [parsed.error("must be a list", field=("rules",), expected="ordered fusion rules")]
+    return [] if parsed.tree.get("fuses_on") == "displacing_captures" else [parsed.error("must declare the supported capture trigger", field=("fuses_on",), expected="`displacing_captures`")]
+
+
+def _validate_event_pool(parsed: ParsedFile) -> list[ContentError]:
+    if not isinstance(parsed.tree.get("members"), list) or not parsed.tree["members"]:
+        return [parsed.error("must name at least one event", field=("members",), expected="a list of event ids")]
+    return []
+
+
+def _validate_event(parsed: ParsedFile) -> list[ContentError]:
+    execute = parsed.tree.get("execute")
+    if not isinstance(execute, list):
+        return [parsed.error("must be a list of select/effect steps", field=("execute",), expected="`execute: []`")]
+    errors = []
+    for index, step in enumerate(execute):
+        if not isinstance(step, dict) or not isinstance(step.get("select"), dict) or not isinstance(step.get("effect"), dict):
+            errors.append(parsed.error("must contain `select` and `effect` maps", field=("execute", index), expected="a selector followed by an effect"))
+    return errors
+
+
 _VALIDATORS: dict[str, Any] = {
     "piece": _validate_piece,
     "board": _validate_board,
     "game_mode": _validate_game_mode,
+    "fusion": _validate_fusion,
+    "event_pool": _validate_event_pool,
+    "event": _validate_event,
 }

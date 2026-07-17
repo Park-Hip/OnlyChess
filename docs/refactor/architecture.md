@@ -37,8 +37,8 @@ seam; later stages must not be silently faked. See [wave-1-loader.md](wave-1-loa
 - Conditions are pure predicates; computation belongs in effects or code-mod verbs.
 - Error messages identify the mod, file, field, and expected correction.
 - `simulate` calculates legality without permanent effects; `apply` records actions and can undo.
-- Wave 3's engine is intentionally separate from `main.py`; the legacy runtime is an oracle until
-  the mod-driven path can express the whole base game.
+- `main.py` creates an engine-backed session through the public loader; it does not import content
+  rules or a compatibility runtime.
 
 ## Which document answers which question?
 

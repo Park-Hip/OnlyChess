@@ -100,6 +100,12 @@ class G1DogfoodingTests(unittest.TestCase):
             without_mod = load(mods)
             self.assertNotIn("verbmod:special", without_mod.registries.verbs["move_type"])
 
+    def test_disabling_base_chess_removes_its_castle_verb(self):
+        with_base = load(REPO_ROOT / "mods", enabled_mod_ids=("base:chess",))
+        without_base = load(REPO_ROOT / "mods", enabled_mod_ids=("skeleton:demo",))
+        self.assertIn("base:castle", with_base.registries.verbs["move_type"])
+        self.assertNotIn("base:castle", without_base.registries.verbs["move_type"])
+
 
 class G2CoreNamesNoContentTests(unittest.TestCase):
     """**No content ID literal in core.** *Core may never name specific content.*
@@ -189,7 +195,7 @@ class G3VocabularyIsEarnedTests(unittest.TestCase):
     #: Every verb the base game registers, and what earned it. Empty is the correct value
     #: today: `base:chess` declares `code: true` and will register `castle` and `enpassant`
     #: at Wave 4, but has not written them yet. The first entries land with that wave.
-    GOLDEN: tuple[str, ...] = ()
+    GOLDEN: tuple[str, ...] = ("move_type:base:castle", "move_type:base:enpassant")
 
     def test_the_registered_vocabulary_matches_the_golden_list(self):
         result = load(REPO_ROOT / "mods")

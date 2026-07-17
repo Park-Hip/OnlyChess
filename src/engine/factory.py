@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from .board import Board, Side
-from .piece import Piece, PieceDef, StatusDef
+from .piece import AbilityDef, Piece, PieceDef, ResourceDef, StatusDef
 from .state import EngineState
 
 
@@ -12,18 +12,41 @@ def build_state(registries, mode_id: str) -> EngineState:
     mode = registries.content["game_mode"].get(mode_id).value.tree
     board_data = registries.content["board"].get(mode["board"]).value.tree
     sides = {
-        item["id"]: Side(item["id"], -1 if item["forward"] == "up" else 1, item.get("moves_first", False))
+        item["id"]: Side(
+            item["id"],
+            -1 if item["forward"] == "up" else 1,
+            item.get("moves_first", False),
+            item.get("promotes_at"),
+        )
         for item in board_data["sides"]
     }
     board = Board(*board_data["size"], sides)
     definitions = {}
     for entry in registries.content["piece"]:
         data = entry.value.tree
-        definitions[entry.id] = PieceDef(entry.id, tuple(data.get("moves", [])), tuple(data.get("components", [entry.id])), dict(data.get("properties", {})))
+        properties = dict(data.get("properties", {}))
+        if "on" in data:
+            properties["on"] = tuple(data["on"])
+        definitions[entry.id] = PieceDef(entry.id, tuple(data.get("moves", [])), tuple(data.get("components", [entry.id])), properties)
     statuses = {}
     for entry in registries.content["status"]:
         data = entry.value.tree
         statuses[entry.id] = StatusDef(entry.id, data.get("expiry"), dict(data.get("modifies", {})))
+    resources = {}
+    for entry in registries.content["resource"]:
+        data = entry.value.tree
+        resources[entry.id] = ResourceDef(entry.id, data["starting"], data["max"], dict(data["gain"]))
+    abilities = {}
+    for entry in registries.content["ability"]:
+        data = entry.value.tree
+        abilities[entry.id] = AbilityDef(
+            entry.id,
+            dict(data["owner"]),
+            dict(data.get("cost", {})),
+            data["target"],
+            data["effect"],
+            dict(data.get("when", {})),
+        )
     uid = 0
     for row in board_data["rows"]:
         pieces = row.get("pieces") or [row["fill"]] * board.columns
@@ -31,4 +54,19 @@ def build_state(registries, mode_id: str) -> EngineState:
             uid += 1
             board.place(Piece(uid, definitions[piece_id], row["side"], (row["row"], col)), (row["row"], col))
     first = next(side.id for side in sides.values() if side.moves_first)
-    return EngineState(board=board, status_defs=statuses, current_side=first)
+    return EngineState(
+        board=board,
+        status_defs=statuses,
+        resource_defs=resources,
+        ability_defs=abilities,
+        resources={side: {resource.id: resource.starting for resource in resources.values()} for side in sides},
+        move_counts={side: 0 for side in sides},
+        fusion_defs=tuple(entry.value.tree for entry in registries.content["fusion"]),
+        event_defs={entry.id: entry.value.tree for entry in registries.content["event"]},
+        event_pools={entry.id: entry.value.tree for entry in registries.content["event_pool"]},
+        pool_turns={entry.id: 0 for entry in registries.content["event_pool"]},
+        active_pools=tuple(mode.get("pools", ())),
+        piece_defs=definitions,
+        move_types=registries.verbs["move_type"],
+        current_side=first,
+    )

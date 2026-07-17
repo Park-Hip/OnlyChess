@@ -10,3 +10,5 @@ class Move:
     end: tuple[int, int]
     actions: list[object]
     captured: object | None = None
+    choices: tuple[str, ...] = ()
+    selected_choice: str | None = None

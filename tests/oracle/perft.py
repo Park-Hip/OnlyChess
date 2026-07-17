@@ -19,7 +19,7 @@ So perft tests three things at once, none of which old-vs-old can:
    specific count mismatch, rather than as a vague sense that chess is hard.
 """
 
-from .position import STARTING_FEN
+STARTING_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
 # name -> (fen, {depth: nodes}). The standard suite; each position exists to
 # break a specific class of engine, which is why they are worth more than the

@@ -10,7 +10,7 @@
 | data mod | A mod made from declarative content using vocabulary already registered by the engine/code mods. |
 | effect | A verb that chooses and emits actions to change game state. |
 | engine | The generic core in `src/`: geometry, pipelines, loader, registries, actions, rendering loop, and validation. |
-| legacy runtime | The old hardcoded game. It remains available temporarily as an oracle, not as the extension model. |
+| retired legacy runtime | The removed hardcoded game; use the engine/mod path instead. |
 | link | The loader stage that resolves references between already validated, registered content. |
 | mod | A package under `mods/` with a manifest, content files, and optionally trusted code. |
 | oracle | The differential tests in `tests/oracle/` that compare the replacement engine against legacy chess behaviour. |

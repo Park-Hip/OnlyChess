@@ -5,6 +5,8 @@ from __future__ import annotations
 from .actions import Relocate, Remove
 from .move import Move
 from .status import capturable, effective_moves
+from .verbs import MoveContext
+from src.modding.registries import qualify
 
 
 _DIRECTIONS = {
@@ -22,7 +24,7 @@ def legal_moves(state):
                 safe = not threatened(state, piece.side)
                 _undo(move, state)
                 if safe:
-                    moves.append(move)
+                    moves.append(_attach_choices(state, move))
     return moves
 
 
@@ -33,6 +35,8 @@ def pseudo_moves(state, piece, *, threat=False):
             moves.extend(_slides(state, piece, part, threat))
         elif part.get("type") == "leap":
             moves.extend(_leaps(state, piece, part, threat))
+        else:
+            moves.extend(_registered_moves(state, piece, part, threat))
     return moves
 
 
@@ -62,16 +66,16 @@ def _slides(state, piece, part, threat):
     for dr, dc in _directions(part, state.board.sides[piece.side]):
         for distance in range(1, limit + 1):
             # A conditional multi-square move (the pawn's opening move) names
-            # its destination, not every square on the way there.
-            if part.get("when", {}).get("has_moved") is False and distance != limit:
-                continue
+            # its destination, not every square on the way there. Intervening
+            # squares are still inspected, so a piece cannot be jumped over.
+            destination_only = part.get("when", {}).get("has_moved") is False and distance != limit
             target = (piece.pos[0] + dr * distance, piece.pos[1] + dc * distance)
             if not state.board.inside(target): break
             occupant = state.board.at(target)
             if threat and capture != False:
                 out.append(_move(piece, target, None))
             if occupant is None:
-                if not threat and capture != "only" and _when(piece, part): out.append(_move(piece, target, None))
+                if not threat and not destination_only and capture != "only" and _when(piece, part): out.append(_move(piece, target, None))
                 continue
             if occupant.side != piece.side and capturable(occupant) and capture != False and _when(piece, part):
                 if not threat: out.append(_move(piece, target, occupant))
@@ -92,6 +96,20 @@ def _leaps(state, piece, part, threat):
     return out
 
 
+def _registered_moves(state, piece, part, threat):
+    """Dispatch an opaque data verb registered by the piece's owning namespace."""
+    if state.move_types is None:
+        return []
+    verb_id = qualify(part["type"], piece.definition.id)
+    entry = state.move_types.get(verb_id)
+    if entry is None:
+        raise ValueError(f"unknown move type '{part['type']}' for '{piece.definition.id}'")
+    move_type = entry.value
+    if threat and not move_type.threatens:
+        return []
+    return list(move_type.generate(MoveContext(state), piece, part, threat))
+
+
 def _when(piece, part):
     return not (part.get("when", {}).get("has_moved") is False and piece.has_moved)
 
@@ -99,6 +117,23 @@ def _when(piece, part):
 def _move(piece, target, captured):
     actions = ([Remove(captured)] if captured is not None else []) + [Relocate(piece, target)]
     return Move(piece, piece.pos, target, actions, captured)
+
+
+def _attach_choices(state, move):
+    """Expose data-declared move-completion choices before applying the move."""
+    side = state.board.sides[move.piece.side]
+    for reaction in move.piece.definition.properties.get("on", ()):
+        if reaction.get("trigger") != "moved":
+            continue
+        if reaction.get("when", {}).get("at_promotion_rank") is not True:
+            continue
+        if side.promotes_at != move.end[0]:
+            continue
+        effect = reaction.get("effect", {})
+        if effect.get("type") == "transform" and effect.get("choose") == "mover":
+            options = tuple(qualify(option, move.piece.definition.id) for option in effect["into"])
+            move.choices = options
+    return move
 
 
 def _apply(move, state):

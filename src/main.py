@@ -7,14 +7,10 @@ currently active, swapping screens or exiting when a screen requests it.
 
 import pygame as p
 
-from .constants import HEIGHT, MAX_FPS, WIDTH, get_resource_path
-from .ui.assets import load_images
-from .ui.audio import SoundPlayer, load_sounds
+from .constants import HEIGHT, MAX_FPS, WIDTH
 from .ui.screens.menu_screen import MenuScreen
 from .ui.screens.shared_resources import SharedResources
 from .ui.ui_constants import PANEL_BG
-
-MENU_BACKGROUND_PATH = "images/6h50_2.png"
 
 
 def _load_fonts():
@@ -26,26 +22,6 @@ def _load_fonts():
     }
 
 
-def _load_menu_background(image_loader=None, scaler=None):
-    """Load and scale the menu screen background to fill the window."""
-    if image_loader is None:
-        image_loader = p.image.load
-    if scaler is None:
-        scaler = p.transform.smoothscale
-    background = image_loader(get_resource_path(MENU_BACKGROUND_PATH)).convert()
-    return scaler(background, (WIDTH, HEIGHT))
-
-
-def _load_sound_player():
-    """Initialize the audio mixer and load sound effects, if audio is available."""
-    try:
-        p.mixer.init()
-    except p.error as e:
-        print(f"Warning: audio disabled ({e}).")
-        return SoundPlayer()
-    return SoundPlayer(load_sounds())
-
-
 def main():
     """Run the main Pygame application loop, swapping between screens."""
     p.init()
@@ -54,14 +30,12 @@ def main():
     clock = p.time.Clock()
     screen.fill(PANEL_BG)
 
-    images = load_images(image_loader=p.image.load, scaler=p.transform.scale)
-    menu_background = _load_menu_background()
-    sound_player = _load_sound_player()
+    menu_background = p.Surface((WIDTH, HEIGHT))
+    menu_background.fill(PANEL_BG)
     shared = SharedResources(
-        images=images,
+        images={},
         fonts=_load_fonts(),
         menu_background=menu_background,
-        sound_player=sound_player,
     )
 
     current_screen = MenuScreen(shared)

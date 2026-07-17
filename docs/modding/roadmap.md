@@ -44,6 +44,7 @@ refactor has a target instead of a direction. It does — D1 wrote the whole bas
 | **Wave 1** — the seam | ✅ **done, 2026-07-17.** `src/modding/` — api, registries, parse, errors, loader (stages 1/3/4/7/9). **S4's gates G1–G3 landed with it.** +137 tests (223 → 361). Findings → below |
 | **Wave 2** — walking skeleton | ✅ **done, 2026-07-17.** `mods/skeleton/` validates, links, loads its own sprite, and renders a piece. 370 tests green (3 skipped). |
 | **Wave 3** — engine core | ✅ **done, 2026-07-17.** Isolated data-defined move generation, reversible actions/turns/statuses, and the first old-vs-new oracle gate. See [`../refactor/wave-3-engine-core.md`](../refactor/wave-3-engine-core.md). |
+| **Wave 4** — `base:chess` | ✅ **done, 2026-07-17.** Public castle/en-passant verbs, promotion choice, base resources/abilities, and standard-chess perft through depth 2. See [`../refactor/wave-4-base-chess.md`](../refactor/wave-4-base-chess.md). |
 
 Decisions closed: D1–D10. D8 (versioning) is settled by `mod-package.md`'s Versioning section, and
 Gate 3 completed it — a mod now has an `id`, which is what MAJOR and dependency keys were implicitly

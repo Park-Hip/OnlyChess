@@ -3,12 +3,14 @@
 import pygame as p
 
 from ...constants import HEIGHT, WIDTH
+from ...runtime import EngineSession
 from ..ui_constants import ACCENT_GOLD, CARD_BG, TEXT_PRIMARY
 from .base import Screen
-from .game_screen import GameScreen
+from .engine_game_screen import EngineGameScreen
 
 GAME_TITLE = "OnlyChess"
 START_BUTTON_LABEL = "Start"
+ADVANCED_BUTTON_LABEL = "Advanced"
 QUIT_BUTTON_LABEL = "Quit"
 
 BUTTON_WIDTH = 200
@@ -32,7 +34,8 @@ class MenuScreen(Screen):
         super().__init__()
         self.shared = shared
         self.start_button_rect = self._button_rect(center_y=BUTTONS_CENTER_Y)
-        self.quit_button_rect = self._button_rect(center_y=BUTTONS_CENTER_Y + BUTTON_HEIGHT + BUTTON_SPACING)
+        self.advanced_button_rect = self._button_rect(center_y=BUTTONS_CENTER_Y + BUTTON_HEIGHT + BUTTON_SPACING)
+        self.quit_button_rect = self._button_rect(center_y=BUTTONS_CENTER_Y + 2 * (BUTTON_HEIGHT + BUTTON_SPACING))
 
     @staticmethod
     def _button_rect(center_y):
@@ -46,7 +49,11 @@ class MenuScreen(Screen):
             return
         mouse_pos = p.mouse.get_pos()
         if self.start_button_rect.collidepoint(mouse_pos):
-            self.next_screen = GameScreen(self.shared)
+            self.next_screen = EngineGameScreen(
+                self.shared, session=EngineSession(enabled_mod_ids=("base:chess",), mode_id="base:vanilla")
+            )
+        elif self.advanced_button_rect.collidepoint(mouse_pos):
+            self.next_screen = EngineGameScreen(self.shared)
         elif self.quit_button_rect.collidepoint(mouse_pos):
             self.should_quit = True
 
@@ -61,6 +68,7 @@ class MenuScreen(Screen):
 
         button_font = self.shared.fonts["normal"]
         self._draw_button(surface, button_font, self.start_button_rect, START_BUTTON_LABEL)
+        self._draw_button(surface, button_font, self.advanced_button_rect, ADVANCED_BUTTON_LABEL)
         self._draw_button(surface, button_font, self.quit_button_rect, QUIT_BUTTON_LABEL)
 
     @staticmethod

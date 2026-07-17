@@ -6,6 +6,7 @@ import unittest
 from src.engine.factory import build_state
 from src.engine.pipeline import Pipeline
 from src.engine.actions import Replace, SetStatus
+from src.engine.actions import AdjustResource
 from src.engine.piece import Piece, StatusDef, StatusInstance
 from src.modding.loader import load
 

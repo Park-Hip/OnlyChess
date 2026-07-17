@@ -53,7 +53,8 @@ def link_content(registries: Registries) -> tuple[LinkedContent, list[ContentErr
         placements: list[Placement] = []
         valid = True
         for row_index, row in enumerate(parsed.tree["rows"]):
-            for col, piece_id in enumerate(row["pieces"]):
+            pieces = row.get("pieces") or [row["fill"]] * parsed.tree["size"][1]
+            for col, piece_id in enumerate(pieces):
                 if registries.content["piece"].get(piece_id) is None:
                     errors.append(parsed.error(f"piece '{piece_id}' is not registered", field=("rows", row_index, "pieces", col), expected="a piece id supplied by an enabled mod"))
                     valid = False
@@ -72,4 +73,26 @@ def link_content(registries: Registries) -> tuple[LinkedContent, list[ContentErr
             errors.append(parsed.error(f"board '{board_id}' is not registered", field=("board",), expected="a board id supplied by an enabled mod"))
         else:
             modes[entry.id] = LinkedMode(id=entry.id, board=board)
+
+    for entry in registries.content["event_pool"]:
+        parsed = entry.value
+        for index, event_id in enumerate(parsed.tree.get("members", ())):
+            if registries.content["event"].get(event_id) is None:
+                errors.append(parsed.error(f"event '{event_id}' is not registered", field=("members", index), expected="an enabled event id"))
+
+    for entry in registries.content["fusion"]:
+        parsed = entry.value
+        for index, rule in enumerate(parsed.tree.get("rules", ())):
+            for field in ("capturer", "captured", "into"):
+                piece_id = rule.get(field)
+                if registries.content["piece"].get(piece_id) is None:
+                    errors.append(parsed.error(f"piece '{piece_id}' is not registered", field=("rules", index, field), expected="an enabled piece id"))
+    for entry in registries.content["event"]:
+        parsed = entry.value
+        for index, step in enumerate(parsed.tree.get("execute", ())):
+            effect = step.get("effect", {})
+            for field, registry_name in (("into", "piece"), ("status", "status")):
+                target = effect.get(field)
+                if target is not None and registries.content[registry_name].get(target) is None:
+                    errors.append(parsed.error(f"{registry_name} '{target}' is not registered", field=("execute", index, "effect", field), expected=f"an enabled {registry_name} id"))
     return LinkedContent(modes=modes), errors

@@ -12,6 +12,7 @@ class Side:
     id: str
     forward: int
     moves_first: bool = False
+    promotes_at: int | None = None
 
 
 @dataclass

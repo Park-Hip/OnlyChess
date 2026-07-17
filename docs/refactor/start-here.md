@@ -1,7 +1,7 @@
 # Start Here: Contributing to the Mod-Driven Refactor
 
-Use this page before opening source files. The repository deliberately contains a working **legacy
-runtime** and a growing **replacement engine**; they answer different questions.
+Use this page before opening source files. The repository runs the mod-driven engine; the hardcoded
+runtime was removed at Wave 6.
 
 ## The ten-minute model
 
@@ -19,14 +19,9 @@ mods/ -> loader -> runtime registries -> engine verbs -> actions -> game state/U
 - **Code mods** extend that vocabulary by registering verbs through the public `ModApi`.
 - **Actions** are the only state mutations. Each action has an inverse so undo works even for a
   mod effect the core does not understand.
-- The **legacy runtime** is retained temporarily to compare standard-chess behaviour through the
-  differential oracle.
+- The retained oracle is new-engine perft coverage, not a compatibility bridge to deleted code.
 
 ## Read in this order
-
-For a legacy contributor, read [legacy-to-refactor.md](legacy-to-refactor.md) immediately after
-the status page. It maps the old classes and mechanics to the replacement engine and gives the
-first-session commands.
 
 1. [status.md](status.md) — current wave, completed evidence, and deliberate gaps.
 2. [architecture.md](architecture.md) — component responsibilities and boundaries.
@@ -42,19 +37,19 @@ engine must reproduce. Do not use it as a guide for adding new target-engine con
 
 | Term | Meaning |
 |---|---|
-| legacy runtime | The current hardcoded game; a temporary oracle during migration. |
+| retired legacy runtime | The removed hardcoded implementation; its replacement map is historical context only. |
 | mod | A folder with a manifest and content; it may declare trusted Python code. |
 | content | Data a mod supplies: a piece, board, event, status, resource, and so on. |
 | verb | An engine capability that data can invoke, such as a move type or effect. |
 | registry | Runtime-owned map of validated namespaced IDs to content or verb definitions. |
 | action | A recorded state change and its inverse; the basis of undo. |
-| oracle | The old-versus-new comparison harness in `tests/oracle/`. |
+| oracle | New-engine perft coverage in `tests/oracle/`. |
 
 For expanded definitions, see [glossary.md](glossary.md).
 
 ## First-change checklist
 
-- Identify whether your change belongs to the legacy oracle or the target engine.
+- Identify the engine/mod boundary your change belongs to.
 - Name the wave and contract it advances; do not pull later-wave work forward casually.
 - Read the matching tests before changing the implementation.
 - Keep base content on the same public API a third-party mod uses.

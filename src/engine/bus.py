@@ -18,5 +18,9 @@ class Bus:
         self._listeners.append(listener)
 
     def emit(self, event):
+        actions = []
         for listener in self._listeners:
-            listener(event)
+            result = listener(event)
+            if result:
+                actions.extend(result)
+        return actions

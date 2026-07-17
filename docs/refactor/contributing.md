@@ -2,7 +2,7 @@
 
 Use this before merging a change that touches `src/modding/`, target-engine code, or `mods/`.
 
-- Does the change belong to the legacy runtime/oracle or to a named refactor wave?
+- Does the change belong to a named refactor wave and the engine/mod boundary it owns?
 - Does it preserve the rule that base content and third-party content use the same public API?
 - Did a public lifecycle stage, invariant, or current-wave boundary change? If so, update
   [status.md](status.md).
