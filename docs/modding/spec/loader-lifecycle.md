@@ -73,7 +73,7 @@ know which mods are enabled and must not report errors from a mod that is about 
 | Failure | Response |
 |---|---|
 | No `manifest.yaml` | Not a mod. Ignore silently — this is the one silent skip in the loader, and it exists so a stray `README/` or `.git/` is not an error. |
-| Manifest unparseable / missing required field | Report; mod is disabled. Attribution falls back to the **folder name** — the namespace is exactly what we failed to read. |
+| Manifest unparseable / missing required field | Report; mod is disabled. Attribution falls back to the **folder name** — the mod's `id` is exactly what we failed to read. |
 | `code: false` but a `code/` directory exists | Hard error (mod-package.md). Not a warning: the manifest's honesty is the whole trust model. |
 
 ### 2. Resolve
@@ -82,13 +82,19 @@ Everything in mod-package.md's "Dependencies and load order", enforced here.
 
 | Failure | Response |
 |---|---|
-| Two mods claim one namespace | Hard error naming **both** mods and the namespace. Never a merge. |
+| Two mods claim one namespace **with no originator** | Hard error naming **every claimant** and the namespace. Never a merge. See below. |
 | Dependency cycle | Hard error naming the **full cycle** (`a → b → c → a`). Load-bearing for correctness, not just diagnostics — ADR-002's patch order is only deterministic on an acyclic graph. |
 | Required dependency missing | Mod disabled; dependents disabled transitively, with the chain reported. |
 | Dependency MAJOR mismatch | Mod disabled (mod-package.md). |
 | Optional dependency absent | No effect, no error. Present → ordered after it. |
 
-**Output:** an ordered list of enabled mods. Ties break by namespace, alphabetically.
+**The originator check lives here, and it is free.** mod-package.md permits several mods to claim one
+namespace only if exactly one of them is a dependency of all the others. That predicate is over the
+resolved graph, which this stage has just built — so it costs a lookup and lands in the one stage
+that already knows the answer. It runs *after* cycle detection, because "is a dependency of" is only
+well-defined on an acyclic graph.
+
+**Output:** an ordered list of enabled mods. Ties break by mod id, alphabetically.
 
 ### 3. Parse
 
@@ -143,12 +149,18 @@ Every definition against its schema (content-schemas.md) and the frozen vocabula
 
 ### 6. Patch
 
-Apply `set` / `add` / `remove` in dependency order (ADR-002), then **re-validate every touched
-definition**.
+Apply **`replaces:` substitutions first, then `set` / `add` / `remove`** — both in dependency order
+(ADR-002) — then **re-validate every touched definition**.
+
+Substitution comes first so that a patch lands on whatever definition actually survives. The reverse
+order would let a mod patch a definition that is about to be thrown away, and the patch would vanish
+without a word — the silent-breakage failure ADR-002 exists to prevent, reintroduced by an ordering
+choice.
 
 | Failure | Response |
 |---|---|
 | Target ID does not exist | Error, blaming the **patching** mod. |
+| Two mods `replace` the same ID | **Later wins, and the loader says so** — naming both mods and the target (ADR-002). Not an error. |
 | Path does not resolve | Error, blaming the patcher, naming the path and the target. |
 | Two mods patch the same path | **Later wins, and the loader says so** — naming both mods, the target, and the field. Not an error; not silent either (ADR-002). |
 | Patch produces invalid content | Error blaming the **patch**, not the original author. |
@@ -171,7 +183,11 @@ engine-facing:
 
 - **`limit: 3` → internal `4`** (C3, finding 5 — `_get_sliding_moves` uses `range(1, limit)`). The
   loader owns this conversion. It is the one place it can live without either lying to the author or
-  leaking an off-by-one into every content file.
+  leaking an off-by-one into every content file. **This applies to every `limit` in the vocabulary,
+  not only the ones under a piece's `moves`** — `base:poison`'s `movement.slide.limit: 1`
+  (status-model.md) is the same author-facing unit, and converting only the piece schema would cap a
+  poisoned bishop at zero squares with nothing in the data looking wrong. Normalization is defined
+  over the vocabulary, not over one content type.
 - **Unqualified IDs → qualified** (`queen` → `base:queen`, resolved against the *current mod's*
   namespace, per mod-package.md).
 

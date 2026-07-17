@@ -1,0 +1,21 @@
+type: ability
+id: base:bishop_snipe
+name: Bishop Snipe
+
+# `tag_any` is the "contains" axis: a Warden (rook + bishop) may use bishop
+# abilities. This is the one place the current code gets F3 right, via
+# _piece_has_ability reading get_fusion_tags().
+owner: { tag_any: [base:bishop] }
+cost: { base:ap: 3 }
+
+target:
+  scope: { of: self, ray: diagonal }        # unobstructed, stops at the first piece
+  filter: { friendly: false, not_status: [base:shield] }
+
+# `credit: self` is what makes this count as a capture by the sniper —
+# record_capture today. Whether it also triggers fusion is base:fusion's call,
+# and is still open. See findings.
+effect: { type: destroy, credit: self }
+
+# NOTE: no `when: { not_status: [base:stun] }`. A stunned bishop can snipe today.
+# That is content-schemas.md finding 4, reproduced deliberately rather than fixed.

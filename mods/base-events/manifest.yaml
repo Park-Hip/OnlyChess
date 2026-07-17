@@ -1,0 +1,26 @@
+# base:events — the global events that reshape the board mid-game.
+#
+# Disabling this mod must yield playable standard chess (UC11). base:poison and
+# base:stun leave with it; base:shield stays in base:chess, because the ability
+# that applies it does.
+
+id: base:events
+name: OnlyChess — Events
+version: 1.0.0
+authors: [OnlyChess]
+description: >
+  Ten events on a shared ten-turn cycle, one chosen at random, warned one turn
+  before it fires.
+
+engine: "^1.0"
+
+dependencies:
+  required:
+    base:chess: "^1.0"        # the pieces every selector names, and base:shield
+
+# No dependency on base:fusion, required or optional — and that is worth noticing.
+# Events reach fused pieces entirely through `components` (`primary: base:rook`
+# hits a Warden; `tag_any: [base:bishop]` hits an Inquisitor), so not one of the
+# ten names a fused piece by ID. F3's two axes are what buy this decoupling: with
+# hand-enumerated code lists, every event would have to know the fusion roster.
+code: false

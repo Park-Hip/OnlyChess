@@ -1,0 +1,32 @@
+# The only two-phase event, and the only place in the entire format where a name
+# is bound to a value (F9). Watch it closely — a binding is an assignment, and
+# assignments are how data formats become bad programming languages.
+
+type: event
+id: base:my_danh_iran
+name: Mỹ đánh Iran
+
+warning:
+  bind:
+    # `origin` is where the zone's top-left may land, inclusive — it exists
+    # because D1 found `random_zone` could not express this event without it.
+    #
+    # rows [2, 5] means the strike covers rows 2-6 and can never touch rows 0, 1,
+    # or 7. Note the asymmetry: black's pawn rank (1) is protected, white's (6)
+    # is not. That looks like a bug. It is live behaviour, and D1 does not fix
+    # live behaviour — same rule as the shield inconsistencies.
+    zone:
+      type: random_zone
+      size: [2, 2]
+      origin: { rows: [2, 5], cols: [0, 6] }    # randint(2,5) / randint(0, BOARD_COLS - 2)
+  message: "MY DANH IRAN INCOMING! A RANDOM 2X2 ZONE WILL BE DESTROYED."
+
+execute:
+  - select:
+      scope: { zone: $zone }              # read back what warning bound
+      filter: { not_status: [base:shield] }    # one of the three that respect shields
+      pick: all
+    effect: { type: destroy }
+    message: { each: "x{piece}@{square}" }
+
+empty_message: "0x"

@@ -1,0 +1,7 @@
+type: piece
+id: base:rook
+name: Rook
+material: 5
+
+moves:
+  - { type: slide, dirs: orthogonal, limit: unlimited }

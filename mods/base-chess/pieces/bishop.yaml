@@ -1,0 +1,7 @@
+type: piece
+id: base:bishop
+name: Bishop
+material: 3
+
+moves:
+  - { type: slide, dirs: diagonal, limit: unlimited }

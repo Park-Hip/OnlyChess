@@ -1,0 +1,19 @@
+type: ability
+id: base:rook_shield
+name: Rook Shield
+owner: { tag_any: [base:rook] }
+cost: { base:ap: 3 }
+
+target: self                                 # replaces `requires_target = False`
+
+# The one piece of base content whose effect acts on something other than what
+# the ability targeted, which is why `target:` is written out here and omitted
+# everywhere else.
+effect:
+  type: apply_status
+  status: base:shield
+  target:
+    scope: { of: self, adjacent: orthogonal, include_self: true }
+    filter: { friendly: true }
+  # No `duration:` — base:shield's expiry is not a countdown, so there is no
+  # number to supply. See statuses/shield.yaml.

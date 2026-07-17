@@ -1,0 +1,18 @@
+# Four statuses became three here. `nguoi_chong_bat_luc` (immobilize) and
+# `viec_nhe_vol_cao` (stun) are mechanically identical — both set is_active =
+# False, store a countdown, tick it down, and restore. They differ only in name,
+# target, and duration. Two names, one mechanic.
+#
+# The duration lives on the application, not here, which is exactly what lets one
+# status serve both: kings for 1 turn, pawns for 2.
+
+type: status
+id: base:stun
+expiry: { turns: 1 }        # default; both applications override it explicitly
+
+modifies: { movement: { disable: true } }
+
+# NOTE: this governs move generation only. Abilities are not affected — a stunned
+# bishop can still snipe. `pawn_sprint` is the one ability that checks, and it
+# does so with an explicit `when:` rather than through this status. Reproduced,
+# not fixed: content-schemas.md finding 4.

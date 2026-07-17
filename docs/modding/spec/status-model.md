@@ -26,16 +26,25 @@ fires after every move *and* every ability). Two granularities, undocumented.
 
 ## The model
 
-A status is content, defined in data, in a mod's namespace:
+A status is content, defined in data, in a mod's namespace — **the seventh content type**, subject to
+every universal rule in [content-schemas.md](content-schemas.md): it declares `type` and `id`,
+unknown keys are load errors, and it may be patched or replaced like anything else.
 
 ```yaml
+type: status
 id: base:poison
 expiry: { turns: 3 }        # default; the application may override
 modifies:
   movement:
-    slide: { limit: 1 }
+    slide: { limit: 1 }     # squares — author-facing, like a piece's `limit`. See below.
     leap:  { disable: true }
 ```
+
+> **`limit` here is the same unit as a piece's `limit`** — squares, converted by the loader
+> (`internal = N + 1`, C3 finding 5). It is written in a different schema, which is exactly why it is
+> easy to miss: normalization is defined over the **vocabulary**, not over the piece content type. A
+> loader that converts only `moves` gives a poisoned bishop a zero-square slide, and nothing in the
+> data looks wrong. Found at Gate 3.
 
 Applied by an effect, which supplies the duration:
 
@@ -50,12 +59,17 @@ owns the *model*; the application owns the *number*.
 
 ## Expiry policies
 
-| Policy | Meaning | Ticks on | Used by |
-|---|---|---|---|
-| `turns: N` | countdown | full turns | poison, stun |
-| `after_opponent_turn` | survive your turn-end, die on the opponent's | half turns | shield |
+| Policy | Written as | Meaning | Ticks on | Used by |
+|---|---|---|---|---|
+| `turns` | `expiry: { turns: 3 }` | countdown | full turns | poison, stun |
+| `after_opponent_turn` | `expiry: after_opponent_turn` | survive your turn-end, die on the opponent's | half turns | shield |
 
 Two policies, both earned by real content. **`plies: N` is not earned — do not add it.**
+
+The two spellings are not an inconsistency: `expiry` follows the convention that a **parameterless
+choice is written bare and a parameterised one is a single-key mapping** (content-schemas.md,
+"Universal rules"), the same way `pick: all` and `pick: { random: 1 }` differ. `turns` takes a
+number; `after_opponent_turn` takes nothing and would only gain a `: true` to look like its sibling.
 
 ## Modifier vocabulary
 
@@ -74,6 +88,7 @@ available to every data mod (`CLAUDE.md`: *code adds verbs*).
 ## Lifecycle hooks
 
 ```yaml
+type: status
 id: mymod:burning
 expiry: { turns: 3 }
 on_expire:
@@ -149,11 +164,13 @@ becomes a visible decision rather than an accident of which helper was copied.
 
 ```yaml
 # base:chess
+type: status
 id: base:shield
 expiry: after_opponent_turn
 modifies: { capturable: false }
 
 # base:events
+type: status
 id: base:poison
 expiry: { turns: 3 }
 modifies:
@@ -161,6 +178,7 @@ modifies:
     slide: { limit: 1 }
     leap:  { disable: true }
 
+type: status
 id: base:stun
 expiry: { turns: 1 }
 modifies: { movement: { disable: true } }

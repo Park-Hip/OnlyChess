@@ -1,0 +1,22 @@
+# base:fusion — pieces fuse when they capture.
+#
+# This mod exists separately because UC11 requires that disabling it leaves
+# playable standard chess. Its dependency on base:chess is also what makes the
+# base game exercise the dependency resolver, and what makes `base` a legal
+# shared namespace under the originator rule (mod-package.md).
+
+id: base:fusion
+name: OnlyChess — Fusion
+version: 1.0.0
+authors: [OnlyChess]
+description: >
+  Capturing pieces merge with what they capture. Four fused pieces and the
+  six-entry ordered-pair table that produces them.
+
+engine: "^1.0"
+
+dependencies:
+  required:
+    base:chess: "^1.0"        # components, and the pieces the table names
+
+code: false

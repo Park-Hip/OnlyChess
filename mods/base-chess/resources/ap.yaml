@@ -1,0 +1,28 @@
+# Action Points — the currency every ability spends.
+#
+# Replaces STARTING_AP, MAX_AP, and AP_GAIN_MOVE_INTERVAL in constants.py, plus
+# the ActionPointTracker that reads them.
+#
+# D1 found this had no home at all: `cost: { ap: 3 }` was data, but the numbers
+# deciding whether a player HAS 3 AP were Python constants — so the Tuner persona
+# (UC1, UC2: the two highest-ranked use cases) could set the price of a thing and
+# not the rate anyone earns it.
+#
+# The sharper problem was that `cost: { ap: 3 }` meant the ENGINE knew what AP
+# was: a content identifier as a literal key in a core schema, which CLAUDE.md
+# forbids outright. It read as harmless only because AP is the base game's only
+# resource. Abilities now spend `base:ap` by ID, the engine tracks per-side
+# quantities of whatever resources are registered, and a modder's `mymod:mana`
+# works on day one with no engine change.
+
+type: resource
+id: base:ap
+name: Action Points
+
+starting: 0                          # STARTING_AP
+max: 5                               # MAX_AP
+gain: { amount: 1, every_moves: 2 }  # AP_GAIN_MOVE_INTERVAL — one AP per two completed moves, per side
+
+# NOT here: "using an ability ends your turn". Ability.use calls
+# finish_ability_turn, so spending an ability is spending your turn — that is the
+# turn lifecycle, which CLAUDE.md puts in core. It is not a cost and not content.

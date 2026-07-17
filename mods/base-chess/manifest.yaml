@@ -1,0 +1,19 @@
+# base:chess — standard chess. The foundation every other base mod builds on.
+#
+# Disabling base:fusion and base:events must leave this mod playable on its own (UC11).
+# Nothing here may reference either of them.
+
+id: base:chess
+name: OnlyChess — Standard Chess
+version: 1.0.0
+authors: [OnlyChess]
+description: >
+  Standard chess: the six pieces, the 8x8 board, the four abilities, and the
+  action-point economy that pays for them.
+
+engine: "^1.0"
+
+# base:chess registers the `castle` and `enpassant` move types through the public
+# verb path, exactly as any third-party code mod would. There is no privileged
+# route — see CLAUDE.md, "The base game is a mod".
+code: true

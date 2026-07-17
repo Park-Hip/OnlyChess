@@ -1,0 +1,21 @@
+# The status that F1 is about. Today poison has no central meaning: each piece
+# class independently decides what it does, five of them hand-write it, the Queen
+# ignores it entirely, and a modder's new piece is silently immune.
+#
+# This one block replaces all five hand-written checks. Verified in Phase B
+# against all ten pieces: Knight -> no moves (leap disabled), Bishop/Rook -> one
+# step, Archbishop/Chancellor -> one-step slide only, Warden/Inquisitor -> one
+# step on both. The single divergence is the Queen, which is unreachable (no
+# event selects her) and where the central rule is more correct than the silence.
+
+type: status
+id: base:poison
+expiry: { turns: 3 }
+
+modifies:
+  movement:
+    # SQUARES — the author-facing unit, same as a piece's `limit`, converted by
+    # the loader. This is the off-by-one hazard in its second home; a loader that
+    # normalizes only `moves` gives a poisoned bishop a zero-square slide.
+    slide: { limit: 1 }
+    leap:  { disable: true }

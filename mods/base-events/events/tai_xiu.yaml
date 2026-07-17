@@ -1,0 +1,23 @@
+type: event
+id: base:tai_xiu
+name: Tai Xiu
+
+warning:
+  message: "TAI XIU INCOMING! ONE SIDE WILL LOSE A RANDOM PIECE."
+
+execute:
+  - select:
+      filter:
+        # The coin flip. Phase B checked whether this needed a warning-time
+        # binding like my_danh_iran's zone, and it does not: the message never
+        # names the chosen side, so nothing outside this selector observes the
+        # roll. Checking that a binding is load-bearing before adding one is the
+        # difference between a data format and a bad language.
+        color: random_one
+        not: base:king
+        not_status: [base:shield]
+      pick: { random: 1 }
+    effect: { type: destroy }
+    message: { each: "x{piece}" }        # no square — the engine omits it here
+
+empty_message: "0x"

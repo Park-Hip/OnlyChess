@@ -37,7 +37,7 @@ problem, not a load error — the loader must not enforce taste.
 `manifest.yaml`, required, one per mod:
 
 ```yaml
-namespace: mymod              # required — owns the ID space
+id: mymod:dragons             # required — the mod's own namespaced ID
 name: My Cool Mod             # required — human-facing
 version: 1.2.0                # required — semver
 authors: [Someone]
@@ -60,8 +60,42 @@ code: false                   # true → ships Python. See Trust.
 
 - **Charset:** `[a-z0-9_]+` for both parts. Lowercase only.
 - **Separator:** a single `:`.
-- Namespace is claimed by the manifest; a mod may only *define* IDs in its own namespace.
-- Two mods claiming one namespace is a **hard load error naming both**, not a merge.
+- A mod may only *define* IDs in its own namespace.
+
+**A mod is identified by an ID under the same grammar** — `base:chess`, `mymod:dragons` — declared
+as `id:` in its manifest. **The namespace it claims is that ID's namespace part**, so `base:chess`
+claims `base` and `mymod:dragons` claims `mymod`. One field, derived rather than declared twice.
+
+This is what dependency keys, disable chains, and every error message name. A mod's ID is content-
+addressable like its content, which is not an accident: `base:chess` is a legal ID in the namespace
+`base:chess` claims, so the model closes over itself instead of needing a second identity concept.
+
+## Namespace sharing — the originator rule
+
+**A namespace may be claimed by more than one mod, but only when they demonstrably know about each
+other.** Formally: among the mods claiming a namespace, **exactly one must be a dependency —
+direct or transitive — of every other claimant.** That mod is the namespace's **originator**. If no
+such mod exists, it is a **hard load error naming every claimant and the namespace**, never a merge.
+
+The base game is why this rule exists, and it is also its proof. `base:chess`, `base:fusion`, and
+`base:events` all define `base:*` IDs — `base:queen`, `base:warden`, `base:poison`. Under
+one-namespace-per-mod they could not coexist, and D2's split (required by UC11) would be illegal.
+`base:chess` is a dependency of both siblings, so it originates `base` and all three load.
+
+The property the strict rule protected survives intact. Two strangers who both call their mod
+`dragonmod` have no dependency between them, no common claimant, and therefore no originator — still
+a hard error, still naming both. What the originator rule permits is precisely the case where an
+author *chose* to write into a namespace whose owner is in their dependency chain, which means the
+owner loaded first and any duplicate ID is a deterministic, attributable error rather than a race.
+
+The alternative was to give each base mod its own namespace (`base_chess:queen`,
+`base_events:poison`). Rejected: it bakes **our packaging decision into every ID a third-party mod
+references**, so moving `shield` from `base:chess` to `base:events` — an internal reorganisation —
+would rename an ID and break every dependent. The partition is our business; the namespace is the
+ecosystem's.
+
+**Duplicate IDs are an error regardless**, and sharing a namespace is what makes them possible
+across mods rather than only within one file set. The loader catches it by ID, not by namespace.
 
 **Lowercase is enforced, not encouraged.** Case-insensitive collisions (`MyMod:Dragon` vs
 `mymod:dragon`) are a classic modding bug, made worse by Windows' case-insensitive filesystem.
@@ -75,7 +109,8 @@ be qualified.
 > *anywhere* — so a modder writing `dragon` silently references vanilla content and gets a confusing
 > error. Resolving to the *author's own* namespace matches what someone means when they omit it.
 
-**`base` is a reserved namespace.** Only official mods may claim `base:*`.
+**`base` is a reserved namespace.** Only official mods may claim `base:*` — three of them do
+(`base:chess`, `base:fusion`, `base:events`), under the originator rule above.
 
 > Worth being precise, given the "base mod gets no privileges" rule in `CLAUDE.md`: this is a
 > **naming** reservation, not a **capability** one. `base:chess` loads through the same path, uses
@@ -103,7 +138,8 @@ loader contract.
 
 **Load order is derived, never configured.** It is a topological sort of the dependency graph:
 dependencies load before dependents, so everything a mod references exists by the time it loads.
-Ties break by namespace, alphabetically, for reproducibility.
+Ties break by **mod id**, alphabetically, for reproducibility — not by namespace, which is no longer
+unique per mod now that several mods may share one.
 
 - **Required, missing** → the mod is disabled, with a message naming the mod, the missing
   dependency, and the version wanted.

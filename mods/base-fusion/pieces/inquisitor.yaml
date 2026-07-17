@@ -1,0 +1,19 @@
+# Bishop + Rook, captured in that order — the "Heavy Bishop".
+# Full bishop, plus an orthogonal capped at three squares.
+#
+# The mirror of Warden, and the reason fusion cannot be derived from a rule:
+# (Rook, Bishop) -> Warden but (Bishop, Rook) -> Inquisitor.
+
+type: piece
+id: base:inquisitor
+name: Inquisitor
+material: 7
+
+# Primary is BISHOP. This is the single most consequential line in this file:
+# it is why gia_xang_tang spares the Inquisitor, and why a Rook capturing one
+# fuses into a Warden rather than nothing.
+components: [base:bishop, base:rook]
+
+moves:
+  - { type: slide, dirs: diagonal, limit: unlimited }
+  - { type: slide, dirs: orthogonal, limit: 3 }      # `limit=4` in fused.py — see warden.yaml

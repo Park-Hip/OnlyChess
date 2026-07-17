@@ -1,0 +1,20 @@
+type: event
+id: base:kho_ga_tron_ba_mia
+name: Kho Ga Tron Ba Mia
+
+warning:
+  message: "KHO GA TRON BA MIA INCOMING! SOME PIECES WILL BE POISONED."
+
+execute:
+  - select:
+      # The engine's seven-code list (R, N, B, A, C, W, I) is exactly "contains a
+      # rook, a knight, or a bishop" — the "contains" axis. Verified piece by
+      # piece: Archbishop (knight+bishop), Chancellor (rook+knight), Warden
+      # (rook+bishop), Inquisitor (bishop+rook) all match; pawn, queen and king
+      # match none. The list was the principle all along.
+      filter: { tag_any: [base:rook, base:knight, base:bishop] }
+      pick: { random: 1, per: color }       # the only grouping key, and the only one earned
+    effect: { type: apply_status, status: base:poison, duration: 3 }
+    message: { each: "[poi] {piece}@{square}" }
+
+empty_message: "0x"

@@ -1,0 +1,11 @@
+type: ability
+id: base:knight_swap
+name: Knight Swap
+owner: { tag_any: [base:knight] }
+cost: { base:ap: 2 }
+
+target:
+  scope: board
+  filter: { friendly: true }        # `target is not piece` — see findings, gap 6
+
+effect: { type: swap, target: self, with: $target }

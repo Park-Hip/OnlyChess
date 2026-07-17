@@ -1,0 +1,16 @@
+type: event
+id: base:umamusume
+name: Umamusume
+
+warning:
+  message: "UMAMUSUME INCOMING! ALL NON-KING PIECES BECOME KNIGHTS."
+
+execute:
+  - select:
+      filter: { not: base:king }
+      pick: all
+    # Drops statuses, where comeout keeps them. Neither is written down today.
+    effect: { type: transform, into: base:knight, preserve: [has_moved] }
+    message: "(All)=N"
+
+empty_message: "0x"

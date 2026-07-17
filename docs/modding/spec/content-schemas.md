@@ -7,9 +7,12 @@
 **Derived from:** [`content-audit.md`](../content-audit.md) (what exists),
 [`feasibility-study.md`](../feasibility-study.md) (what is expressible).
 
-Content types specified here: **piece**, **event**, **event pool**, **ability**, **fusion**,
-**board layout**. Plus the three shared vocabularies they compose from: **selector**, **condition**,
-**effect**.
+**There are nine content types.** Seven are specified here — **piece**, **event**, **event pool**,
+**ability**, **fusion**, **board layout**, **resource**. **status** is specified in
+[status-model.md](status-model.md) and **patch** in [Patches](#patch), but both are content types
+like any other: they live in files, they declare `type` and `id`, and the loader treats them
+identically. Plus the four shared vocabularies they compose from: **trigger**, **selector**,
+**condition**, **effect**.
 
 ## How to read this
 
@@ -30,9 +33,29 @@ Two things this spec deliberately does *not* do:
 ```yaml
 type: piece               # required — determines the schema
 id: base:warden           # required — namespaced, see mod-package.md
+replaces: <id>            # optional, rare — ADR-002's blunt instrument. See Patches.
 ```
 
 `type` is what makes folders cosmetic (mod-package.md). The loader reads `type`, never the path.
+The nine legal values are the nine content types: `piece`, `event`, `event_pool`, `ability`,
+`fusion`, `board`, `status`, `patch`, `resource`.
+
+**Parameterless choices are written bare; parameterised ones are a single-key mapping.** This is a
+convention the schemas already use everywhere and never stated, which made it look like several
+unrelated inconsistencies:
+
+```yaml
+pick: all                 # bare — takes no parameters
+pick: { random: 2 }       # mapping — the key names the choice, the value parameterises it
+scope: board
+scope: { zone: $zone }
+expiry: after_opponent_turn
+expiry: { turns: 3 }
+```
+
+Stating it once is what lets stage 5 type-check these fields at all: a field of this kind accepts
+*either* a name from its choice set *or* a one-key mapping whose key is from that set. Anything
+else — two keys, an unknown key — is an error.
 
 **Unknown keys are a load error, not a warning.** A typo'd `limt: 3` must not silently mean "no
 limit". This is `CLAUDE.md`'s *validate at load* invariant, and it is the single highest-value
@@ -47,7 +70,38 @@ message.
 
 ---
 
-# Shared vocabulary 1 — Selector
+# Shared vocabulary 1 — Trigger
+
+A trigger answers *when*. It is the first term in `CLAUDE.md`'s trigger → condition → effect shape,
+and it is the smallest vocabulary in this spec:
+
+| Trigger | Fires when | Earned by |
+|---|---|---|
+| `moved` | the subject piece completes a move | pawn promotion |
+
+**One entry, because one entry is earned.** F5 found that all ten events share a single hardcoded
+trigger and none needs its own, so events have no `on:` block at all (see
+[No triggers in v1](#no-triggers-in-v1--deliberate-and-stated-out-loud)). The only base content that
+selects its own timing is pawn promotion, which fires on `moved`. That is the entire v1 set.
+
+Triggers attach through an `on:` block, which is a list — a piece may react to several things:
+
+```yaml
+on:
+  - trigger: moved
+    when:   { at_promotion_rank: true }     # optional condition
+    effect: { … }                           # or a list of effects
+```
+
+A code mod registers new triggers through the same public verb path as move types and effects, and
+stage 5 reports an unregistered one by listing the registered set. This is where the probes land:
+UC14 and UC15 both need triggers this list does not have (`piece_captured`, `turn_started`), and
+both get them by **a code mod adding a verb**, not by us guessing at a trigger vocabulary no base
+content exercises.
+
+---
+
+# Shared vocabulary 2 — Selector
 
 A selector answers *which pieces*. Every effect that touches pieces takes one. This is the primitive
 that deletes F6's copy-pasted board scans.
@@ -69,8 +123,13 @@ select:
 | `{ of: self, ray: diagonal }` | unobstructed lines outward, stopping at the first piece | `bishop_snipe` |
 | `{ of: self, offset: [3, 0] }` | one square, in the piece's own frame | `pawn_sprint` |
 
-`include_self: true` adds the origin piece to an `of: self` scope. Earned by `rook_shield`, which
-shields the rook *and* its neighbours.
+**`include_self` defaults to `false` in every scope, including `board`.** `include_self: true` adds
+the acting piece back in — earned by `rook_shield`, which shields the rook *and* its neighbours.
+
+The default matters outside `of: self` scopes, which the first draft did not say: `knight_swap`
+selects `scope: board, filter: { friendly: true }` and must not offer the knight itself as a swap
+target (`target is not piece`). Without a stated default that file is ambiguous, and the ambiguity is
+invisible — it would produce a legal-looking "swap with yourself" move.
 
 **Offsets are `[forward, right]` in the piece's own frame, never raw board coordinates.** `[3, 0]` is
 "three squares forward" for either colour. This is not sugar: raw `[dr, dc]` would leak the engine's
@@ -128,7 +187,7 @@ base content only ever uses 1 — restricting to exactly 1 would be arbitrary, a
 
 ---
 
-# Shared vocabulary 2 — Condition
+# Shared vocabulary 3 — Condition
 
 **Conditions are pure predicates over game state.** No side effects, no loops, no assignment, no
 arithmetic beyond comparison. This is the line from `CLAUDE.md`, and it is the whole reason this
@@ -139,31 +198,74 @@ where pieces and abilities earned them:
 
 | Condition | Meaning | Earned by |
 |---|---|---|
-| `at_promotion_rank: true` | the piece stands on its side's `promotes_at` rank | pawn promotion, `pawn_sprint` |
-| `has_moved: false` | the piece has never moved | pawn double-step |
+| `at_promotion_rank: true` | the subject stands on its side's `promotes_at` rank | pawn promotion, `pawn_sprint` |
+| `has_moved: false` | the subject has never moved | pawn double-step |
 | `empty: true` | the destination square is vacant | pawn forward moves |
-| `not_status: [base:stun]` | *(selector filter, reused as a condition on `self`)* | `pawn_sprint` |
+| `not_status: [base:stun]` | *(selector filter, reused as a condition on the subject)* | `pawn_sprint` |
 
 Combinators — `all_of: [...]`, `any_of: [...]`, `not: {...}` — are **shape, not vocabulary**, and are
 available from day one. No base content nests conditions, but a format where predicates cannot
 compose is one that needs redesigning the moment a modder writes their second rule.
 
-`when:` attaches a condition to a move part, an effect, or an ability.
+## The subject is implicit, always
+
+`when:` attaches a condition to a move part, a trigger, an effect, or an ability. **A condition never
+names what it is about** — there is no `self:` key, and no way to reach a piece other than the one
+the enclosing construct is already about:
+
+| `when:` sits on | The subject is |
+|---|---|
+| a move part | the moving piece |
+| an `on:` trigger | the piece the trigger fired for |
+| an effect | that effect's `target` |
+| an ability | the owning piece |
+
+Every one of those is "the thing this construct is already about", which is why the rule needs no
+vocabulary and no escape. Allowing a condition to name a *different* subject would mean naming a
+selector inside a predicate, and a predicate that runs a query is one step from a predicate that runs
+a loop. That is the condition line in `CLAUDE.md`, and this is where it would be crossed first.
 
 ---
 
-# Shared vocabulary 3 — Effect
+# Shared vocabulary 4 — Effect
 
 An effect changes the game. This is the complete v1 list — the audit's capability surface, minus one.
 
-| Effect | Fields | Earned by |
+| Effect | Own fields | Earned by |
 |---|---|---|
 | `destroy` | `credit:` (optional) | 5 events, `bishop_snipe` |
 | `transform` | `into:`, `preserve:`, `choose:` | `comeout`, `gia_xang_tang`, `umamusume`, promotion |
 | `set_color` | `to:` | `mat_quyen_cong_dan` — the only consumer |
 | `apply_status` | `status:`, `duration:` | `kho_ga_tron_ba_mia`, `rook_shield`, 2 more |
-| `move` | `what:`, `to:` | `pawn_sprint` |
-| `swap` | `a:`, `b:` | `knight_swap` |
+| `move` | `to:` | `pawn_sprint` |
+| `swap` | `with:` | `knight_swap` |
+
+## Every effect takes `target:`, and it defaults
+
+**`target:` names the pieces an effect acts on. Every effect has it, and it means the same thing in
+all six.** It is omitted in almost all base content, because it defaults to the selection the
+enclosing construct already made:
+
+| The effect sits in | `target:` defaults to |
+|---|---|
+| an event step | that step's `select:` result |
+| an ability | that ability's validated `target:` (`$target`) |
+| an `on:` trigger | the piece the trigger fired for |
+
+So an event step writes `effect: { type: destroy }` and destroys what it selected. `rook_shield`
+writes `target:` explicitly *because* it is the one piece of base content whose effect acts on
+something other than the thing it targeted — the ability targets `self`, the effect shields the
+neighbours.
+
+Everything an effect needs beyond its subject keeps its own name: `into:` (what to become), `to:`
+(where to move, or which colour), `with:` (the other piece in a swap), `status:`, `credit:`.
+
+**This replaces four separate spellings** — `to:` on `apply_status`, `what:` on `move`, `a:`/`b:` on
+`swap`, and an undocumented `target:` on `bishop_snipe`'s `destroy` — that all meant "the pieces this
+acts on". Four names for one concept is the kind of thing a modder learns by trial and error, and
+each spelling would have had to be memorised per effect. It also matters for code mods: a registered
+effect verb inherits `target:` and `when:` from the shape rather than reinventing them, so a new verb
+composes with selectors on day one without its author thinking about it.
 
 **`promote` is not a verb.** The audit listed it, but promotion is `transform` under a `when:
 { at_promotion_rank: true }` condition. Six effects instead of seven, with no loss. This is what
@@ -179,20 +281,19 @@ An effect changes the game. This is the complete v1 list — the audit's capabil
 `credit:` records the removal against a side's capture tally. Without it, a destroyed piece simply
 leaves the board — which is what all five destroying events do.
 
-> ### Open — does `credit` trigger fusion? *(recommendation below; human decides)*
+> ### Decided — `credit` does not itself trigger fusion. Displacement does.
 >
-> `bishop_snipe` calls `record_capture` directly and does **not** fuse. Under this schema
-> `credit: self` is indistinguishable from a capture, so a naive fusion hook would make snipe fuse
-> and change the game. **Resolve before writing `base:fusion`.** Adjacent to the retired D11, but
-> live regardless of HP.
+> **Settled after D1** (it was the last thing blocking `base:fusion`). `bishop_snipe` calls
+> `record_capture` and does **not** fuse; under this schema `credit: self` is indistinguishable from
+> a capture, so a naive fusion hook would have made snipe fuse and changed the game.
 >
-> **A dependency constraint settles most of this.** `bishop_snipe` belongs to `base:chess`; fusion
-> belongs to `base:fusion`; and `base:chess` must not reference `base:fusion`, because disabling
-> fusion has to leave standard chess playable (UC11). **The ability therefore cannot opt out of
-> fusion by name** — that whole family of answers is closed. The decision has to live in
-> `base:fusion`.
+> **A dependency constraint closed off most of the answer space before anyone chose.**
+> `bishop_snipe` belongs to `base:chess`; fusion belongs to `base:fusion`; and `base:chess` must not
+> reference `base:fusion`, because disabling fusion has to leave standard chess playable (UC11).
+> **The ability therefore cannot opt out of fusion by name.** The decision had to live in
+> `base:fusion` whichever way it went.
 >
-> **Recommended:**
+> The decision, in three parts:
 >
 > 1. **`credit` stays one concept** — "this counts as a capture by self" — emitting one capture on
 >    the bus. Splitting it into scoring-credit and fusion-credit creates two near-identical concepts,
@@ -200,16 +301,21 @@ leaves the board — which is what all five destroying events do.
 >    will guess wrong and nothing will tell them. It also makes scoring a privileged core listener,
 >    when scoring is arguably content.
 > 2. **The capture carries whether the capturer displaced** onto the square. That is a move-pipeline
->    fact, not a content fact, so the engine can expose it without naming content. It is also what
+>    fact, not a content fact, so the engine exposes it without naming content. It is also what
 >    fusion means physically: the fused piece is placed on the captured square.
-> 3. **`base:fusion` declares which captures it fuses on.** To preserve today's behaviour exactly:
->    displacing captures only.
+> 3. **`base:fusion` declares which captures it fuses on**, via `fuses_on:`. `displacing_captures`
+>    preserves today's behaviour exactly.
 >
-> The point is not that this answers the question — it is that it moves the question **out of the
-> engine and into a data file**, where changing the answer is a one-line edit rather than a refactor.
-> A modder's `mymod:assassinate` emits a capture; `base:fusion`'s rule decides; someone who wants
-> remote captures to fuse patches that condition (ADR-002). Consistent with `CLAUDE.md`: we don't
-> settle the mechanic, we make the mechanic settleable.
+> `fuses_on` takes `displacing_captures` (the capturer ended on the captured square) or
+> `any_capture`. Two values, and the second is only there because the first is meaningless without a
+> contrast — if a reviewer wants it cut to a boolean, nothing breaks.
+>
+> **What this buys is not the answer, it is the location.** The question moved out of the engine and
+> into a data file, where changing it is a one-line edit rather than a refactor. A modder's
+> `mymod:assassinate` emits a capture; `base:fusion`'s rule decides; someone who wants remote
+> captures to fuse patches that one field (ADR-002) — and note this is the **first genuine
+> base-game-adjacent patch target ADR-002 has**, after C3 looked for one and found none.
+> Consistent with `CLAUDE.md`: we don't settle the mechanic, we make the mechanic settleable.
 
 ## `transform`
 
@@ -233,16 +339,24 @@ them makes the disagreement a decision. Making one the default would silently pi
 
 ```yaml
 - { type: apply_status, status: base:poison, duration: 3 }
+- { type: apply_status, status: base:shield }              # no duration — see below
 ```
 
 Duration lives on the application, not the status definition — fully specified in
 [status-model.md](status-model.md). Not restated here.
 
+**`duration:` is optional, and supplying it to a status that cannot count is a load error.** Only
+countdown statuses (`expiry: { turns: N }`) take one. `base:shield` expires
+`after_opponent_turn`, so `rook_shield` supplies no duration and a `duration: 2` on it would be
+meaningless. Erroring rather than ignoring it matters because that line is exactly what a modder
+copies out of `kho_ga_tron_ba_mia` — and a silently-ignored duration is a shield that looks tunable
+and isn't.
+
 ## `move` and `swap`
 
 ```yaml
-- { type: move, what: self, to: $target }
-- { type: swap, a: self, b: $target }
+- { type: move, target: self, to: $target }
+- { type: swap, target: self, with: $target }
 ```
 
 Both relocate pieces, and **both must go through the public relocation contract, not
@@ -287,8 +401,19 @@ fusion concept.
 
 ## `moves` — move parts
 
-A piece's moves are the **sum of its parts**. Fused pieces are literally their components' parts
-concatenated, which is why they cost four lines instead of a class.
+A piece's moves are the **sum of its parts**.
+
+> **Correction (D1).** An earlier draft said fused pieces "are literally their components' parts
+> concatenated, which is why they cost four lines instead of a class". Written out, they are not
+> concatenated by anything: `components:` is a tag field the *selectors* read, and `moves:` is
+> declared by hand. `base:archbishop` and `base:chancellor` each re-type the knight's eight offsets.
+>
+> **The four lines are the tags, not the moves**, and nothing checks the two agree — a piece
+> declaring `components: [base:rook, base:bishop]` and a knight's moves is valid content.
+>
+> Deliberately left alone. Fused pieces are authored content, and Warden's 3-square diagonal proves a
+> component's moves are *not* always copied wholesale — so an `include:` verb would need an override
+> story, and would be a new verb serving four files that already work. Logged, not built.
 
 ```yaml
 - { type: slide, dirs: diagonal, limit: 3, capture: allowed, when: {…} }
@@ -314,6 +439,12 @@ concatenated, which is why they cost four lines instead of a class.
 > This is small and it will bite. A transcription that copies `4` out of `fused.py` produces a Warden
 > with a 4-square diagonal and no error — the exact class of silent breakage this spec exists to
 > prevent. Flagged for D1.
+>
+> **`limit` means squares wherever it appears, not just here.** `base:poison`'s
+> `movement.slide.limit: 1` (status-model.md) is the same unit in a different schema, and the loader
+> must convert it too. Missing that would cap a poisoned bishop at *zero* squares — silently, since
+> nothing in the data would look wrong. Stage 7 owns every `limit` in the vocabulary, not just the
+> ones under `moves`.
 
 `dirs` names are relative to the piece's own frame, so `forward` is colour-correct without the piece
 knowing its colour. The frame's orientation comes from the side's `forward` (see
@@ -379,9 +510,15 @@ id: base:king
 name: King
 material: 0
 moves:
-  - { type: step, dirs: all, limit: 1 }
+  - { type: slide, dirs: all, limit: 1 }
   - { type: castle, with: { tag_any: [base:rook] } }   # ← opaque verb
 ```
+
+**There is no `step` move type.** A king is a slide with `limit: 1`, and an earlier draft of this
+spec invented `step` for it out of habit. The engine's `_get_one_step_moves` is an *implementation*
+of a limit-1 slide, not a second primitive — whether the loader maps limit-1 slides onto it is an
+optimisation the author never sees. Two move types, `slide` and `leap`, plus whatever verbs mods
+register. This is the earned-vocabulary rule catching a verb that had no distinct meaning.
 
 **`enpassant` and `castle` are registered by `base:chess` through the public verb path — the same one
 any code mod uses.** They are not engine special-cases and must never become them. If that path is
@@ -410,7 +547,10 @@ name: Mỹ đánh Iran
 
 warning:
   bind:
-    zone: { type: random_zone, size: [2, 2] }     # computed once, at warning time
+    zone:
+      type: random_zone
+      size: [2, 2]
+      origin: { rows: [2, 5], cols: [0, 6] }      # inclusive; where the top-left may land
   message: "…"
 
 execute:
@@ -419,7 +559,9 @@ execute:
       filter: { not_status: [base:shield] }
       pick: all
     effect: { type: destroy }
-    message: "{count}x"
+    message: { each: "x{piece}@{square}" }
+
+empty_message: "0x"
 ```
 
 ## Bindings — watch this closely
@@ -436,6 +578,35 @@ guard rails, to be held:
   the condition line already forbids the arithmetic that would make it useful.
 - **One binding verb: `random_zone`.** Earned by `my_danh_iran`, and nothing else.
 
+> ### `origin` — added after D1, and a warning about how the rest of this spec was written
+>
+> `random_zone` originally took a `size` and nothing else. **D1 found it could not express the one
+> event it was written for.** The engine constrains the origin:
+>
+> ```python
+> row = random.randint(2, 5)                 # not 0..6
+> col = random.randint(0, BOARD_COLS - 2)
+> ```
+>
+> So the strike covers rows 2–6 and **can never touch rows 0, 1, or 7**. Without `origin`, the verb
+> would hit the whole board — a strike that deletes a king off its back rank on turn 10. A different
+> game, from a verb that looked finished.
+>
+> `origin` is a rectangle the top-left corner must land inside, inclusive, defaulting to anywhere the
+> zone fits. **It must not grow past that.** The temptation will be to allow "not the back two ranks"
+> or an expression over `size` — that is the condition line being crossed from the binding side, and
+> a rectangle is enough for the only content that exists.
+>
+> **The real lesson is about method, not about zones.** `random_zone` was written from the audit's
+> phrase *"random 2×2 zone, chosen at warning time"* — an accurate description and an insufficient
+> specification. It was never checked against `_choose_warning_area`. Every verb derived from a
+> summary rather than from source is suspect the same way; D1 found two (this and `message`), which
+> is the entire reason D1 exists.
+>
+> Note also what the constraint *is*: rows 2–5 protects black's back rank and pawn rank, but white's
+> pawn rank (row 6) is fair game. That asymmetry looks like a bug. It is live behaviour, and this
+> spec preserves it rather than quietly correcting it — the same rule as F2 and F4.
+
 Phase B checked whether `tai_xiu`'s random side needed a binding. It does not — `color: random_one`
 covers it, because its message never names the chosen side. **Check that a binding is load-bearing
 before adding one.** That check is the difference between a data format and a bad language.
@@ -446,15 +617,37 @@ Every event emits a compact notation string; `"0x"` is the universal "nothing ha
 Messaging is a real schema dimension, not a detail — it is the only thing most players ever see of an
 event.
 
+**Rewritten after D1**, which found that the first draft matched none of the ten events. See
+[finding 7](#finding-7--the-message-model-fitted-no-event).
+
+**A step produces message fragments. The event joins them.**
+
 ```yaml
-message: "{count}x{piece}"
-empty_message: "0x"          # emitted when the selector matched nothing
+execute:
+  - select: { … }
+    message: "(All) R=N"                    # ONE fragment, however many matched
+  - select: { … }
+    message: { each: "x{piece}@{square}" }  # one fragment PER match
+
+empty_message: "0x"                         # event-level: emitted iff no step produced anything
 ```
 
-Template vocabulary: `{count}`, `{piece}`, `{color}`, `{square}`. Resolved against the step's own
-selection — **not a general expression language**. A message cannot reach into game state; if it
-wants something the selection doesn't have, that is a signal the step is wrong, not that templates
-need power.
+| Form | Emits | Earned by |
+|---|---|---|
+| `message: "…"` | one fragment for the step, if it matched anything | `gia_xang_tang`, `umamusume`, `viec_nhe_vol_cao`, `nguoi_chong_bat_luc`, `long_toi_tan_nat` |
+| `message: { each: "…" }` | one fragment per match | `kho_ga_tron_ba_mia`, `my_danh_iran`, `comeout`, `tai_xiu`, `mat_quyen_cong_dan` |
+
+The event concatenates every fragment from every step with `", "`. **`empty_message` is event-level,
+not step-level** — `mat_quyen_cong_dan` has two steps and emits `"0x"` only if *both* produced
+nothing.
+
+Template vocabulary: **`{piece}` and `{square}`**. Resolved against the fragment's own match —
+**not a general expression language**. A message cannot reach into game state; if it wants something
+the match doesn't have, that is a signal the step is wrong, not that templates need power.
+
+`{piece}` is the compact FAN — `wN`, `bP` — so it already carries the colour. `{count}` and
+`{color}` were in the first draft and are **cut: no event uses either**, which is the earned-verb
+rule applied to templates.
 
 ## No triggers in v1 — deliberate, and stated out loud
 
@@ -489,12 +682,57 @@ members:
   # … all 10
 ```
 
-**Why a sixth content type rather than per-event scheduling:** the ten events do not each have a
+**Why its own content type rather than per-event scheduling:** the ten events do not each have a
 schedule. There is one schedule, and it picks one event at random. Giving each event `every: 10`
 would describe a different game — ten events all firing on turn 10.
 
 This also makes the event cycle **tunable data**, which is the Tuner persona's most obvious request
 after AP costs.
+
+---
+
+# Resource
+
+**Added after D1.** Abilities cost something. This is the something.
+
+```yaml
+type: resource
+id: base:ap
+name: Action Points
+starting: 0
+max: 5
+gain: { amount: 1, every_moves: 2 }
+```
+
+Replaces `STARTING_AP`, `MAX_AP`, and `AP_GAIN_MOVE_INTERVAL` in `constants.py`, and the
+`ActionPointTracker` that reads them.
+
+**Why this is not gold-plating, given the "vocabulary is earned" rule.** D1 found the AP economy had
+no home at all: `cost: { ap: 3 }` was data, but the numbers that decide whether a player *has* 3 AP
+were Python constants. That alone is a Tuner-persona failure (UC1 and UC2 are the two
+highest-ranked use cases in the project). But the sharper argument is a prime-directive violation
+hiding in plain sight:
+
+> `cost: { ap: 3 }` means **the engine knows what AP is.** `ap` is a content identifier, appearing as
+> a literal key in a core schema — exactly what `CLAUDE.md` forbids ("core may never name specific
+> content"). It read as harmless because AP is the only resource the base game has.
+
+So the cost key becomes the resource's ID:
+
+```yaml
+cost: { base:ap: 3 }        # not `ap: 3` — the engine knows "resources", base:chess knows "AP"
+```
+
+The engine tracks per-side quantities of whatever resources are registered, and knows nothing about
+what they mean. A modder's `mymod:mana` works on day one, and `base:ap` gets no privileges.
+
+`gain: { amount: N, every_moves: M }` is the only accrual rule, and it is the only one earned —
+`ActionPointTracker.gain_for_move` counts completed moves per side and awards on the interval.
+
+> **Not here: "using an ability ends your turn."** D1 initially read `ability_used_this_turn` as
+> missing tuning, and it is not. `Ability.use` calls `finish_ability_turn`, so spending an ability
+> *is* spending your turn — that is the **turn lifecycle**, which `CLAUDE.md` puts squarely in core.
+> It is not a resource, not a cost, and not content. Left alone deliberately.
 
 ---
 
@@ -508,11 +746,11 @@ type: ability
 id: base:bishop_snipe
 name: Bishop Snipe
 owner: { tag_any: [base:bishop] }        # the "contains" axis — a Warden may use rook abilities
-cost: { ap: 3 }
+cost: { base:ap: 3 }
 target:
   scope: { of: self, ray: diagonal }
   filter: { friendly: false, not_status: [base:shield] }
-effect: { type: destroy, target: $target, credit: self }
+effect: { type: destroy, credit: self }
 ```
 
 `owner` uses `tag_any` — the **contains** axis. This is the one place the current code gets F3 right
@@ -525,12 +763,12 @@ type: ability
 id: base:rook_shield
 name: Rook Shield
 owner: { tag_any: [base:rook] }
-cost: { ap: 3 }
+cost: { base:ap: 3 }
 target: self
 effect:
   type: apply_status
   status: base:shield
-  to:
+  target:                                  # ← explicit: the ability targets self, the effect does not
     scope: { of: self, adjacent: orthogonal, include_self: true }
     filter: { friendly: true }
 ```
@@ -542,14 +780,15 @@ type: ability
 id: base:pawn_sprint
 name: Pawn Sprint
 owner: { tag_any: [base:pawn] }
-cost: { ap: 1 }
-when: { self: { not_status: [base:stun] } }     # ← see finding 4
+cost: { base:ap: 1 }
+when: { not_status: [base:stun] }               # ← subject is the owning piece. See finding 4.
 target:
   scope: { of: self, offset: [3, 0] }
   filter: { empty: true }
 effect:
-  - { type: move, what: self, to: $target }
-  - { type: transform, into: base:queen, preserve: [has_moved], when: { at_promotion_rank: true } }
+  - { type: move, target: self, to: $target }
+  - { type: transform, target: self, into: base:queen, preserve: [has_moved],
+      when: { at_promotion_rank: true } }
 ```
 
 That last block is **trigger → condition → effect appearing spontaneously inside an ability**, in the
@@ -569,6 +808,7 @@ The explicit ordered-pair table (F10). **Do not derive it from a rule.**
 type: fusion
 id: base:fusion_table
 match: { capturer: exact, captured: primary }     # ← see finding 6; do not omit
+fuses_on: displacing_captures                     # ← see below; decided after D1
 rules:
   - { capturer: base:knight, captured: base:bishop, into: base:archbishop }
   - { capturer: base:bishop, captured: base:knight, into: base:archbishop }
@@ -687,10 +927,58 @@ together.
 
 ---
 
+# Patch
+
+ADR-002 decided *what* patching means. This is the file it lives in — a content type like any other,
+so it declares `type` and `id` and goes through the same nine stages.
+
+```yaml
+type: patch
+id: mymod:queen_tweaks
+patches:
+  - { target: base:queen, op: set,    path: moves[0].limit, value: 3 }
+  - { target: base:queen, op: add,    path: moves, value: { type: leap, offsets: [[1,2]] } }
+  - { target: base:pawn,  op: remove, path: moves[1] }
+```
+
+Three ops, exactly as decided: `set` · `add` · `remove`. The `id` exists because the universal rule
+says every definition has one, and because ADR-002's collision report needs something to name that is
+more precise than "some mod".
+
+`path` addresses **author-facing field names**, which is why stage 6 runs before normalization: a
+patch setting `limit: 3` must land while `limit` still means squares. See
+[the hazard](#-migration-hazard--limit-is-off-by-one).
+
+## `replaces` — the blunt instrument
+
+ADR-002's third mode is definition-level, not field-level, so it is not an op. A content definition
+declares it:
+
+```yaml
+type: piece
+id: mymod:queen           # ← defined in mymod's namespace, as the ID rules require
+replaces: base:queen      # ← and substituted for base:queen everywhere
+```
+
+**A replacement cannot work by redefining `base:queen`**, because a mod may only define IDs in its
+own namespace (mod-package.md) and a duplicate ID is a stage 5 error. `replaces:` is how a total
+conversion (UC12) swaps a piece out without claiming someone else's namespace — the two rules only
+look like an obstacle until you notice they force the honest spelling, where the file says outright
+what it is doing and to whom.
+
+Last-wins, discouraged, and reported when two mods replace the same ID (ADR-002). Patches apply to
+whatever survives replacement — both happen at stage 6, replacement first.
+
+---
+
 # What C3 found that the audit and Phase B did not
 
 Writing the schemas against the source surfaced five things. Three are transcription hazards for D1;
 one is a genuine gap; one is a correction to this spec's own first draft.
+
+**Findings 7 and 8 were added by D1**, which wrote the base game against this spec and found two
+places where a verb was derived from the audit's *summary* of an event rather than from the event.
+That is the pattern worth carrying forward, and it is why D1 exists.
 
 ### Finding 2 — normal promotion needs a player choice
 
@@ -739,8 +1027,8 @@ Logged as a **deliberate behaviour change**, not a silent one. D1 should confirm
 can snipe today. `knight_swap` and `rook_shield` don't check either.
 
 Under status-model.md, `movement: { disable: true }` governs **move generation**, not abilities. So
-this schema reproduces current behaviour exactly: `pawn_sprint` carries `when: { self: { not_status:
-[base:stun] } }` and the other three carry nothing.
+this schema reproduces current behaviour exactly: `pawn_sprint` carries
+`when: { not_status: [base:stun] }` and the other three carry nothing.
 
 This is **F2's pattern in a new place** — an invisible per-consumer inconsistency that nobody decided.
 The schema does what it did for shields: makes it visible, in the file, and leaves the decision to a
@@ -770,12 +1058,44 @@ The audit found the axes in event selectors and ability owners; they were in the
 along. That is a decent argument that `components` earning both axes is not a convenience but a
 structural property of this game. See [`match`](#match--the-two-sides-use-different-axes).
 
+### Finding 7 — the message model fitted no event
+
+**Found by D1.** The first draft specified a step-level `message` with the templates `{count}`,
+`{piece}`, `{color}`, `{square}`, and gave `my_danh_iran` the message `"{count}x"`. Read against the
+source, all four parts of that are wrong:
+
+| First draft | The game |
+|---|---|
+| `{count}` | **No event uses a count.** `my_danh_iran` emits `x{piece}@{square}` per destroyed piece, joined with `", "` |
+| `{color}` | Never used — `format_piece_fan` returns `wN`, `bP`, so colour is already inside `{piece}` |
+| One `message` per step | **Two shapes:** per-match-joined, *and* once-per-step (`"(All) R=N"`, however many rooks matched) |
+| Step-level `empty_message` | **Event-level** — `mat_quyen_cong_dan` emits `"0x"` only if *both* steps produced nothing |
+
+Rewritten above, and it fits all ten. Two template variables instead of four, which is the
+earned-verb rule reaching a corner of the spec nobody thought to apply it to.
+
+The cause is the same as finding 8's: the audit summarised messaging as "compact notation per effect;
+`0x` when nothing matched" — accurate, and insufficient. Messaging is also the only part of an event
+most players ever see, which is a poor thing to have specified from a one-line summary.
+
+### Finding 8 — `random_zone` could not express its only consumer
+
+**Found by D1**, and the sharpest of the lot. The spec offered exactly one binding verb, earned by
+exactly one event, and it did not reproduce that event: the engine constrains the zone origin to
+`randint(2, 5)`, so the strike can never touch rows 0, 1, or 7. `{ type: random_zone, size: [2, 2] }`
+would have hit the whole board.
+
+Fixed with `origin:` — see [the box](#origin--added-after-d1-and-a-warning-about-how-the-rest-of-this-spec-was-written).
+Worth reading even if zones never interest you: a verb written from a description rather than from
+source looked complete, was reviewed, passed Gate 3, and was wrong.
+
 ---
 
 # Open
 
-- **Does `credit` trigger fusion?** ([above](#destroy)) — must be answered before `base:fusion` is
-  written. Recommendation recorded; the call is a human's. Not the retired D11; live regardless of HP.
+- ~~**Does `credit` trigger fusion?**~~ **Decided after D1** ([above](#destroy)): no — displacement
+  does. `base:fusion` declares `fuses_on: displacing_captures`, which preserves today's behaviour and
+  keeps `bishop_snipe` from fusing. It is also ADR-002's first plausible base-game patch target.
 - **Player choice is a new concept** (finding 2) — needs a home in the move pipeline. C4 or E1.
 - **`material` may belong in `properties`** ([above](#properties--the-open-bag-d10)) — depends on
   whether scoring is engine or base-game UI.
@@ -796,7 +1116,8 @@ Every verb in the audit's capability surface has a home:
 | Effects — destroy, transform (+policy), change colour, apply status, move, swap, promote, record capture | 6 effects; `promote` → `transform`+`when`; record capture → `credit` ✅ |
 | Durations — instant, N turns | status-model.md ✅ |
 | Statuses — poison, stun, immobilize, shield | status-model.md (4 → 3) ✅ |
-| Messaging — compact notation, `"0x"` | `message` / `empty_message` ✅ |
+| Messaging — compact notation, `"0x"` | `message` / `message: {each:}` / event-level `empty_message` ✅ *(rewritten by D1 — finding 7)* |
+| AP economy — starting, max, accrual | `resource` ✅ *(added by D1; C3 shipped without it)* |
 | Fusion asymmetry | ordered-pair table + `match` (two axes again — finding 6) ✅ |
 | Two selector axes (F3) | `components` → `tag_any` / `primary` ✅ |
 | Pawn, King | opaque verbs registered by `base:chess` ✅ |
@@ -804,3 +1125,24 @@ Every verb in the audit's capability surface has a home:
 
 **Not covered, knowingly:** event triggers (F5, deferred with reasons), player choice (finding 2,
 newly found, needs a home).
+
+## What the Gate 3 review changed here
+
+The completeness half of Gate 3 — the table above — survived review unchanged. The **consistency**
+half did not. Six defects in this document, all found by reading it against its siblings rather than
+against the source, all fixed above:
+
+| Was | Now |
+|---|---|
+| `status` and `patch` had no `type` value and no place in the type list | Eight content types, listed under [Universal rules](#universal-rules) |
+| Effects named their subject four ways (`to:`, `what:`, `a:`/`b:`, an undocumented `target:`) | One `target:`, defaulting to the enclosing selection |
+| `type: step` used by the King, absent from the move-type table | Deleted — a king is `slide` with `limit: 1` |
+| `on: trigger: moved` used by the Pawn, with no trigger vocabulary | [Shared vocabulary 1](#shared-vocabulary-1--trigger) |
+| `when: { self: {…} }` in one ability, bare conditions everywhere else | The subject is always implicit |
+| `pick: all` vs `pick: { random: 1 }` — a convention used everywhere, stated nowhere | Stated once under [Universal rules](#universal-rules) |
+
+Worth noticing what these have in common: **every one is an omission rather than a mistake**. Each
+verb was earned by real content and each rule was decided correctly — what was missing was the
+sentence that said so, and nothing catches an unstated convention except reading the whole spec at
+once against itself. That is what the gate is for, and it is why it is a review pass rather than a
+formality.

@@ -1,0 +1,14 @@
+# Rook + Knight. Both components full.
+
+type: piece
+id: base:chancellor
+name: Chancellor
+material: 8
+
+# Primary is rook, so gia_xang_tang ("all rooks become knights") hits this.
+components: [base:rook, base:knight]
+
+moves:
+  - { type: slide, dirs: orthogonal, limit: unlimited }
+  - type: leap
+    offsets: [[1, 2], [2, 1], [2, -1], [1, -2], [-1, -2], [-2, -1], [-2, 1], [-1, 2]]

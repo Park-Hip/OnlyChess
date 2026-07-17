@@ -1,0 +1,27 @@
+# Replaces Board.setup_classic + STANDARD_PIECE_ORDER + the WHITE/BLACK constants.
+# Promoted to the first migration wave because UC12 (shogi) is a stated goal: a
+# fixed 8x8 with a hardcoded back rank makes total conversion impossible however
+# good the piece schema is.
+
+type: board
+id: base:standard
+size: [8, 8]
+
+sides:
+  # `forward` is what makes the piece frame work — every `dirs: forward` and
+  # every [forward, right] offset resolves through it. It replaces
+  # `self.direction = -1 if color == WHITE else 1` inside Pawn.__init__.
+  - { id: base:white, forward: up,   promotes_at: 0, moves_first: true }
+  - { id: base:black, forward: down, promotes_at: 7 }
+
+rows:
+  - row: 0
+    side: base:black
+    pieces: [base:rook, base:knight, base:bishop, base:queen,
+             base:king, base:bishop, base:knight, base:rook]
+  - { row: 1, side: base:black, fill: base:pawn }
+  - { row: 6, side: base:white, fill: base:pawn }
+  - row: 7
+    side: base:white
+    pieces: [base:rook, base:knight, base:bishop, base:queen,
+             base:king, base:bishop, base:knight, base:rook]

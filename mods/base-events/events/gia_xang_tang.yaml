@@ -1,0 +1,23 @@
+type: event
+id: base:gia_xang_tang
+name: Gia Xang Tang
+
+warning:
+  message: "GIA XANG TANG INCOMING! ALL ROOKS BECOME KNIGHTS."
+
+execute:
+  - select:
+      # THE "primarily a rook" AXIS. This one line replaces the hand-enumerated
+      # (Rook, Chancellor, Warden) list that excludes the Inquisitor — and it is
+      # not an approximation of that list, it IS the rule the list was trying to
+      # spell. Commit d69b0ca is that list being maintained by hand, once.
+      #
+      # `tag_any: [base:rook]` would be WRONG here: it would catch the Inquisitor,
+      # which contains a rook but is primarily a bishop. One axis cannot express
+      # both this and bishop_snipe's owner check.
+      filter: { primary: base:rook }
+      pick: all
+    effect: { type: transform, into: base:knight, preserve: [has_moved] }
+    message: "(All) R=N"          # one fragment for the step, however many matched
+
+empty_message: "0x"

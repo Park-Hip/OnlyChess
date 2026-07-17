@@ -25,36 +25,136 @@ has a target instead of a direction.
 | C4 loader lifecycle | ✅ [spec/loader-lifecycle.md](spec/loader-lifecycle.md) — 9 stages + error contract |
 | C5 conflict semantics | ✅ [ADR-002](adr/002-conflict-semantics.md) — addressable + 3 patch ops |
 | C6 status model | ✅ [spec/status-model.md](spec/status-model.md) — statuses as data |
-| **Gate 3** | ⬜ **← NEXT.** Spec complete + internally consistent? |
-| **D / E** | ⬜ not reached |
+| **Gate 3** | ✅ **passed** — 9 defects found and fixed; see below |
+| **D** | 🔶 in progress — 1 of 3 |
+| D1 base mod on paper | ✅ [`mods/`](../../mods/) — 34 files → [d1-findings.md](d1-findings.md) |
+| D2 base mod granularity | ✅ decided at Gate 1: split. Boundaries proved by D1 |
+| D3 non-coder test | ⬜ **← NEXT.** Needs a person; see "Waiting on the human" |
+| **Gate 4** | ⬜ blocked on D3 |
+| **E** | ⬜ not reached |
 
-Decisions closed: D1–D7, D9 (verb vocabulary), D10 (open properties — the bag exists, base ships
-none). Retired: D11. Still open: D8 (mostly settled in `mod-package.md`).
+Decisions closed: D1–D10. D8 (versioning) is settled by `mod-package.md`'s Versioning section, and
+Gate 3 completed it — a mod now has an `id`, which is what MAJOR and dependency keys were implicitly
+about. D9's verb set was **reopened by D1 and re-closed**: nine content types (`resource` added), the
+message templates cut to two, `fuses_on` and `origin` added. Retired: D11.
 
-### Do this next: Gate 3, then D1
+### Do this next: D3 — and it needs a person
 
-**Gate 3** asks two questions, and most of the material is already written:
+**D1's eight gaps are all closed or consciously parked**, and both decisions that needed a human have
+been made. **Nothing else in Phase D is blocked, and nothing is blocked on the spec.** D3 is the only
+thing between here and Gate 4, and it cannot start without a non-coder to hand the guide to.
 
-1. *Every Phase A capability has a home in a schema* — [content-schemas.md](spec/content-schemas.md)
-   ends with the checklist. Verify it rather than redo it.
-2. *The spec is internally consistent* — six documents now cross-reference each other. This is the
-   part that has not been done, and it is a real review pass, not a formality.
+Two decisions taken after D1, both worth not relitigating:
 
-Known gaps carried into Gate 3, all deliberate, all recorded — a gap is not a Gate 3 failure if it is
+- **`credit` does not trigger fusion — displacement does.** `type: fusion` gains
+  `fuses_on: displacing_captures`. Preserves today's behaviour exactly: `bishop_snipe` emits a
+  capture but never moves, so it does not fuse. The decision had to live in `base:fusion` regardless,
+  because `base:chess` cannot reference it (UC11). It is also **ADR-002's first plausible base-game
+  patch target**, after C3 looked for one and found none.
+- **The AP economy becomes a `resource` content type** (`base:ap`, nine content types now). The
+  tuning gap was the visible reason; the real one is that **`cost: { ap: 3 }` was a prime-directive
+  violation** — a content identifier as a literal key in a core schema. Now `cost: { base:ap: 3 }`,
+  and `mymod:mana` works on day one. Note what is *not* in it: "using an ability ends your turn" is
+  the turn lifecycle, which is core's job, not tuning.
+
+Known gaps carried past Gate 3 — all deliberate, all recorded. A gap is not a gate failure if it is
 written down and owned:
 
 | Gap | Where | Status |
 |---|---|---|
 | Event triggers (F5) | content-schemas | Deferred out loud; v1 is pool-invoked only |
 | **Player choice** (promotion) | content-schemas, finding 2 | **Real gap.** Needs a move-pipeline home |
-| `credit` → fusion? | content-schemas | Recommendation recorded; **human decides** |
+| ~~`credit` → fusion?~~ | content-schemas | ✅ **decided after D1:** `fuses_on: displacing_captures` |
 | Board layout selection | loader-lifecycle | Needs an owner in Phase D |
 | `.lc` position mapping | loader-lifecycle | **Unspiked; highest-risk unknown** |
 | Validation library | loader-lifecycle | Deliberately deferred to ADR-003 (Phase E) |
 
-Then **D1** — hand-write the whole base game as data files. That is the cheapest test of the
-dogfooding decision, and C3's three transcription hazards (`limit` off-by-one, the pawn double-step,
-fusion's `match` axes) are all waiting there.
+### D1 is done — what it found
+
+Read [d1-findings.md](d1-findings.md). The spec **expresses the base game** — after eight gaps, two
+of which needed the decisions above. 34 files in [`mods/`](../../mods/): 3 manifests, 10 pieces,
+4 abilities, 10 events, 1 pool, 1 fusion table, 3 statuses, 1 board layout, 1 resource.
+
+**ADR-001's Norway problem is now confirmed in our own content, not argued.** `pyyaml` is installed
+here, so stock-PyYAML parsing of `pieces/pawn.yaml` is testable: `on:` parses as the boolean `True`
+and **the pawn's promotion rule silently disappears**. Valid YAML, different meaning, no error. The
+1.2 pin is load-bearing exactly as ADR-001 claimed, and the chokepoint must *reject* PyYAML rather
+than merely avoid it.
+
+**All three transcription hazards fired, and all three were caught by the spec having written them
+down** — Warden's `limit=4`, the pawn's `has_moved` divergence, fusion's `captured: primary`. That is
+what the hazard boxes were for, and it is the strongest evidence so far that writing the spec before
+the engine was the right call.
+
+**The two selector axes paid off three times.** `gia_xang_tang`'s hand-enumerated list became
+`primary: base:rook`; `kho_ga_tron_ba_mia`'s seven codes became
+`tag_any: [base:rook, base:knight, base:bishop]` — *exactly* that set, verified piece by piece. And it
+compounds: because events reach fused pieces through `components` rather than by ID, **`base:events`
+needs no dependency on `base:fusion` at all**. That is D2's boundary proved rather than asserted.
+
+**The pattern in the gaps is worth more than the gaps.** Gap 2 and gap 3 are both places where the
+verb was written from *the audit's one-line summary* of an event rather than from the event —
+"random 2×2 zone" and "compact notation per effect" are accurate descriptions and insufficient
+specifications. Anything else derived that way is suspect. This is exactly what D1 is for: it is
+cheap here, and it would have been a schema rewrite three weeks into an engine.
+
+**The dogfooding claim is still unproven.** `base:chess`'s `code/` is not written, because Gate 4
+forbids implementation code and the verbs (`castle`, `enpassant`) are code. D1 tests the data side
+only.
+
+### Gate 3 is done — what it found
+
+Completeness passed as written: every capability in the Phase A surface has a home, and
+[content-schemas](spec/content-schemas.md)' checklist held up under review rather than needing redoing.
+
+**Consistency did not pass — it found nine defects**, all now fixed. The pattern is worth keeping in
+mind for D1: **every one was an omission, not a wrong decision.** No verb was unearned, no rule was
+wrong; what was missing was the sentence saying so. Unstated conventions are invisible to the author
+who is holding them in their head, and nothing surfaces them except reading six documents against
+each other in one pass. Three would have stopped the base mod from loading at all.
+
+**The blocker — mod identity was never modelled** (fixed in [mod-package](spec/mod-package.md)).
+The manifest declared a `namespace` and no id, while dependencies, disable chains, and every error
+message named mod ids like `base:chess` that no field produced. Underneath sat a real contradiction:
+one namespace per mod, plus a hard error on collision, made **D2's three base mods illegal** —
+`base:chess`, `base:fusion`, and `base:events` all define `base:*` IDs. The split UC11 required could
+not load. Resolved:
+
+- **A mod's id is a namespaced ID like everything else** (`id: base:chess`), and its namespace is the
+  id's namespace part. One field, derived, not two declared.
+- **The originator rule:** several mods may claim a namespace only if exactly one of them is a
+  dependency of all the others. `base:chess` originates `base`. Two strangers both claiming
+  `dragonmod` still hard-error, so the property the strict rule protected is intact. The check is
+  free — stage 2 already has the resolved graph.
+- **Rejected:** per-mod namespaces (`base_chess:queen`). It bakes our packaging into every ID a third
+  party references, so moving `shield` between base mods would break dependents. The partition is our
+  business; the namespace is the ecosystem's.
+- **Knock-on:** load-order ties now break by **mod id**, not namespace — which is no longer unique.
+- **Bonus:** it resolves a tension nobody had flagged. `replace` cannot work by redefining
+  `base:queen`, since a mod may only define IDs in its own namespace. A total conversion defines
+  `mymod:queen` with `replaces: base:queen`, and the file now says outright what it does and to whom.
+
+**Two more that stopped the base mod loading.** Statuses had no `type:` and were absent from the
+content-type list, so every status file failed at stage 3 — `status` is a content type, it just lived
+in another document and nobody reconciled the two. Patches had the same problem, and ADR-002's third
+mode `replace` was decided but had no stage and no syntax; it is now a `replaces:` field, applied at
+stage 6 before patches so a patch cannot silently land on a definition that is about to be discarded.
+
+**The rest were spec-internal drift**, all in [content-schemas](spec/content-schemas.md): effects
+named their subject four different ways (now one defaulting `target:`); `type: step` was used by the
+King and never defined (deleted — a king is `slide` with `limit: 1`, and `_get_one_step_moves` is an
+implementation of that, not a second primitive); piece triggers had no vocabulary despite `trigger`
+being the first term of the project's own shape (now vocabulary 1, one entry — `moved`); one ability
+wrote `when: { self: {…} }` against bare conditions everywhere else (the subject is always implicit,
+and letting a condition name another subject is where the condition line would break first); and
+`pick: all` vs `pick: { random: 1 }` was a convention used by four fields and stated by none.
+
+**One silent-breakage bug found, in the fix for another one.** C3's hazard box says `limit` is off by
+one and the loader converts it. `base:poison` carries `movement.slide.limit: 1` — the same unit, a
+different schema. A loader that normalizes only `moves` gives a poisoned bishop a **zero-square
+slide**, with nothing in the data looking wrong. Normalization is now defined over the **vocabulary**,
+not the piece type. This is exactly the failure C3 wrote the hazard box to prevent, hiding one
+document over.
 
 ### C4 is done — what it decided, and what it found
 
@@ -111,8 +211,9 @@ Headline decisions, each of which a fresh session should not relitigate without 
   named a behaviour, not a primitive. Six effects, not seven.
 - **Event triggers are deferred, out loud** (F5). v1 events are pool-invoked only; "fire when a
   queen is captured" is inexpressible. Cheap to add later because pieces need the bus anyway.
-- **Event pool is a sixth content type** — the ten events share *one* schedule that picks one at
-  random. Per-event scheduling would describe a different game.
+- **Event pool is its own content type** — the ten events share *one* schedule that picks one at
+  random. Per-event scheduling would describe a different game. (C3 called it "the sixth"; Gate 3
+  found status and patch were content types too, so there are eight.)
 
 **Five findings that were not in the audit or Phase B.** Three are transcription hazards for D1; one
 is a real gap; one is a correction to C3's own first draft:
@@ -181,8 +282,10 @@ express the base game:
 
 ### Waiting on the human
 
-- **Line up a non-coder for D3** (the non-coder test). Needs lead time. It is the only step that
-  tests the project's actual goal rather than our belief about it.
+- **Line up a non-coder for D3 — this is now the blocking step.** Everything else in Phase D is done.
+  It needs lead time, and it is the only step that tests the project's actual goal rather than our
+  belief about it. Settle the three D1 schema decisions first so they are not handed a spec with a
+  known-broken event.
 - **A game-design call, needed before `base:fusion` is written:** does a `credit`ed destroy trigger
   fusion? `bishop_snipe` records a capture but does **not** fuse today. Under C3's schema
   `credit: self` is indistinguishable from a capture, so a naive fusion hook would make snipe fuse
@@ -193,6 +296,9 @@ express the base game:
   closes off the obvious alternative — `base:chess` owns `bishop_snipe` and cannot reference
   `base:fusion` (UC11), so **the ability cannot opt out of fusion by name**. The decision must live
   in `base:fusion` regardless of which way it goes.
+  **D1 sharpened this:** whichever way you decide, `type: fusion` has no field to write the answer in
+  (`match:` and `rules:`, nothing else). The recommendation is currently unimplementable as data, so
+  this is a schema task as well as a game-design call. See [d1-findings](d1-findings.md) gap 1.
 - Three flagged close calls, open to challenge: ADR-002 ships 3 patch ops with **no base-game
   consumer** (C3 looked again and found none); ADR-001's YAML 1.2 pin adds a `ruamel.yaml`
   dependency to a project that currently depends only on pygame; C3's `has_status` filter has no
@@ -510,7 +616,7 @@ Keep these as ADRs in `docs/modding/adr/`. Each is expensive to reverse once sch
 | ~~D5~~ | ~~Conflict/override semantics~~ | **decided: addressable + 3 patch ops** ([ADR-002](adr/002-conflict-semantics.md)) |
 | ~~D6~~ | ~~Status effect model~~ | **decided: data statuses, 2 expiry policies** ([status-model](spec/status-model.md)) |
 | ~~D7~~ | ~~Base mod granularity~~ | **decided at Gate 1: split** (UC11) |
-| D8 | Versioning and compatibility policy | — |
+| ~~D8~~ | ~~Versioning and compatibility policy~~ | **decided: semver; mod id + originator rule** ([mod-package](spec/mod-package.md)) |
 | ~~D9~~ | ~~Trigger/condition/effect vocabulary — the v1 verb set~~ | **decided: 6 effects, 4 conditions, no event triggers in v1** ([content-schemas](spec/content-schemas.md)) |
 | ~~D10~~ | ~~Open piece properties~~ | **decided: `properties` bag exists (shape); base ships none** ([content-schemas](spec/content-schemas.md)) |
 | ~~D11~~ | ~~Fusion on capture or on kill, once HP exists~~ | **retired** — HP is a probe, never built; whoever adds it decides |
@@ -524,7 +630,8 @@ Written as the phases produce them — not up front.
 - Phase B → `feasibility-study.md`
 - Phase C → `spec/mod-package.md`, `spec/content-schemas.md`, `spec/loader-lifecycle.md`,
   `spec/status-model.md` — **all written**
-- Phase D → `mods/base/**` (data files), `modder-guide.md`
+- Phase D → `mods/base-chess/**`, `mods/base-fusion/**`, `mods/base-events/**` (data files —
+  **written**), `d1-findings.md` (**written**), `modder-guide.md` (D3)
 - Phase E → `engine-gap-analysis.md`, `migration-plan.md`, `adr/003-validation.md`
 - Ongoing → `adr/`
 

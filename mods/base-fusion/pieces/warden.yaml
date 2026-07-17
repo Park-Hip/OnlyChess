@@ -1,0 +1,20 @@
+# Rook + Bishop, captured in that order — the "Heavy Rook".
+# Full rook, plus a diagonal capped at three squares.
+
+type: piece
+id: base:warden
+name: Warden
+material: 7
+
+# Primary is rook: gia_xang_tang hits a Warden, and does not hit an Inquisitor.
+# That asymmetry is the whole point of the ordered list.
+components: [base:rook, base:bishop]
+
+moves:
+  - { type: slide, dirs: orthogonal, limit: unlimited }
+
+  # THREE squares. `fused.py` says `limit=4` because _get_sliding_moves uses
+  # range(1, limit) — the engine's limit is exclusive. Transcribing the 4 out of
+  # the source gives a Warden with a four-square diagonal and no error, which is
+  # exactly the silent breakage the schema exists to prevent. The loader converts.
+  - { type: slide, dirs: diagonal, limit: 3 }

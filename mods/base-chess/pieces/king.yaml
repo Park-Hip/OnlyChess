@@ -1,0 +1,17 @@
+# A king is a slide with limit 1. There is no `step` move type — see
+# content-schemas.md, "Piece / moves".
+
+type: piece
+id: base:king
+name: King
+material: 0
+
+moves:
+  - { type: slide, dirs: all, limit: 1 }
+
+  # Opaque verb, registered by this mod's code/. `with:` is a selector rather
+  # than a hardcoded rook: today King.get_castle_moves contains
+  # `corner_piece.get_piece_code() == ROOK_CODE`, which is core naming content.
+  # Parameterising it is the difference between "the engine knows about rooks"
+  # and "base:chess knows about rooks".
+  - { type: castle, with: { tag_any: [base:rook] } }

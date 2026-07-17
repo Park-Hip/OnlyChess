@@ -1,0 +1,17 @@
+type: event
+id: base:viec_nhe_vol_cao
+name: Viec Nhe Vol Cao
+
+warning:
+  message: "VIEC NHE VOL CAO INCOMING! ALL PAWNS WILL BE STUNNED."
+
+execute:
+  - select:
+      filter: { is: base:pawn }
+      pick: all
+    # Same status as nguoi_chong_bat_luc, different number. That is the whole
+    # argument for duration living on the application rather than the definition.
+    effect: { type: apply_status, status: base:stun, duration: 2 }
+    message: "[stun] (All) P"
+
+empty_message: "0x"

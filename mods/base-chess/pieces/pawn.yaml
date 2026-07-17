@@ -1,0 +1,35 @@
+# The pawn is the hardest piece in standard chess to express as data, and it is
+# the reason `enpassant` exists as an opaque verb.
+
+type: piece
+id: base:pawn
+name: Pawn
+material: 1
+
+moves:
+  # Forward one, never capturing.
+  - { type: slide, dirs: forward, limit: 1, capture: false }
+
+  # The first-move double step. `limit: 2` is a slide, so the intervening square
+  # must be empty — which is what the engine's nested emptiness check does today.
+  #
+  # DIVERGENCE, deliberate: the engine gates this on *rank* (r == BOARD_ROWS - 2
+  # for white), not on has_moved. See content-schemas.md finding 3. Rank-gating
+  # hardcodes a board size into a piece, which UC12 forbids.
+  - { type: slide, dirs: forward, limit: 2, capture: false, when: { has_moved: false } }
+
+  # Diagonal capture only.
+  - { type: slide, dirs: forward_diagonal, limit: 1, capture: only }
+
+  # Opaque verb, registered by this mod's code/. No composition of slide and leap
+  # produces en passant: it captures a piece that is not on the target square.
+  - { type: enpassant }
+
+on:
+  - trigger: moved
+    when: { at_promotion_rank: true }
+    effect:
+      type: transform
+      into: [base:queen, base:rook, base:bishop, base:knight]
+      choose: mover
+      preserve: [has_moved]

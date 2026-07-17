@@ -1,0 +1,16 @@
+# Knight + Bishop. Both components full.
+
+type: piece
+id: base:archbishop
+name: Archbishop
+material: 6
+
+# Ordered: first element is the primary. Archbishop's primary is knight, so
+# `primary: base:bishop` does NOT hit it — but `tag_any: [base:bishop]` does.
+components: [base:knight, base:bishop]
+
+# Re-declared by hand, not derived from `components`. See findings, gap 5.
+moves:
+  - { type: slide, dirs: diagonal, limit: unlimited }
+  - type: leap
+    offsets: [[1, 2], [2, 1], [2, -1], [1, -2], [-1, -2], [-2, -1], [-2, 1], [-1, 2]]

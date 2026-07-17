@@ -48,6 +48,13 @@ patches:
 
 `set` (change a field) · `add` (append to a list) · `remove` (delete a field or list entry).
 
+> **Where this is expressed** (added at Gate 3 — the decision is unchanged): patches are a content
+> type, `type: patch`, and `replace` is a `replaces:` field on a content definition rather than a
+> fourth op, since it is definition-level. Both are specified in
+> [content-schemas.md](../spec/content-schemas.md#patch) and applied at stage 6 of
+> [the loader](../spec/loader-lifecycle.md#6-patch). This ADR decided the semantics and never said
+> what the file looked like; Gate 3 found the omission.
+
 **Load order derives from the dependency graph** (ADR pending, roadmap C2), making patch application
 deterministic and reproducible.
 

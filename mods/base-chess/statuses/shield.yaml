@@ -1,0 +1,17 @@
+# Shield lives in base:chess, not base:events, because rook_shield is an ability
+# and abilities ship with the pieces that own them. Disabling base:events must
+# leave a coherent game: poison and stun leave with it, shield stays.
+
+type: status
+id: base:shield
+
+# Not a countdown. The rule is "survive your own turn-end, die on the opponent's"
+# — ShieldTracker.expire_after_turn keys on shield_owner, and `shield_turns = 1`
+# is vestigial, read by nothing. A naive `turns: 1` would silently change the
+# game. This policy exists because shield refused to be a countdown.
+expiry: after_opponent_turn
+
+# The only engine-enforced protection. It covers captures and nothing else —
+# events opt in via `not_status: [base:shield]` selectors, and seven of them
+# don't. That inconsistency is preserved and made visible, not fixed (F2).
+modifies: { capturable: false }

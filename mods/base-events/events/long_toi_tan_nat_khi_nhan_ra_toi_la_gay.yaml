@@ -1,0 +1,21 @@
+type: event
+id: base:long_toi_tan_nat_khi_nhan_ra_toi_la_gay
+name: Long Toi Tan Nat Khi Nhan Ra Toi La Gay
+
+warning:
+  message: "QUEEN PURGE INCOMING! ALL QUEENS WILL BE REMOVED."
+
+execute:
+  - select:
+      filter: { is: base:queen }
+      pick: all
+    # No `credit:` — a purged queen simply leaves the board and nobody's capture
+    # tally moves. That is what all five destroying events do.
+    #
+    # No `not_status: [base:shield]` either. This event ignores shields, and it
+    # ignores them by not writing the filter — which is the inconsistency F2
+    # found, now visible in the file instead of buried in a getattr.
+    effect: { type: destroy }
+    message: "x(All) Q"
+
+empty_message: "0x"

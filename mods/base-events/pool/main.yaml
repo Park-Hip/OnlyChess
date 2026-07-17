@@ -1,0 +1,32 @@
+# Replaces DEFAULT_ADVANCED_EVENT_POOL (a hardcoded list of ten strings in
+# mode_config.py) plus EVENT_CYCLE_TURNS / EVENT_WARNING_OFFSET /
+# EVENT_EXECUTE_OFFSET in constants.py.
+#
+# The ten events do not each have a schedule. There is ONE schedule, and it picks
+# one event at random — which is why the pool is its own content type rather than
+# an `every: 10` field on each event. Per-event scheduling would describe a
+# different game: ten events all firing on turn 10.
+#
+# It also makes the event cycle tunable data, which is the Tuner persona's most
+# obvious request after AP costs.
+
+type: event_pool
+id: base:main_pool
+
+every: 10          # EVENT_CYCLE_TURNS
+warn_before: 1     # EVENT_WARNING_OFFSET 8 / EVENT_EXECUTE_OFFSET 9 are the
+                   # completed-turn encoding of "warn on displayed turn 9,
+                   # execute on displayed turn 10" — a phase, not an extra knob.
+pick: { random: 1 }
+
+members:
+  - base:gia_xang_tang
+  - base:umamusume
+  - base:my_danh_iran
+  - base:tai_xiu
+  - base:comeout
+  - base:viec_nhe_vol_cao
+  - base:nguoi_chong_bat_luc
+  - base:kho_ga_tron_ba_mia
+  - base:long_toi_tan_nat_khi_nhan_ra_toi_la_gay
+  - base:mat_quyen_cong_dan

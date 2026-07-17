@@ -1,0 +1,18 @@
+type: event
+id: base:nguoi_chong_bat_luc
+name: Nguoi Chong Bat Luc
+
+warning:
+  message: "NGUOI CHONG BAT LUC INCOMING! BOTH KINGS WILL BE IMMOBILIZED."
+
+execute:
+  - select:
+      filter: { is: base:king }
+      pick: all
+    # "Immobilize" is base:stun with duration 1. The engine has a whole separate
+    # class for it — same is_active flag, same countdown attribute, same restore.
+    # Even the message already said "[stun]".
+    effect: { type: apply_status, status: base:stun, duration: 1 }
+    message: "[stun] (All) K"
+
+empty_message: "0x"

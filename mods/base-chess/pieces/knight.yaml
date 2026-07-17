@@ -1,0 +1,13 @@
+# Offsets are [forward, right] in the piece's own frame, never raw board
+# coordinates. The knight's octet is symmetric, so its frame-relative offsets
+# happen to equal its board-relative ones — which is exactly why it is a bad
+# piece to check the convention against. See the pawn for a piece where it bites.
+
+type: piece
+id: base:knight
+name: Knight
+material: 3
+
+moves:
+  - type: leap
+    offsets: [[1, 2], [2, 1], [2, -1], [1, -2], [-1, -2], [-2, -1], [-2, 1], [-1, 2]]
