@@ -11,9 +11,11 @@ wheels/
 /md
 CONTEXT.md
 
-# Internal docs and tests (kept local, not published)
-docs/
-tests/
+# Course-era internal docs stay local. docs/modding/ is the modding spec and IS
+# tracked — it is the documentation modders read.
+# Note: /docs/* not docs/ — git will not descend into an excluded directory, so
+# the negation below only works if the directory itself stays unexcluded.
+/docs/*
+!/docs/modding/
 mode.md
 AGENTS.md
-CLAUDE.md
