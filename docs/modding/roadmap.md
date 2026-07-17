@@ -4,6 +4,86 @@
 **Goal of this phase:** produce a spec that provably expresses the existing game, so the refactor
 has a target instead of a direction.
 
+---
+
+## ▶ START HERE — current status
+
+**Last updated:** 2026-07-17 · commit `8568118` · branch `refactor/mod-driven-prep`
+
+### Where we are
+
+| Phase | State |
+|---|---|
+| **A** — audit + use cases | ✅ complete → [`content-audit.md`](content-audit.md), [`use-cases.md`](use-cases.md) |
+| **Gate 1** | ✅ passed |
+| **B** — feasibility experiment | ✅ complete → [`feasibility-study.md`](feasibility-study.md) |
+| **Gate 2** | ✅ passed — mod power decided by evidence |
+| **C** — lock format + spec | 🔶 **in progress — 4 of 6 done** |
+| C1 format | ✅ [ADR-001](adr/001-data-format.md) — YAML, pinned to 1.2 core schema |
+| C2 mod package | ✅ [spec/mod-package.md](spec/mod-package.md) — manifest, IDs, semver, load order |
+| C5 conflict semantics | ✅ [ADR-002](adr/002-conflict-semantics.md) — addressable + 3 patch ops |
+| C6 status model | ✅ [spec/status-model.md](spec/status-model.md) — statuses as data |
+| **C3 content schemas** | ⬜ **← NEXT. The centerpiece.** |
+| C4 loader lifecycle | ⬜ not started |
+| **Gate 3 / D / E** | ⬜ not reached |
+
+Decisions closed: D1–D7. Retired: D11. Still open: D8 (mostly settled in `mod-package.md`), D9, D10.
+
+### Do this next: C3 — content schemas
+
+One schema per content type, derived from the Phase A audit and Phase B verbs. **The status schema
+is already done** (C6) — do not redo it.
+
+Write: **piece**, **event**, **ability**, **fusion**, **board layout**, plus the shared **selector**,
+**effect**, and **condition** vocabularies.
+
+**Non-negotiable constraints — all are earned findings, not preferences. Violating any one of them
+means the schema cannot express the base game:**
+
+1. **Two selector axes** (F3) — `tag` ("contains a rook": Rook, Chancellor, Warden, **and**
+   Inquisitor) and `primary` ("is primarily a rook": Rook, Chancellor, Warden, **not** Inquisitor).
+   `gia_xang_tang` needs the second; abilities need the first. One axis cannot express both.
+2. **Fusion is an ordered pair** (F10) — `(Rook, Bishop) → Warden` but `(Bishop, Rook) → Inquisitor`.
+   Do not derive from a rule; the principle is only half-applied. Keep the explicit 6-entry table.
+3. **Events are two-phase** (F9) — `my_danh_iran` computes its 2×2 zone at *warning* time and reads
+   it at *execution*. Warning can bind state. **This is the only place bindings are needed — watch
+   it closely, it is where the format would start becoming a language.**
+4. **Events are a list of steps** — `mat_quyen_cong_dan` does two unrelated things.
+5. **Transform needs a named `preserve` policy** (F4) — `all_except_identity` vs `[has_moved]`.
+   Both exist today, unnamed, and they disagree about whether statuses survive.
+6. **Shield-respect is a selector filter, not an engine rule** (F2) — `not_status: [base:shield]`,
+   explicit per effect. Seven events ignore shields today; the schema makes that visible, not fixed.
+7. **Pawn and King need opaque verbs** — `enpassant`, `castle`. Registered *by `base:chess`* through
+   the public verb path, never engine special-cases. If that path is privileged, dogfooding is a lie.
+8. **The condition line holds** — pure predicates. No loops, no assignment, no arithmetic beyond
+   comparison. See `CLAUDE.md`.
+9. **Verbs are earned** — only what base-game content actually needs. No `modify_property`, no
+   `grant_ap`, no counters. Those arrive via code mods.
+
+Then C4 (loader lifecycle + error contract), then Gate 3.
+
+### Context a fresh session needs
+
+- `CLAUDE.md` is committed and loads automatically — it carries the constitution, the mod model, and
+  the condition line. Trust it over any older doc.
+- The **existing `docs/*.md`** (`oop-design.md`, `extensibility-and-change-impact.md`, …) describe
+  the **pre-refactor** design and are gitignored/local. Accurate map of the *problem*; misleading map
+  of the *target*.
+- **UC13–15 (HP, conditional powers, missions) are probes, never features.** If you find yourself
+  building one, stop and re-read `CLAUDE.md`.
+- Tests: `python -m pytest` (**not** `uv run pytest`). 182 passing as of `8568118`.
+- Uncommitted: `src/game/board.py` has a stray trailing-whitespace edit predating this work.
+
+### Waiting on the human
+
+- **Line up a non-coder for D3** (the non-coder test). Needs lead time. It is the only step that
+  tests the project's actual goal rather than our belief about it.
+- Two flagged close calls, open to challenge: ADR-002 ships 3 patch ops with **no base-game
+  consumer**; ADR-001's YAML 1.2 pin adds a `ruamel.yaml` dependency to a project that currently
+  depends only on pygame.
+
+---
+
 ## How to use this document
 
 Work top to bottom. The gates are real: each one exists because the work after it is expensive to
