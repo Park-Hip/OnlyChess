@@ -66,6 +66,10 @@ class FusionResolver:
             moves=tuple(moves),
             components=tuple(components),
             properties=dict(event.capturer.definition.properties),
+            # The capturer's own worth, not the sum of what it has eaten. Summing would count a
+            # capture twice on a material readout — once as the loser's loss, again as the
+            # capturer's gain — and the difference between the two sides is the whole point.
+            material=event.capturer.definition.material,
         )
         return self._replace_with(event, definition)
 

@@ -214,10 +214,18 @@ class EngineGameScreen(Screen):
         accent = p.Color(palette["selection"]) if palette else ACCENT_GOLD
         target = p.Color(palette["target"]) if palette else ACCENT_GOLD
         targets = {move.end for move in self.session.moves_from(self.selected_square)} if self.selected_square else set()
+        last = self.session.state.last_move
+        last_squares = {last.start, last.end} if last is not None else set()
         for row in range(board.rows):
             for col in range(board.columns):
                 rect = layout.square_rect((row, col))
                 p.draw.rect(surface, (light, dark)[(row + col) % 2], rect)
+                if (row, col) in last_squares:
+                    # Where the previous move ran. A translucent wash rather than an outline, so it
+                    # reads as "this happened" and never competes with the selection ring.
+                    tint = p.Surface((layout.square_size, layout.square_size), p.SRCALPHA)
+                    tint.fill((accent.r, accent.g, accent.b, 60))
+                    surface.blit(tint, rect.topleft)
                 if (row, col) == self.selected_square: p.draw.rect(surface, accent, rect, max(2, layout.square_size // 14))
                 elif (row, col) in targets: p.draw.circle(surface, target, rect.center, max(3, layout.square_size // 7))
                 piece = board.at((row, col))
@@ -297,7 +305,7 @@ class EngineGameScreen(Screen):
         return p.Color(palette[token]) if palette else fallback
 
     def _widget_turn(self, surface, widget, rect, y, snapshot, palette):
-        label = f"{snapshot.current_side_name} to move | Ctrl-Z: undo | click a selected piece again for abilities"
+        label = f"Turn {snapshot.turn_number + 1} | {snapshot.current_side_name} to move | Esc: menu | H: help"
         surface.blit(self.shared.fonts["normal"].render(label, True, self._color(palette, "text", TEXT_PRIMARY)), (rect.x + 12, y))
         return y + 24
 
@@ -335,7 +343,30 @@ class EngineGameScreen(Screen):
             y += 24
         return y + (12 if snapshot.clocks else 0)
 
-    _DRAW = {"turn": _widget_turn, "resources": _widget_resources, "log": _widget_log, "prompt": _widget_prompt, "clock": _widget_clock}
+    def _widget_material(self, surface, widget, rect, y, snapshot, palette):
+        """Who is ahead, and by how much. Silent at parity: `+0` is noise, not information."""
+        totals = dict(snapshot.material)
+        if len(totals) != 2:
+            return y
+        (first, first_total), (second, second_total) = snapshot.material
+        if first_total != second_total:
+            leader, margin = (first, first_total - second_total) if first_total > second_total else (second, second_total - first_total)
+            text = self.shared.fonts["small"].render(f"{leader} +{margin}", True, self._color(palette, "text", TEXT_PRIMARY))
+            surface.blit(text, (rect.x + 12, y))
+            return y + 22
+        return y
+
+    def _widget_countdown(self, surface, widget, rect, y, snapshot, palette):
+        """Draws nothing when no pool is scheduled, so a layout can declare it unconditionally."""
+        if snapshot.event_countdown is None:
+            return y
+        # The last move before an event lands is the one worth flagging.
+        color = self._color(palette, "warning", ACCENT_GOLD) if snapshot.event_countdown <= 1 else self._color(palette, "text", TEXT_PRIMARY)
+        text = self.shared.fonts["small"].render(f"Next event in {snapshot.event_countdown}", True, color)
+        surface.blit(text, (rect.x + 12, y))
+        return y + 22
+
+    _DRAW = {"turn": _widget_turn, "material": _widget_material, "countdown": _widget_countdown, "resources": _widget_resources, "log": _widget_log, "prompt": _widget_prompt, "clock": _widget_clock}
 
     def _draw_outcome_buttons(self, surface, layout, palette):
         panel = self._color(palette, "panel", CARD_BG)

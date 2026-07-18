@@ -28,7 +28,7 @@ def build_state(registries, mode_id: str) -> EngineState:
         properties = dict(data.get("properties", {}))
         if "on" in data:
             properties["on"] = tuple(data["on"])
-        definitions[entry.id] = PieceDef(entry.id, tuple(data.get("moves", [])), tuple(data.get("components", [entry.id])), properties)
+        definitions[entry.id] = PieceDef(entry.id, tuple(data.get("moves", [])), tuple(data.get("components", [entry.id])), properties, int(data.get("material", 0)))
     statuses = {}
     for entry in registries.content["status"]:
         data = entry.value.tree

@@ -11,6 +11,11 @@ class PieceDef:
     moves: tuple[dict, ...]
     components: tuple[str, ...]
     properties: dict
+    #: Relative worth, declared by content and validated but until now dropped at normalization.
+    #: The engine never reads it — it exists so presentation can total up who is ahead — which is
+    #: why an undeclared piece is worth 0 rather than an error: a mod that does not care about
+    #: material should not have to say so on every piece.
+    material: int = 0
 
     @property
     def royal(self) -> bool:

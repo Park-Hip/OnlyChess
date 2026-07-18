@@ -7,5 +7,7 @@ widgets:
   # costs a clockless game exactly one blank line of nothing.
   - { type: clock, slot: side }
   - { type: resources, slot: side }
+  - { type: material, slot: side }
+  - { type: countdown, slot: side }
   - { type: log, slot: side, max_lines: 12 }
   - { type: prompt, slot: bottom }

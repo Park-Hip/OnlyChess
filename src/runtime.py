@@ -173,7 +173,29 @@ class EngineSession:
         pieces = tuple(PresentationPiece(piece.definition.id, piece.side, piece.pos, tuple(sorted(piece.statuses))) for piece in board.pieces())
         resources = tuple(sorted((f"{side}:{resource}", value) for side, values in self.state.resources.items() for resource, value in values.items()))
         clocks = tuple((board.sides[side].name, remaining) for side, remaining in self.clocks.items())
-        return PresentationSnapshot(self.mode_id, board.rows, board.columns, board.sides[self.state.current_side].name, pieces, resources, tuple(self.state.event_messages), prompt, self.outcome, clocks)
+        material = tuple((board.sides[side].name, sum(piece.definition.material for piece in board.pieces() if piece.side == side)) for side in board.sides)
+        last = self.state.last_move
+        return PresentationSnapshot(
+            self.mode_id, board.rows, board.columns, board.sides[self.state.current_side].name,
+            pieces, resources, tuple(self.state.event_messages), prompt, self.outcome, clocks,
+            (last.start, last.end) if last is not None else None,
+            material, self.state.completed_turns, self._event_countdown(),
+        )
+
+    def _event_countdown(self):
+        """Moves until the soonest active pool executes, or None when no pool is scheduled.
+
+        Derived from the pool's own schedule rather than stored, so it cannot drift out of step
+        with the turn counter it is describing, and undo needs to know nothing about it.
+        """
+        countdowns = []
+        for pool_id in self.state.active_pools:
+            pool = self.state.event_pools.get(pool_id)
+            if not pool or not pool.get("every"):
+                continue
+            every = pool["every"]
+            countdowns.append(every - (self.state.pool_turns.get(pool_id, 0) % every))
+        return min(countdowns) if countdowns else None
 
     def drain_notifications(self):
         notices, self.notifications = tuple(self.notifications), []
