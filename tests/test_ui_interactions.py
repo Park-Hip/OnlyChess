@@ -300,6 +300,73 @@ class ClickPathTests(unittest.TestCase):
         self.press(screen, p.K_h, "h")
         self.assertIsNone(screen.overlay)
 
+    def release(self, screen, square):
+        p.mouse.get_pos = lambda: screen._layout(self.surface).square_rect(square).center
+        screen.handle_event(p.event.Event(p.MOUSEBUTTONUP, {"button": 1}))
+
+    def test_dragging_a_piece_to_a_square_plays_the_move(self):
+        screen = self.screen()
+        move = screen.session.legal_moves[0]
+
+        self.click(screen, move.start)
+        self.assertEqual(move.start, screen.dragging)
+        self.release(screen, move.end)
+
+        self.assertEqual("base:pawn", self.occupant(screen, move.end))
+        self.assertIsNone(screen.dragging)
+        self.assertIsNone(screen.selected_square)
+
+    def test_releasing_where_the_drag_began_selects_instead_of_moving(self):
+        """A press and release on one square is a click, so the click-then-click path continues."""
+        screen = self.screen()
+        move = screen.session.legal_moves[0]
+
+        self.click(screen, move.start)
+        self.release(screen, move.start)
+
+        self.assertIsNone(screen.dragging)
+        self.assertEqual(move.start, screen.selected_square)
+        self.assertEqual([], screen.session.state.action_log)
+
+        self.click(screen, move.end)
+        self.assertEqual("base:pawn", self.occupant(screen, move.end))
+
+    def test_dropping_on_an_illegal_square_changes_nothing(self):
+        screen = self.screen()
+
+        self.click(screen, (7, 0))
+        self.release(screen, (3, 3))
+
+        self.assertEqual("base:rook", self.occupant(screen, (7, 0)))
+        self.assertEqual([], screen.session.state.action_log)
+
+    def test_a_fused_piece_shows_what_it_absorbed(self):
+        screen = self.screen("base:advanced")
+        self.clear_to(
+            screen,
+            ("base:rook", "base:white", (4, 0)), ("base:bishop", "base:black", (3, 0)),
+            ("base:king", "base:white", (7, 4)), ("base:king", "base:black", (0, 4)),
+        )
+        self.click(screen, (4, 0))
+        self.click(screen, (3, 0))
+
+        blank = p.Surface(self.surface.get_size())
+        blank.fill((0, 0, 0))
+        drawn = blank.copy()
+        screen.draw(drawn)
+        rect = screen._layout(drawn).square_rect((3, 0))
+        corner = p.Rect(rect.centerx, rect.centery, rect.width // 2, rect.height // 2)
+
+        # The absorbed component's glyph is drawn into the square's bottom-right corner; a plain
+        # rook leaves that corner as bare board.
+        plain = blank.copy()
+        self.clear_to(screen, ("base:rook", "base:white", (3, 0)), ("base:king", "base:white", (7, 4)), ("base:king", "base:black", (0, 4)))
+        screen.draw(plain)
+        self.assertNotEqual(
+            p.image.tostring(plain.subsurface(corner), "RGB"),
+            p.image.tostring(drawn.subsurface(corner), "RGB"),
+        )
+
     def test_a_capture_clicked_on_the_board_fuses_and_undo_splits_it(self):
         screen = self.screen("base:advanced")
         self.clear_to(

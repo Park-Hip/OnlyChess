@@ -51,6 +51,10 @@ class EngineGameScreen(Screen):
         self.ability_choices: tuple[AbilityChoice, ...] = ()
         self.error_message = None
         self.overlay = None
+        #: The square a drag started from, and where the cursor has reached. Drag is an addition to
+        #: click-then-click, never a replacement: both reach the same move through the same path.
+        self.dragging = None
+        self.drag_pos = None
         self._last_tick = p.time.get_ticks()
         self.presentation = PresentationRuntime(session.load_result, session.mode_id)
 
@@ -108,6 +112,12 @@ class EngineGameScreen(Screen):
                 self._restart(); return
             if menu_rect.collidepoint(position):
                 self._go_to_menu(); return
+        if event.type == p.MOUSEMOTION and self.dragging is not None:
+            self.drag_pos = p.mouse.get_pos()
+            return
+        if event.type == p.MOUSEBUTTONUP and event.button == 1:
+            self._finish_drag()
+            return
         if event.type != p.MOUSEBUTTONDOWN or event.button != 1 or self.pending_move is not None:
             return
         position = p.mouse.get_pos()
@@ -125,7 +135,9 @@ class EngineGameScreen(Screen):
                 self.error_message = str(error); return
             self.pending_ability = None; self.selected_square = None; return
         if self.selected_square is None:
-            if self.session.state.board.at(square) is not None: self.selected_square = square
+            if self.session.state.board.at(square) is not None:
+                self.selected_square = square
+                self.dragging, self.drag_pos = square, position
             return
         if square == self.selected_square:
             self.ability_choices = self._choices()
@@ -138,6 +150,27 @@ class EngineGameScreen(Screen):
             self.selected_square = None
         else:
             self.selected_square = square if self.session.state.board.at(square) is not None else None
+
+    def _finish_drag(self):
+        """Release: play the move if the cursor left the square it started on.
+
+        Releasing where the drag began is a click, not a drag, so the selection simply stays and the
+        click-then-click path continues from there.
+        """
+        origin, self.dragging, self.drag_pos = self.dragging, None, None
+        if origin is None or self.pending_move is not None:
+            return
+        square = self._layout(p.display.get_surface()).square_at(p.mouse.get_pos())
+        if square is None or square == origin:
+            return
+        candidates = [move for move in self.session.moves_from(origin) if move.end == square]
+        if not candidates:
+            return
+        move = candidates[0]
+        self.pending_move = move if move.choices else None
+        if not move.choices:
+            self.session.move(move.start, move.end)
+        self.selected_square = None
 
     def _restart(self):
         """A fresh game of the same mode: a brand-new EngineSession with an empty action
@@ -170,9 +203,23 @@ class EngineGameScreen(Screen):
                 return
 
     def update(self):
+        self._update_cursor(self._layout(p.display.get_surface()))
         self._charge_elapsed_time()
         self.presentation.play(self.session.drain_notifications())
         return None
+
+    def _update_cursor(self, layout):
+        """A hand over anything that responds to a click, an arrow everywhere else."""
+        position = p.mouse.get_pos()
+        if self.overlay is not None:
+            interactive = any(rect.collidepoint(position) for rect in self._overlay_entry_rects())
+        elif self.session.outcome:
+            interactive = any(rect.collidepoint(position) for rect in self._outcome_button_rects(layout))
+        else:
+            square = layout.square_at(position)
+            targets = {move.end for move in self.session.moves_from(self.selected_square)} if self.selected_square else set()
+            interactive = square is not None and (square in targets or self.session.state.board.at(square) is not None)
+        p.mouse.set_cursor(p.SYSTEM_CURSOR_HAND if interactive else p.SYSTEM_CURSOR_ARROW)
 
     def _charge_elapsed_time(self):
         """Bill real time to the side on move.
@@ -201,6 +248,13 @@ class EngineGameScreen(Screen):
             text = self.shared.fonts["title"].render(self.session.outcome, True, ACCENT_GOLD)
             surface.blit(text, text.get_rect(center=layout.board.center))
             self._draw_outcome_buttons(surface, layout, palette)
+        if self.dragging is not None and self.drag_pos is not None:
+            piece = self.session.state.board.at(self.dragging)
+            if piece is not None:
+                size = layout.square_size
+                held = p.Rect(0, 0, size, size)
+                held.center = self.drag_pos
+                self._draw_piece(surface, piece, held, p.Color(palette["text"]) if palette else TEXT_PRIMARY, size)
         if self.ability_choices:
             self._draw_ability_modal(surface)
         if self.overlay is not None:
@@ -229,14 +283,32 @@ class EngineGameScreen(Screen):
                 if (row, col) == self.selected_square: p.draw.rect(surface, accent, rect, max(2, layout.square_size // 14))
                 elif (row, col) in targets: p.draw.circle(surface, target, rect.center, max(3, layout.square_size // 7))
                 piece = board.at((row, col))
-                if piece:
-                    image = self.presentation.image(piece.definition.id, layout.square_size)
-                    if image: surface.blit(image, rect)
-                    else:
-                        text = self.shared.fonts["title"].render(self.presentation.glyph(piece.definition.id), True, text_color)
-                        surface.blit(text, text.get_rect(center=rect.center))
+                if piece and (row, col) != self.dragging:
+                    self._draw_piece(surface, piece, rect, text_color, layout.square_size)
+                    self._draw_components(surface, piece, rect, text_color)
                     self._draw_status_markers(surface, piece, rect, accent, layout.square_size)
                 self._draw_coordinates(surface, layout, board, row, col, rect, light, dark)
+
+    def _draw_piece(self, surface, piece, rect, text_color, square_size):
+        image = self.presentation.image(piece.definition.id, square_size)
+        if image:
+            surface.blit(image, rect)
+        else:
+            text = self.shared.fonts["title"].render(self.presentation.glyph(piece.definition.id), True, text_color)
+            surface.blit(text, text.get_rect(center=rect.center))
+
+    def _draw_components(self, surface, piece, rect, text_color):
+        """Mark what a fused piece has absorbed, beyond the one it is still named after.
+
+        Without this a composed rook and a plain rook are the same picture, and the only way to
+        learn a piece moves diagonally now is to click it. Uses each absorbed piece's own glyph, so
+        core never learns a name here either.
+        """
+        extra = piece.definition.components[1:]
+        if not extra:
+            return
+        text = self.shared.fonts["small"].render("+" + "+".join(self.presentation.glyph(component) for component in extra), True, text_color)
+        surface.blit(text, (rect.right - text.get_width() - 2, rect.bottom - text.get_height() - 1))
 
     def _draw_coordinates(self, surface, layout, board, row, col, rect, light, dark):
         """Rank down the left edge, file along the bottom, tinted into the square itself.

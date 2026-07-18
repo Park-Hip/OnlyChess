@@ -32,6 +32,13 @@ speculative version and would block every visible feature behind machinery no co
 | Pause overlay (Resume / Restart / Help / Main Menu) | SHELL | Esc backs out innermost-first; overlay swallows board input |
 | Controls screen (`H`) | SHELL | Controls only — see the help note below |
 | Per-side clock, flag ends the game | ENGINE + WIDGET | Session-level, outside the action log: undo does not refund time |
+| Player settings + options screen | SETTINGS | Clock length and colours; overrides mod palette tokens narrowly |
+| Material advantage, turn counter, event countdown | WIDGET | Derived from state, so undo reverses them for free |
+| Captured-pieces row | ENGINE + WIDGET | `RecordCapture`; the one presentation datum stored rather than derived |
+| Last-move highlight, board coordinates | SHELL | Coordinates count from the board's own size |
+| Pawn Kamikaze | DATA | Needed no new verb — two interpreter limits removed instead |
+| Move log with notation | ENGINE + WIDGET | Named by content glyphs, not chess letters |
+| Drag-and-drop, cursor feedback, fused-piece component text | SHELL | Drag is an addition to click-then-click, not a replacement |
 
 ## Gameplay
 
