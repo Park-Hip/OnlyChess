@@ -74,10 +74,35 @@ Step 2 was exercised by temporarily setting `base:events` to `engine: "^2.0"`: i
 attributed error while the other three mods still loaded, and the fixture was reverted. Step 8 reports
 mod, file, `line:col`, field, problem, and expected, as contracted.
 
-Not yet exercised, and still needing a human: castling, en passant, promotion choice, ability targeting,
-fusion, and scheduled event warning/execution all require specific game states rather than the opening
-position, and audible sound output cannot be checked headlessly — only cue dispatch was confirmed
-(`move_completed`, `undo_completed` fire correctly).
+**Steps 5–7 in full, 2026-07-18.** The remaining interactions were driven through
+`EngineGameScreen.handle_event` from positions reached by scripted play, or from scenario boards loaded
+as an ordinary mod depending on `base:chess` and `base:fusion`. 25 assertions, all passing:
+
+| Interaction | Verified |
+|---|---|
+| Castling | King moves two files, rook jumps to f1, h1 empties, and one undo restores all three |
+| En passant | Capturing pawn lands behind the target, the target leaves its own square, undo restores it |
+| Promotion | Move is held pending a choice of queen/rook/bishop/knight; the keypress promotes; undo restores the pawn |
+| Ability targeting | AP accrues over eight moves, the knight's modal offers Knight Swap, targeting swaps the pieces, AP is spent, undo restores both |
+| Fusion | Rook takes bishop as a displacing capture and becomes a Warden; undo splits them |
+| Scheduled events | Warning fires on the ninth completed move, execution on the tenth, with a message for the log |
+
+Still needing a human: audible sound output. Cue dispatch is confirmed, but whether a clip is heard is not
+checkable headlessly.
+
+### P2 — A mode without `presentation:` hides the promotion prompt
+
+A `game_mode` that declares no `presentation:` block renders no HUD, and the promotion prompt lives in the
+HUD. `_prompt_text()` still returns `"Promote: Q/R/B/K"`, but there is nowhere to draw it, and
+`handle_event` ignores clicks while a move is pending — so the board simply stops responding until the
+player guesses one of four keys. The same position in a mode that declares `presentation:` shows the
+prompt correctly.
+
+Every shipped mode declares presentation, so no player hits this. A modder writing their first minimal
+mode does, which is the audience the prime directive cares most about. The fix is a choice between making
+`presentation:` required at link with an attributed error, and having core draw a fallback prompt — core
+already owns the render loop, so a default chrome is not a boundary violation. Deferred rather than
+guessed at.
 
 ### Resolved 2026-07-18 — Royal-less sides crashed instead of failing to load
 
