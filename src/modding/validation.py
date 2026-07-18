@@ -193,7 +193,7 @@ def _generic(parsed: ParsedFile, _registries: Registries | None) -> list[Content
 
 
 _PALETTE = {"background", "panel", "board_light", "board_dark", "text", "accent", "warning", "selection", "target"}
-_WIDGETS = {"turn", "resources", "log", "prompt", "clock", "material", "countdown", "captures", "history"}
+_WIDGETS = {"turn", "resources", "log", "prompt", "clock", "material", "countdown", "captures", "history", "warning"}
 _SLOTS = {"top", "side", "bottom"}
 _CUES = {"move_completed", "capture_completed", "ability_used", "promotion_chosen", "event_warning", "event_executed", "status_applied", "status_expired", "outcome_reached", "undo_completed"}
 
@@ -213,7 +213,7 @@ def _hud(parsed: ParsedFile, _registries: Registries | None) -> list[ContentErro
     seen = set()
     for index, widget in enumerate(widgets):
         if not isinstance(widget, dict) or widget.get("type") not in _WIDGETS or widget.get("slot") not in _SLOTS:
-            errors.append(parsed.error("must use a known widget type and slot", field=("widgets", index), expected="type: turn/resources/log/prompt/clock/material/countdown/captures/history and slot: top/side/bottom")); continue
+            errors.append(parsed.error("must use a known widget type and slot", field=("widgets", index), expected="type: turn/resources/log/prompt/clock/material/countdown/captures/history/warning and slot: top/side/bottom")); continue
         if widget["type"] in seen: errors.append(parsed.error("may appear only once", field=("widgets", index, "type"), expected="one declaration per widget type"))
         seen.add(widget["type"])
     return errors

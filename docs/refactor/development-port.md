@@ -32,6 +32,8 @@ speculative version and would block every visible feature behind machinery no co
 | Pause overlay (Resume / Restart / Help / Main Menu) | SHELL | Esc backs out innermost-first; overlay swallows board input |
 | Controls screen (`H`) | SHELL | Controls only — see the help note below |
 | Per-side clock, flag ends the game | ENGINE + WIDGET | Session-level, outside the action log: undo does not refund time |
+| Event-warning tint and card | ENGINE + WIDGET | Only squares a warning actually committed to; an event that picks at execution shows a name and no squares |
+| Status markers, game-over Quit, scrollable log | DATA + SHELL | Shield, poison and stun were invisible until 2026-07-19 |
 | Player settings + options screen | SETTINGS | Clock length and colours; overrides mod palette tokens narrowly |
 | Material advantage, turn counter, event countdown | WIDGET | Derived from state, so undo reverses them for free |
 | Captured-pieces row | ENGINE + WIDGET | `RecordCapture`; the one presentation datum stored rather than derived |
@@ -44,8 +46,6 @@ speculative version and would block every visible feature behind machinery no co
 
 | Feature | Kind | Notes |
 |---|---|---|
-| Event-warning square tint | ENGINE + presentation | `development` tints the squares an incoming event will hit. The warning knows its bindings; the snapshot does not carry them yet |
-| Event warning card in the HUD | WIDGET | Name, turns remaining, description. Depends on the same snapshot data |
 | Save / Load game | ENGINE | Needs the decision below |
 | An in-game content reference | — | Needs the decision below |
 

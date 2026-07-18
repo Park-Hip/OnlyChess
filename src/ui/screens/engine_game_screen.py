@@ -291,6 +291,9 @@ class EngineGameScreen(Screen):
         targets = {move.end for move in self.session.moves_from(self.selected_square)} if self.selected_square else set()
         last = self.session.state.last_move
         last_squares = {last.start, last.end} if last is not None else set()
+        warning = self.session.presentation_snapshot().warning
+        warned = set(warning.squares) if warning else set()
+        warning_color = p.Color(palette["warning"]) if palette else ACCENT_GOLD
         for row in range(board.rows):
             for col in range(board.columns):
                 rect = layout.square_rect((row, col))
@@ -300,6 +303,13 @@ class EngineGameScreen(Screen):
                     # reads as "this happened" and never competes with the selection ring.
                     tint = p.Surface((layout.square_size, layout.square_size), p.SRCALPHA)
                     tint.fill((accent.r, accent.g, accent.b, 60))
+                    surface.blit(tint, rect.topleft)
+                if (row, col) in warned:
+                    # An announced event that has already bound its zone has committed to these
+                    # squares. Shown so a player can move out of the way, which is the only reason
+                    # a warning phase exists at all.
+                    tint = p.Surface((layout.square_size, layout.square_size), p.SRCALPHA)
+                    tint.fill((warning_color.r, warning_color.g, warning_color.b, 80))
                     surface.blit(tint, rect.topleft)
                 if (row, col) == self.selected_square: p.draw.rect(surface, accent, rect, max(2, layout.square_size // 14))
                 elif (row, col) in targets: p.draw.circle(surface, target, rect.center, max(3, layout.square_size // 7))
@@ -505,7 +515,20 @@ class EngineGameScreen(Screen):
             surface.blit(self.shared.fonts["small"].render(numbered, True, color), (rect.x + 12, y + index * 20))
         return y + len(shown) * 20 + (10 if shown else 0)
 
-    _DRAW = {"turn": _widget_turn, "history": _widget_history, "material": _widget_material, "captures": _widget_captures, "countdown": _widget_countdown, "resources": _widget_resources, "log": _widget_log, "prompt": _widget_prompt, "clock": _widget_clock}
+    def _widget_warning(self, surface, widget, rect, y, snapshot, palette):
+        """The announced event: what is coming and how long there is to react."""
+        if snapshot.warning is None:
+            return y
+        color = self._color(palette, "warning", ACCENT_GOLD)
+        card = p.Rect(rect.x + 8, y - 4, rect.width - 16, 46)
+        p.draw.rect(surface, color, card, width=1, border_radius=6)
+        surface.blit(self.shared.fonts["small"].render(snapshot.warning.name, True, color), (card.x + 8, card.y + 6))
+        remaining = snapshot.event_countdown
+        detail = "now" if not remaining else f"in {remaining}"
+        surface.blit(self.shared.fonts["small"].render(f"incoming {detail}", True, color), (card.x + 8, card.y + 24))
+        return card.bottom + 10
+
+    _DRAW = {"turn": _widget_turn, "warning": _widget_warning, "history": _widget_history, "material": _widget_material, "captures": _widget_captures, "countdown": _widget_countdown, "resources": _widget_resources, "log": _widget_log, "prompt": _widget_prompt, "clock": _widget_clock}
 
     def _draw_outcome_buttons(self, surface, layout, palette):
         panel = self._color(palette, "panel", CARD_BG)

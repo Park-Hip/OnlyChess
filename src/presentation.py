@@ -14,6 +14,17 @@ class PresentationPiece:
 
 
 @dataclass(frozen=True)
+class PresentationWarning:
+    """A scheduled event that has been announced but has not happened yet."""
+
+    name: str
+    #: Squares the event has already committed to hitting, when it bound a zone at warning time.
+    #: Empty for an event that picks its victims at execution — most of them — because there is
+    #: honestly nothing to point at yet, and inventing a guess would be worse than saying nothing.
+    squares: tuple[tuple[int, int], ...] = ()
+
+
+@dataclass(frozen=True)
 class PresentationSnapshot:
     mode_id: str
     rows: int
@@ -43,6 +54,8 @@ class PresentationSnapshot:
     captures: tuple[tuple[str, tuple[str, ...]], ...] = ()
     #: Completed moves and ability uses as readable lines, oldest first.
     history: tuple[str, ...] = ()
+    #: The announced-but-unfired event, or None when nothing is pending.
+    warning: PresentationWarning | None = None
 
 
 @dataclass(frozen=True)

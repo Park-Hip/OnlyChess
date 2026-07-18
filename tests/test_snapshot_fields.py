@@ -113,6 +113,33 @@ class SnapshotFieldTests(unittest.TestCase):
 
         self.assertEqual({()}, {taken for _, taken in session.presentation_snapshot().captures})
 
+    def test_a_warned_event_names_itself_and_the_squares_it_committed_to(self):
+        """A zone bound at warning time is a promise those squares will be hit, so it can be shown
+        and the player can move out of the way — the only reason a warning phase exists."""
+        session = self.session()
+        session.state.pending_events["base:main_pool"] = "base:my_danh_iran"
+        session.state.pending_bindings["base:main_pool"] = {"zone": (3, 2, 2, 2)}
+
+        warning = session.presentation_snapshot().warning
+
+        self.assertIsNotNone(warning)
+        self.assertEqual(((3, 2), (3, 3), (4, 2), (4, 3)), warning.squares)
+
+    def test_an_event_that_picks_at_execution_promises_no_squares(self):
+        """Most events select their victims when they fire. Naming the event without pointing at a
+        square is the honest answer; a guessed rectangle would be worse than none."""
+        session = self.session()
+        session.state.pending_events["base:main_pool"] = "base:umamusume"
+        session.state.pending_bindings["base:main_pool"] = {}
+
+        warning = session.presentation_snapshot().warning
+
+        self.assertEqual((), warning.squares)
+        self.assertTrue(warning.name)
+
+    def test_nothing_is_warned_before_a_pool_announces_anything(self):
+        self.assertIsNone(self.session().presentation_snapshot().warning)
+
     def test_a_mode_with_no_pool_has_no_countdown(self):
         self.assertIsNone(self.session("base:vanilla").presentation_snapshot().event_countdown)
 

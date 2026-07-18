@@ -10,6 +10,7 @@ widgets:
   - { type: material, slot: side }
   - { type: captures, slot: side }
   - { type: countdown, slot: side }
+  - { type: warning, slot: side }
   - { type: history, slot: side, max_lines: 8 }
   - { type: log, slot: side, max_lines: 4 }
   - { type: prompt, slot: bottom }

@@ -10,7 +10,7 @@ from .engine.actions import ClearStatus, SetPendingEvent, SetStatus
 from .engine.movegen import threatened
 from .modding.loader import LoadResult, activate, load
 from .notation import history
-from .presentation import PresentationNotification, PresentationPiece, PresentationSnapshot
+from .presentation import PresentationNotification, PresentationPiece, PresentationSnapshot, PresentationWarning
 
 
 def consequence_kinds(record) -> list[str]:
@@ -185,7 +185,27 @@ class EngineSession:
             # A caller that can resolve glyphs gets readable history; one that cannot gets ids,
             # which keeps the session usable without the presentation runtime attached.
             history(self.state, glyph or (lambda piece_id: piece_id.rsplit(":", 1)[-1][:1].upper())),
+            self._pending_warning(),
         )
+
+    def _pending_warning(self):
+        """The announced event and whatever it has already committed to.
+
+        A zone bound at warning time is a real promise — those squares will be hit — so it can be
+        shown. An event that selects at execution has promised nothing yet, and the honest answer is
+        a name with no squares rather than a guess drawn on the board.
+        """
+        for pool_id, event_id in self.state.pending_events.items():
+            if event_id is None:
+                continue
+            squares = []
+            for binding in self.state.pending_bindings.get(pool_id, {}).values():
+                if isinstance(binding, tuple) and len(binding) == 4:
+                    row, col, height, width = binding
+                    squares.extend((r, c) for r in range(row, row + height) for c in range(col, col + width))
+            name = self.state.event_defs.get(event_id, {}).get("name", event_id.rsplit(":", 1)[-1])
+            return PresentationWarning(name, tuple(squares))
+        return None
 
     def _event_countdown(self):
         """Moves until the soonest active pool executes, or None when no pool is scheduled.
