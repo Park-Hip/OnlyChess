@@ -102,7 +102,7 @@ class G1DogfoodingTests(unittest.TestCase):
 
     def test_disabling_base_chess_removes_its_castle_verb(self):
         with_base = load(REPO_ROOT / "mods", enabled_mod_ids=("base:chess",))
-        without_base = load(REPO_ROOT / "mods", enabled_mod_ids=("skeleton:demo",))
+        without_base = load(REPO_ROOT / "tests" / "fixtures", enabled_mod_ids=("skeleton:demo",))
         self.assertIn("base:castle", with_base.registries.verbs["move_type"])
         self.assertNotIn("base:castle", without_base.registries.verbs["move_type"])
 

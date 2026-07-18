@@ -29,7 +29,7 @@ class RuntimeCutoverTests(unittest.TestCase):
     def test_default_session_activates_the_mod_defined_advanced_mode(self):
         session = self.session()
 
-        self.assertEqual(("base:chess", "proof:mod", "skeleton:demo", "base:events", "base:fusion"), session.loaded_mods)
+        self.assertEqual(("base:chess", "proof:mod", "base:events", "base:fusion"), session.loaded_mods)
         self.assertEqual(("base:main_pool",), session.state.active_pools)
 
     def test_session_exposes_loaded_abilities_without_a_legacy_registry(self):

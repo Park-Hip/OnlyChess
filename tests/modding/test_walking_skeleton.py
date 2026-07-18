@@ -13,12 +13,18 @@ from .builders import data_mod
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
+#: The skeleton is a test fixture, not shipped content, so it lives outside `mods/` — otherwise
+#: it is discovered at startup and offered to players as a selectable 1x1 game mode. Core cannot
+#: filter it out at runtime without naming a mod, which the prime directive forbids, so the only
+#: place the distinction can live is the directory it ships in.
+FIXTURES = REPO_ROOT / "tests" / "fixtures"
+
 
 class WalkingSkeletonTests(unittest.TestCase):
     """Keep the first vertical slice independent from the legacy GameState."""
 
     def test_selected_skeleton_activates_and_links_one_placed_piece(self):
-        result = load(REPO_ROOT / "mods", enabled_mod_ids=("skeleton:demo",), validate=True, link=True)
+        result = load(FIXTURES, enabled_mod_ids=("skeleton:demo",), validate=True, link=True)
 
         self.assertEqual(result.errors, [])
         self.assertEqual(result.mods, ("skeleton:demo",))
@@ -68,12 +74,12 @@ class WalkingSkeletonTests(unittest.TestCase):
             self.assertIn("bad:missing", result.errors[0].problem)
 
     def test_mod_asset_path_is_namespaced_but_windows_safe(self):
-        path = sprite_path("skeleton:beacon", "skeleton:blue", REPO_ROOT / "mods" / "skeleton")
-        self.assertEqual(path, REPO_ROOT / "mods" / "skeleton" / "assets" / "sprites" / "beacon" / "skeleton" / "blue.png")
+        path = sprite_path("skeleton:beacon", "skeleton:blue", FIXTURES / "skeleton")
+        self.assertEqual(path, FIXTURES / "skeleton" / "assets" / "sprites" / "beacon" / "skeleton" / "blue.png")
         self.assertNotIn(":", path.name)
 
     def test_preview_loads_mod_owned_sprite_without_a_legacy_fallback(self):
-        result = load(REPO_ROOT / "mods", enabled_mod_ids=("skeleton:demo",), validate=True, link=True)
+        result = load(FIXTURES, enabled_mod_ids=("skeleton:demo",), validate=True, link=True)
         loaded_paths = []
 
         images = load_preview_images(
@@ -89,7 +95,7 @@ class WalkingSkeletonTests(unittest.TestCase):
         self.assertEqual(images[("skeleton:beacon", "skeleton:blue")][1], (32, 32))
 
     def test_missing_sprite_is_a_fatal_content_error(self):
-        result = load(REPO_ROOT / "mods", enabled_mod_ids=("skeleton:demo",), validate=True, link=True)
+        result = load(FIXTURES, enabled_mod_ids=("skeleton:demo",), validate=True, link=True)
         with tempfile.TemporaryDirectory() as directory:
             result.mod_roots["skeleton:demo"] = Path(directory)
             with self.assertRaises(ModLoadError) as raised:

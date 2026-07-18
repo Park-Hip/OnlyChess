@@ -108,10 +108,15 @@ stated at load time instead of being discovered by crashing mid-frame.
 Consequences: `mods/skeleton/`'s beacon and two test fixtures gained `properties: { royal: true }`, since
 none of them were testing royal-less boards.
 
-**Still open, and separate:** `mods/skeleton/` remains a test fixture shipped as a selectable mode. It no
-longer crashes — it resolves immediately to "Stalemate" — but a 1x1 board in the player's menu is still
-wrong. Whether a fixture belongs in the distributed `mods/` directory is part of the release-kind
-decision below.
+**Also resolved:** the skeleton was a test fixture shipped as selectable content, so it appeared in the
+menu as a fourth "Walking Skeleton Preview (1 x 1)" entry. It moved to `tests/fixtures/skeleton/` and its
+tests now load from there. The menu lists exactly the three modes the checklist names.
+
+Worth recording why the fix had to be a directory move. Core cannot skip a fixture mod at discovery
+without naming it, and naming a mod is what the prime directive forbids; there is also no "hidden" or
+"fixture" manifest flag, and adding one would be vocabulary invented on speculation. The only place the
+shipped/not-shipped distinction can live is the directory itself, which `tests/fixtures/wave3_mods/`
+already established as the pattern.
 
 ### Resolved 2026-07-18 — Declared piece glyphs were unrenderable off Windows
 
