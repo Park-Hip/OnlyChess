@@ -19,3 +19,6 @@ modifies:
     # normalizes only `moves` gives a poisoned bishop a zero-square slide.
     slide: { limit: 1 }
     leap:  { disable: true }
+
+# A poisoned piece moves like a crippled one; without a marker that reads as a bug.
+presentation: { visible: true, glyph: "☠" }

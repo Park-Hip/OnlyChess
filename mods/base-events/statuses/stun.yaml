@@ -16,3 +16,6 @@ modifies: { movement: { disable: true } }
 # bishop can still snipe. `pawn_sprint` is the one ability that checks, and it
 # does so with an explicit `when:` rather than through this status. Reproduced,
 # not fixed: content-schemas.md finding 4.
+
+# A stunned piece offers no moves at all, which looks broken unless it says why.
+presentation: { visible: true, glyph: "✱" }

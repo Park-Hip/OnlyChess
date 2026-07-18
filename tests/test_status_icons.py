@@ -54,7 +54,9 @@ class StatusIconTests(unittest.TestCase):
     def test_status_presentation_reports_visibility(self):
         runtime = self._runtime()
         self.assertTrue(runtime.status_presentation("proof:glow")["visible"])
-        self.assertEqual({}, runtime.status_presentation("base:shield"))
+        # base:shield declared no presentation until 2026-07-19, which meant a protected piece
+        # looked exactly like an unprotected one — a rule the player could not see.
+        self.assertTrue(runtime.status_presentation("base:shield")["visible"])
 
     def test_two_visible_statuses_both_render_icon_and_glyph(self):
         recording = _RecordingFont(p.font.Font(None, 13))

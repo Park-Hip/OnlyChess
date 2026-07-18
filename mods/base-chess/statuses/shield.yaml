@@ -15,3 +15,8 @@ expiry: after_opponent_turn
 # events opt in via `not_status: [base:shield]` selectors, and seven of them
 # don't. That inconsistency is preserved and made visible, not fixed (F2).
 modifies: { capturable: false }
+
+# A protected piece that looks exactly like an unprotected one is a rule the player
+# cannot see. `visible` is the status's own declaration, not core's: a mod decides
+# which of its conditions are worth showing.
+presentation: { visible: true, glyph: "⬢" }

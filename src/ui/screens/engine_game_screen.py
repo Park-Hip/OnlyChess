@@ -55,6 +55,8 @@ class EngineGameScreen(Screen):
         #: click-then-click, never a replacement: both reach the same move through the same path.
         self.dragging = None
         self.drag_pos = None
+        #: How far back through the history the player has scrolled, in lines.
+        self.history_scroll = 0
         self._last_tick = p.time.get_ticks()
         self.presentation = PresentationRuntime(session.load_result, session.mode_id)
 
@@ -106,12 +108,19 @@ class EngineGameScreen(Screen):
         if event.type == p.KEYDOWN and event.key == p.K_BACKSPACE:
             self._go_to_menu(); return
         if self.session.outcome and event.type == p.MOUSEBUTTONDOWN and event.button == 1:
-            restart_rect, menu_rect = self._outcome_button_rects(self._layout(p.display.get_surface()))
+            restart_rect, menu_rect, quit_rect = self._outcome_button_rects(self._layout(p.display.get_surface()))
             position = p.mouse.get_pos()
             if restart_rect.collidepoint(position):
                 self._restart(); return
             if menu_rect.collidepoint(position):
                 self._go_to_menu(); return
+            if quit_rect.collidepoint(position):
+                self.should_quit = True; return
+        if event.type == p.MOUSEWHEEL:
+            # Clamped on read rather than here: the history grows between wheel events, and a value
+            # clamped now would be wrong by the next move.
+            self.history_scroll = max(0, self.history_scroll + event.y)
+            return
         if event.type == p.MOUSEMOTION and self.dragging is not None:
             self.drag_pos = p.mouse.get_pos()
             return
@@ -181,11 +190,17 @@ class EngineGameScreen(Screen):
         from .menu_screen import MenuScreen  # deferred: menu_screen imports this module at top level
         self.next_screen = MenuScreen(self.shared)
 
+    #: Game-over choices, in drawn order. Quit is here because a finished game is the one moment a
+    #: player is most likely to be done, and making them walk back through the menu to leave is a
+    #: small rudeness the shell can simply not commit.
+    OUTCOME_ENTRIES = ("Restart (R)", "Menu (Backspace)", "Quit")
+
     def _outcome_button_rects(self, layout):
         center = layout.board.center
-        restart = p.Rect(0, 0, 140, 40).move(center[0] - 150, center[1] + 40)
-        menu = p.Rect(0, 0, 140, 40).move(center[0] + 10, center[1] + 40)
-        return restart, menu
+        width, gap = 140, 10
+        span = len(self.OUTCOME_ENTRIES) * width + (len(self.OUTCOME_ENTRIES) - 1) * gap
+        left = center[0] - span // 2
+        return tuple(p.Rect(left + index * (width + gap), center[1] + 40, width, 40) for index in range(len(self.OUTCOME_ENTRIES)))
 
     def _choose_ability(self, position):
         modal = self._modal_rect()
@@ -219,7 +234,13 @@ class EngineGameScreen(Screen):
             square = layout.square_at(position)
             targets = {move.end for move in self.session.moves_from(self.selected_square)} if self.selected_square else set()
             interactive = square is not None and (square in targets or self.session.state.board.at(square) is not None)
-        p.mouse.set_cursor(p.SYSTEM_CURSOR_HAND if interactive else p.SYSTEM_CURSOR_ARROW)
+        try:
+            p.mouse.set_cursor(p.SYSTEM_CURSOR_HAND if interactive else p.SYSTEM_CURSOR_ARROW)
+        except p.error:
+            # Same reasoning as main()'s guard around mixer.init(): a machine that cannot supply a
+            # system cursor — a headless driver, an unusual platform — should still play the game.
+            # The cursor is feedback about what is clickable, not a way of clicking it.
+            pass
 
     def _charge_elapsed_time(self):
         """Bill real time to the side on move.
@@ -473,8 +494,12 @@ class EngineGameScreen(Screen):
         """The move list, newest at the bottom, showing the tail that fits."""
         color = self._color(palette, "text", TEXT_PRIMARY)
         max_lines = widget.get("max_lines", 10)
-        shown = snapshot.history[-max_lines:]
-        offset = len(snapshot.history) - len(shown)
+        # Scrolling past the top simply stops there, and a new move pulls the view back to the
+        # bottom, which is where a move log is worth reading.
+        back = min(self.history_scroll, max(0, len(snapshot.history) - max_lines))
+        end = len(snapshot.history) - back
+        shown = snapshot.history[max(0, end - max_lines):end]
+        offset = end - len(shown)
         for index, line in enumerate(shown):
             numbered = f"{offset + index + 1}. {line}"
             surface.blit(self.shared.fonts["small"].render(numbered, True, color), (rect.x + 12, y + index * 20))
@@ -486,7 +511,7 @@ class EngineGameScreen(Screen):
         panel = self._color(palette, "panel", CARD_BG)
         border = self._color(palette, "selection", ACCENT_GOLD)
         text_color = self._color(palette, "text", TEXT_PRIMARY)
-        for rect, label in zip(self._outcome_button_rects(layout), ("Restart (R)", "Menu (Backspace)")):
+        for rect, label in zip(self._outcome_button_rects(layout), self.OUTCOME_ENTRIES):
             p.draw.rect(surface, panel, rect, border_radius=8)
             p.draw.rect(surface, border, rect, width=2, border_radius=8)
             text = self.shared.fonts["small"].render(label, True, text_color)
