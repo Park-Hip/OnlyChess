@@ -21,6 +21,46 @@ The defining promise is:
 > A third-party mod can provide playable content without editing `src/`, and the shipped base game
 > reaches the runtime through exactly that same public path.
 
+## Audience for the first release
+
+**Added 2026-07-19, when the release kind was decided.**
+
+The first release is a **developer preview**. Its audience is contributors and modders: people who
+have Python 3.12, install dependencies themselves, run the game from a checkout, and install a mod by
+copying a folder into `mods/`. That is the whole distribution story, and for this audience it is
+sufficient.
+
+It is stated here because leaving it unstated was itself a blocker. The build met all four gates
+below and still could not be signed off, because "release-ready" has no meaning until someone names
+who it is ready for.
+
+**What the preview deliberately does not have:** a packaged executable, an installer, a per-user mod
+directory, a mod-install flow, or an enable/disable manager. A general-player release needs all of
+them, and needs multi-root mod discovery underneath — `load()` and `discover()` each take a single
+directory, and an installed application directory is not user-writable on Windows or macOS, so
+packaging cannot land without that loader change. Moving to a player release is therefore a milestone
+with its own gate, not a change of label.
+
+### What may be promised about extensibility
+
+The extension surface is real but smaller than "anything can be a mod", and the release must not
+claim more than it has. What is true today:
+
+| Claim | Status |
+|---|---|
+| Data mods compose pieces, boards, abilities, statuses, resources, fusion rules, event pools, modes | True |
+| Data mods supply themes, piece glyphs and sprites, status markers, HUD layouts from built-in widgets, and sound cues | True |
+| Code mods register new `move_type` verbs through the public `ModApi` | True |
+| The shipped base game loads through the same path, with no privileges | True — enforced by the gates in `tests/modding/test_gates.py` |
+| Code mods add effects, conditions, selectors, or triggers | **Not yet** |
+| Mods add clocks, custom HUD widgets, text overlays, per-piece colours, or presentation effects | **Not yet** |
+| Mods define new event triggers beyond scheduled pools | **Not yet** |
+
+The rows marked *not yet* are documented limitations with a known path — the normal loader, action,
+snapshot, and proof-mod route — not hidden defects. They are M7+ work by the delivery order below.
+Describing them as available, in release notes or anywhere else, would repeat the failure this
+project has now corrected three times: a document asserting a capability the code does not have.
+
 ## Approved decisions
 
 ### The written contract is authoritative

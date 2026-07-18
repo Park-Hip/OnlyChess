@@ -49,8 +49,12 @@ empty — not when the engine stops growing.**
 |---|---|---|
 | ~~1~~ | ~~P2 — a mode with no `presentation:` hides the promotion prompt~~ — done 2026-07-19 | Code |
 | 2 | P0 — audible sound output confirmed by a human | Manual |
-| 3 | P1 — name the audience in `product-completion-spec.md` | Declaration |
-| 4 | P1 — keep the documented extension limits as the release promise | Declaration |
+| 3 | P1 — name the audience in `product-completion-spec.md` | Drafted 2026-07-19, awaiting sign-off |
+| 4 | P1 — keep the documented extension limits as the release promise | Drafted 2026-07-19, awaiting sign-off |
+
+Items 3 and 4 are written into `product-completion-spec.md` under "Audience for the first release".
+They are marked drafted rather than done because a declaration is only worth what the person making it
+says it is worth — read them and either agree or change them.
 
 Everything else currently known is already resolved below, and all four product-completion gates pass.
 
