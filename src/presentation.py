@@ -41,6 +41,8 @@ class PresentationSnapshot:
     event_countdown: int | None = None
     #: `(side name, (piece id, ...))` of what each side has captured, in capture order.
     captures: tuple[tuple[str, tuple[str, ...]], ...] = ()
+    #: Completed moves and ability uses as readable lines, oldest first.
+    history: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

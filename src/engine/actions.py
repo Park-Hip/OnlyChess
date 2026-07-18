@@ -143,6 +143,27 @@ class RecordCapture:
 
 
 @dataclass
+class RecordAbility:
+    """Note that an ability was used, for history that would otherwise be unreadable.
+
+    An ability's record is a list of costs and effects with nothing naming what was invoked, so a
+    log derived from it could say a piece lost 2 AP and two pieces swapped, but never that it was
+    Knight Swap. Carries only what history needs, and reverses like everything else.
+    """
+
+    piece_id: str
+    square: tuple[int, int]
+    name: str
+    cost: str = ""
+
+    def apply(self, state) -> None:
+        pass
+
+    def undo(self, state) -> None:
+        pass
+
+
+@dataclass
 class RecordMove:
     """Make the previous completed move available to history-aware mod verbs."""
 

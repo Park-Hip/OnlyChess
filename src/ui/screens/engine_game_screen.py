@@ -289,7 +289,7 @@ class EngineGameScreen(Screen):
         Core owns the loop; the mod owns which widgets exist and their order. Nothing here names a
         widget type, colour, or label except as a dispatch key tied to the four validated widget types.
         """
-        snapshot = self.session.presentation_snapshot(prompt=self._prompt_text())
+        snapshot = self.session.presentation_snapshot(prompt=self._prompt_text(), glyph=self.presentation.glyph)
         slots = {"top": layout.top, "side": layout.side, "bottom": layout.bottom}
         grouped = {"top": [], "side": [], "bottom": []}
         for widget in self.presentation.hud_widgets():
@@ -397,7 +397,18 @@ class EngineGameScreen(Screen):
             y += 20
         return y + (8 if any(taken for _, taken in snapshot.captures) else 0)
 
-    _DRAW = {"turn": _widget_turn, "material": _widget_material, "captures": _widget_captures, "countdown": _widget_countdown, "resources": _widget_resources, "log": _widget_log, "prompt": _widget_prompt, "clock": _widget_clock}
+    def _widget_history(self, surface, widget, rect, y, snapshot, palette):
+        """The move list, newest at the bottom, showing the tail that fits."""
+        color = self._color(palette, "text", TEXT_PRIMARY)
+        max_lines = widget.get("max_lines", 10)
+        shown = snapshot.history[-max_lines:]
+        offset = len(snapshot.history) - len(shown)
+        for index, line in enumerate(shown):
+            numbered = f"{offset + index + 1}. {line}"
+            surface.blit(self.shared.fonts["small"].render(numbered, True, color), (rect.x + 12, y + index * 20))
+        return y + len(shown) * 20 + (10 if shown else 0)
+
+    _DRAW = {"turn": _widget_turn, "history": _widget_history, "material": _widget_material, "captures": _widget_captures, "countdown": _widget_countdown, "resources": _widget_resources, "log": _widget_log, "prompt": _widget_prompt, "clock": _widget_clock}
 
     def _draw_outcome_buttons(self, surface, layout, palette):
         panel = self._color(palette, "panel", CARD_BG)

@@ -9,6 +9,7 @@ from .engine import Pipeline, build_state
 from .engine.actions import ClearStatus, SetPendingEvent, SetStatus
 from .engine.movegen import threatened
 from .modding.loader import LoadResult, activate, load
+from .notation import history
 from .presentation import PresentationNotification, PresentationPiece, PresentationSnapshot
 
 
@@ -168,7 +169,7 @@ class EngineSession:
         if self.outcome is not None:
             self.notifications.append(PresentationNotification("outcome_reached", self.mode_id))
 
-    def presentation_snapshot(self, *, prompt: str | None = None):
+    def presentation_snapshot(self, *, prompt: str | None = None, glyph=None):
         board = self.state.board
         pieces = tuple(PresentationPiece(piece.definition.id, piece.side, piece.pos, tuple(sorted(piece.statuses))) for piece in board.pieces())
         resources = tuple(sorted((f"{side}:{resource}", value) for side, values in self.state.resources.items() for resource, value in values.items()))
@@ -181,6 +182,9 @@ class EngineSession:
             (last.start, last.end) if last is not None else None,
             material, self.state.completed_turns, self._event_countdown(),
             tuple((board.sides[side].name, tuple(self.state.captures.get(side, ()))) for side in board.sides),
+            # A caller that can resolve glyphs gets readable history; one that cannot gets ids,
+            # which keeps the session usable without the presentation runtime attached.
+            history(self.state, glyph or (lambda piece_id: piece_id.rsplit(":", 1)[-1][:1].upper())),
         )
 
     def _event_countdown(self):

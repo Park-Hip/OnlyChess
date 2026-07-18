@@ -1,6 +1,6 @@
 """Apply, simulate, and undo moves through the one action path."""
 
-from .actions import AdjustResource, AdvanceTurn, CountMove, RecordCapture, RecordMove, Replace
+from .actions import AdjustResource, AdvanceTurn, CountMove, RecordAbility, RecordCapture, RecordMove, Replace
 from .abilities import build_ability_actions
 from .piece import Piece
 from .bus import Bus, Capture
@@ -79,7 +79,8 @@ class Pipeline:
         expiry = expiry_actions(self.state, owner.side)
         for action in expiry:
             action.apply(self.state)
-        record = [*actions, turn, *expiry]
+        noted = RecordAbility(owner.definition.id, owner.pos, ability.name, ", ".join(f"-{amount} {resource.rsplit(':', 1)[-1]}" for resource, amount in ability.cost.items()))
+        record = [*actions, turn, *expiry, noted]
         self.state.action_log.append(record)
         return record
 
