@@ -86,7 +86,7 @@ class ApplicationContext:
 class EngineSession:
     """A playable selected mode; loading belongs to :class:`ApplicationContext`."""
 
-    def __init__(self, load_result: LoadResult, mode_id: str):
+    def __init__(self, load_result: LoadResult, mode_id: str, *, time_limit: float | None = None):
         if load_result.linked is None or mode_id not in load_result.linked.modes:
             raise ValueError(f"game mode '{mode_id}' is not linked in this loaded mod set")
         self.loaded_mods = load_result.mods
@@ -95,6 +95,26 @@ class EngineSession:
         self.state = build_state(load_result.registries, mode_id)
         self.pipeline = Pipeline(self.state)
         self.notifications: list[PresentationNotification] = []
+        # Clocks live on the session, deliberately outside EngineState and the action log.
+        #
+        # Undo reverses the log, so a clock recorded there would hand back the time spent on the
+        # move being taken back — turning undo into a way to buy thinking time. Time is the one
+        # thing in this game that is not a move and cannot be unmade, so it is not an action.
+        # `time_limit` of None means the mode has no clock at all, which is every mode today.
+        self.time_limit = time_limit
+        self.clocks = {side: float(time_limit) for side in self.state.board.sides} if time_limit else {}
+        self.flagged = None
+
+    def tick(self, elapsed: float):
+        """Charge `elapsed` seconds to whoever is to move. Callers pass real time; nothing here
+        reads a wall clock, so a test can play out an entire time scramble deterministically."""
+        if not self.clocks or self.flagged or self.outcome:
+            return
+        side = self.state.current_side
+        self.clocks[side] = max(0.0, self.clocks[side] - elapsed)
+        if self.clocks[side] == 0.0:
+            self.flagged = side
+            self.notifications.append(PresentationNotification("outcome_reached", self.mode_id))
 
     @property
     def legal_moves(self):
@@ -152,7 +172,8 @@ class EngineSession:
         board = self.state.board
         pieces = tuple(PresentationPiece(piece.definition.id, piece.side, piece.pos, tuple(sorted(piece.statuses))) for piece in board.pieces())
         resources = tuple(sorted((f"{side}:{resource}", value) for side, values in self.state.resources.items() for resource, value in values.items()))
-        return PresentationSnapshot(self.mode_id, board.rows, board.columns, board.sides[self.state.current_side].name, pieces, resources, tuple(self.state.event_messages), prompt, self.outcome)
+        clocks = tuple((board.sides[side].name, remaining) for side, remaining in self.clocks.items())
+        return PresentationSnapshot(self.mode_id, board.rows, board.columns, board.sides[self.state.current_side].name, pieces, resources, tuple(self.state.event_messages), prompt, self.outcome, clocks)
 
     def drain_notifications(self):
         notices, self.notifications = tuple(self.notifications), []
@@ -160,6 +181,10 @@ class EngineSession:
 
     @property
     def outcome(self):
+        # Checked before legality: a flag falls whatever the position is, and asking for legal moves
+        # first would call it stalemate when a player simply ran out of time in a dead position.
+        if self.flagged is not None:
+            return f"{self.state.board.sides[self.flagged].name} ran out of time"
         if self.legal_moves:
             return None
         side = self.state.board.sides[self.state.current_side].name

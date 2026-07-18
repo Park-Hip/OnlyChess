@@ -51,6 +51,7 @@ class EngineGameScreen(Screen):
         self.ability_choices: tuple[AbilityChoice, ...] = ()
         self.error_message = None
         self.overlay = None
+        self._last_tick = p.time.get_ticks()
         self.presentation = PresentationRuntime(session.load_result, session.mode_id)
 
     def _layout(self, surface):
@@ -161,8 +162,21 @@ class EngineGameScreen(Screen):
                 return
 
     def update(self):
+        self._charge_elapsed_time()
         self.presentation.play(self.session.drain_notifications())
         return None
+
+    def _charge_elapsed_time(self):
+        """Bill real time to the side on move.
+
+        `_last_tick` is advanced on every frame, including paused ones, so time spent behind an
+        overlay is discarded rather than charged in a lump when play resumes. The session does the
+        arithmetic; this only measures.
+        """
+        now = p.time.get_ticks()
+        elapsed, self._last_tick = (now - self._last_tick) / 1000.0, now
+        if self.overlay is None:
+            self.session.tick(elapsed)
 
     def draw(self, surface):
         palette = self.presentation.palette()
@@ -299,7 +313,21 @@ class EngineGameScreen(Screen):
             surface.blit(self.shared.fonts["small"].render(snapshot.prompt, True, self._color(palette, "warning", ACCENT_GOLD)), (rect.x + 12, y))
         return y + 22
 
-    _DRAW = {"turn": _widget_turn, "resources": _widget_resources, "log": _widget_log, "prompt": _widget_prompt}
+    def _widget_clock(self, surface, widget, rect, y, snapshot, palette):
+        """One line per side. Draws nothing at all when the mode declares no time limit, so a
+        layout can name the widget unconditionally and a clockless mode simply has no clock."""
+        text_color = self._color(palette, "text", TEXT_PRIMARY)
+        warning = self._color(palette, "warning", ACCENT_GOLD)
+        for name, remaining in snapshot.clocks:
+            minutes, seconds = divmod(int(remaining), 60)
+            # Under a minute is when the number stops being information and starts being pressure.
+            color = warning if remaining < 60 else text_color
+            label = self.shared.fonts["normal"].render(f"{name}  {minutes}:{seconds:02d}", True, color)
+            surface.blit(label, (rect.x + 12, y))
+            y += 24
+        return y + (12 if snapshot.clocks else 0)
+
+    _DRAW = {"turn": _widget_turn, "resources": _widget_resources, "log": _widget_log, "prompt": _widget_prompt, "clock": _widget_clock}
 
     def _draw_outcome_buttons(self, surface, layout, palette):
         panel = self._color(palette, "panel", CARD_BG)

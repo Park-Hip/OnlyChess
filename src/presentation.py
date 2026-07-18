@@ -24,6 +24,9 @@ class PresentationSnapshot:
     messages: tuple[str, ...]
     prompt: str | None
     outcome: str | None
+    #: `(side name, seconds remaining)` per side, empty when the mode declares no time limit.
+    #: Not part of game state: clocks are session-level, so undo does not refund time.
+    clocks: tuple[tuple[str, float], ...] = ()
 
 
 @dataclass(frozen=True)
