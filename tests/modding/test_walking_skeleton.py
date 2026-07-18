@@ -34,7 +34,7 @@ class WalkingSkeletonTests(unittest.TestCase):
                 mods,
                 "good",
                 "good:demo",
-                pieces__beacon="type: piece\nid: good:beacon\nname: Beacon\nsprite: good:beacon\nmoves: []\n",
+                pieces__beacon="type: piece\nid: good:beacon\nname: Beacon\nsprite: good:beacon\nproperties: { royal: true }\nmoves: []\n",
                 board__preview=(
                     "type: board\nid: good:board\nsize: [1, 1]\nsides:\n"
                     "  - { id: good:blue, name: Blue, forward: down, promotes_at: 0, moves_first: true }\n"
@@ -85,7 +85,7 @@ class WalkingSkeletonTests(unittest.TestCase):
         )
 
         self.assertEqual(len(loaded_paths), 1)
-        self.assertTrue(loaded_paths[0].endswith("assets\\sprites\\beacon\\skeleton\\blue.png"))
+        self.assertEqual(Path(loaded_paths[0]).parts[-5:], ("assets", "sprites", "beacon", "skeleton", "blue.png"))
         self.assertEqual(images[("skeleton:beacon", "skeleton:blue")][1], (32, 32))
 
     def test_missing_sprite_is_a_fatal_content_error(self):

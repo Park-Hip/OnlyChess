@@ -2,4 +2,5 @@ type: piece
 id: skeleton:beacon
 name: Beacon
 sprite: skeleton:beacon
+properties: { royal: true }
 moves: []

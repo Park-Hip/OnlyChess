@@ -23,7 +23,7 @@ These are the gaps a new contributor should know before choosing a feature:
 
 | Gap | Current state | Decision needed |
 |---|---|---|
-| `engine:` compatibility | Manifest range syntax is validated, but the loader does not enforce it against the running engine version. | Implement enforcement or explicitly defer it. |
+| `engine:` compatibility | Enforced against `ENGINE_VERSION` at resolve as of 2026-07-18; incompatible mods are disabled with attribution. | Closed. |
 | Code-mod verbs | `ModApi` exposes `move_type` only. | Add a verb only when real content needs it. |
 | Event triggers | Events run from pools; “on capture” and “on turn start” are not data vocabulary. | Design a trigger contract only for an earned use case. |
 | Custom HUD | Mods arrange `turn`, `resources`, `log`, and `prompt`; they cannot add a widget. | Add declarative widget registration if a real mod needs it. |
@@ -37,14 +37,13 @@ These are the gaps a new contributor should know before choosing a feature:
 The current branch is suitable for a developer preview only until these checks are closed or explicitly
 accepted by the project owner:
 
-1. Recreate the environment from a clean checkout and run the complete documented test command. A local
-   audit on 2026-07-18 could not do this because `uv` could not use the repository `.venv`, and the
-   system Python did not have the declared dependencies. This is an unverified release gate, not proof
-   that the tests are failing.
+1. Recreate the environment from a clean checkout and run the complete documented test command. Done on
+   Linux 2026-07-18 with a plain `venv` and no `uv`; see [status.md](../refactor/status.md) for the exact
+   command. The documented command itself is PowerShell-only and still needs a cross-platform form.
 2. Enforce `manifest.yaml`'s `engine:` range against `src/modding/loader.py:ENGINE_VERSION`, with an
-   attributed load error and regression tests. The syntax is currently checked but compatibility is
-   not enforced.
+   attributed load error and regression tests. Done 2026-07-18.
 3. Run [manual-release-checklist.md](../refactor/manual-release-checklist.md) from that clean setup.
+   Steps 1–2 pass; steps 3–8 need an interactive display and are still unrun.
 4. Choose the release audience. Manual Python/`uv` setup and folder-based mod installation are fine for
    contributors; a general-player release needs packaging and an installation story.
 
@@ -58,8 +57,8 @@ modders can add arbitrary UI or presentation features.
 
 Do this before adding a large feature.
 
-- Reconcile the M1 acceptance text with the actual loader, especially `engine:` enforcement; do not
-  mark M1 fully complete while the compatibility gate is missing.
+- Reconcile the M1 acceptance text with the actual loader. The `engine:` compatibility gate that was
+  blocking M1 from being fully complete landed on 2026-07-18.
 - Make the clean-checkout dependency setup reproducible, then run the complete suite and repair the
   project setup if it cannot start.
 - Add focused tests for every documented current limitation that must not silently change.

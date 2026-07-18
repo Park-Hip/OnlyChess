@@ -223,7 +223,7 @@ def _read_manifest(path: Path, folder: Path) -> tuple[Optional[Manifest], list[C
         return None, dependency_errors
 
     engine = tree.get("engine")
-    if engine is not None and not isinstance(engine, str):
+    if engine is not None and (not isinstance(engine, str) or not _valid_range(engine)):
         return None, [
             parsed.error("must be a version range", field=("engine",), expected="a caret range such as `^1.0`")
         ]
@@ -341,6 +341,22 @@ def resolve(manifests: list[Manifest], enabled_mod_ids: Optional[Iterable[str]] 
     edges: dict[str, set[str]] = {mod_id: set() for mod_id in selected}
     for mod_id in sorted(selected):
         manifest = by_id[mod_id]
+        # Checked here rather than at manifest read so an incompatible mod disables its
+        # dependents through the same propagation path a missing dependency uses. A mod built
+        # against an engine that no longer exists is not a content error to be reported later;
+        # its content was written against verbs and fields this engine may not have.
+        if manifest.engine is not None and not _satisfies(ENGINE_VERSION, manifest.engine):
+            broken.add(mod_id)
+            errors.append(
+                ContentError(
+                    mod_id=mod_id,
+                    file=MANIFEST_NAME,
+                    problem=f"needs engine {manifest.engine}, but this engine is {ENGINE_VERSION}",
+                    field="engine",
+                    expected=f"a range that includes {ENGINE_VERSION}, or a build of the engine matching {manifest.engine}",
+                )
+            )
+            continue
         for dependency, wanted in manifest.required_dependencies.items():
             candidate = by_id.get(dependency)
             if candidate is None:

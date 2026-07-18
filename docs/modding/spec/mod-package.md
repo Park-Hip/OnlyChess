@@ -42,7 +42,7 @@ version: 1.2.0                # required — semver
 authors: [Someone]
 description: Adds a dragon.
 
-engine: "^1.0"                # documented compatibility range; range syntax is validated
+engine: "^1.0"                # compatibility range; enforced against the running engine
 
 dependencies:
   required:
@@ -130,9 +130,10 @@ Dependencies use caret ranges: `^1.2` means `>=1.2.0, <2.0.0`.
 letting them load and fail confusingly at runtime. This is standard across mod loaders and is what
 makes MAJOR mean anything.
 
-`engine: "^1.0"` is stored and its caret-range syntax is validated. The current loader does not
-yet compare it with `ENGINE_VERSION` or disable a mod for an incompatible engine range; dependency
-version ranges are enforced. Engine-version gating is a documented follow-up limitation.
+`engine: "^1.0"` is validated as a caret range at manifest read and compared with `ENGINE_VERSION`
+at resolution. A mod whose range excludes the running engine is disabled with an attributed error,
+and its dependents are disabled through the same propagation a missing dependency uses. Omitting
+`engine:` declares no constraint and always loads.
 
 ## Dependencies and load order
 
@@ -175,7 +176,5 @@ reported.
 
 ## Known limitations
 
-- **Engine compatibility enforcement.** The manifest field exists and is syntax-checked, but startup
-  does not yet compare it with the running engine version.
 - **Installation and distribution.** Mods currently live under the application's `mods/` directory;
   there is no installer, marketplace, per-user data directory, or hot reload.

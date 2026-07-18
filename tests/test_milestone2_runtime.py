@@ -22,7 +22,7 @@ name: Rectangular Demo
 version: 1.0.0
 code: false
 """, files={
-                "piece.yaml": "type: piece\nid: demo:token\nname: Token\nmoves: []\n",
+                "piece.yaml": "type: piece\nid: demo:token\nname: Token\nproperties: { royal: true }\nmoves: []\n",
                 "board.yaml": """type: board
 id: demo:board
 size: [3, 5]

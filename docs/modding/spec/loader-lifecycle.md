@@ -487,9 +487,9 @@ unreachable, because a dangling reference cannot survive load. Logged for E1.
 - **Historical asset note.** Asset loading was once considered outside this pipeline. The current
   runtime validates owned presentation assets during loading and consumes them through the normal
   Pygame presentation path; see [presentation.md](presentation.md). Hot reload remains out of scope.
-- **Engine compatibility enforcement.** `engine:` is parsed and its range syntax is validated, but
-  the current loader does not yet compare it with the running engine version. Dependency ranges are
-  enforced at resolution; engine-range gating remains a known limitation.
+- **Engine compatibility enforcement.** Implemented. `engine:` is validated as a caret range at
+  manifest read and compared with `ENGINE_VERSION` during resolve, alongside dependency ranges, so
+  an incompatible mod is disabled and its dependents fall out through the existing propagation.
 
 ## Gate 3 readiness
 

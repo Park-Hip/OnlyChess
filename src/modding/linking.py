@@ -61,6 +61,8 @@ def link_content(registries: Registries) -> tuple[LinkedContent, list[ContentErr
                 else:
                     placements.append(Placement(row=row["row"], col=col, piece_id=piece_id, side_id=row["side"]))
         if valid:
+            valid = _every_side_has_a_royal_piece(registries, parsed, placements, errors)
+        if valid:
             size = parsed.tree["size"]
             boards[entry.id] = LinkedBoard(id=entry.id, rows=size[0], columns=size[1], placements=tuple(placements))
 
@@ -97,6 +99,39 @@ def link_content(registries: Registries) -> tuple[LinkedContent, list[ContentErr
                     errors.append(parsed.error(f"{registry_name} '{target}' is not registered", field=("execute", index, "effect", field), expected=f"an enabled {registry_name} id"))
     errors.extend(_link_schema_references(registries))
     return LinkedContent(modes=modes), errors
+
+
+def _every_side_has_a_royal_piece(registries: Registries, parsed: ParsedFile, placements: list[Placement], errors: list[ContentError]) -> bool:
+    """Reject a starting position that leaves a side without a royal piece.
+
+    The engine's legality filter is `a move is legal if it does not leave your royal piece
+    attacked` (`movegen.legal_moves`), and its only outcome model is checkmate or stalemate.
+    Both ask for a royal piece by name, so a side without one is not a mod the engine can
+    play — it is a position it would crash on, at whichever call site happened to run first.
+
+    That assumption is chess's, and core is not supposed to hold chess assumptions. It already
+    does, in movegen; stating it here does not add the constraint, it stops the constraint from
+    surfacing as a `ValueError` mid-frame instead of an attributed load error. Lifting it means
+    giving the engine an outcome model that does not involve royalty, which no content has yet
+    asked for — until it does, this is the honest version.
+    """
+    royal_sides = set()
+    for placement in placements:
+        piece = registries.content["piece"].get(placement.piece_id)
+        if piece is not None and piece.value.tree.get("properties", {}).get("royal"):
+            royal_sides.add(placement.side_id)
+
+    ok = True
+    for index, side in enumerate(parsed.tree.get("sides", ())):
+        side_id = side.get("id") if isinstance(side, dict) else None
+        if side_id is not None and side_id not in royal_sides:
+            errors.append(parsed.error(
+                f"side '{side_id}' starts with no royal piece",
+                field=("sides", index),
+                expected="a starting position placing at least one piece with `properties: { royal: true }` for this side",
+            ))
+            ok = False
+    return ok
 
 
 # The runtime only constructs boards and modes at this milestone, but content that it does not
