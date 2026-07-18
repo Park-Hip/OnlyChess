@@ -180,6 +180,7 @@ class EngineSession:
             pieces, resources, tuple(self.state.event_messages), prompt, self.outcome, clocks,
             (last.start, last.end) if last is not None else None,
             material, self.state.completed_turns, self._event_countdown(),
+            tuple((board.sides[side].name, tuple(self.state.captures.get(side, ()))) for side in board.sides),
         )
 
     def _event_countdown(self):

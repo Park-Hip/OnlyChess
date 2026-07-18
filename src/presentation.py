@@ -39,6 +39,8 @@ class PresentationSnapshot:
     turn_number: int = 0
     #: Moves until the next scheduled event executes, or None when no pool is active.
     event_countdown: int | None = None
+    #: `(side name, (piece id, ...))` of what each side has captured, in capture order.
+    captures: tuple[tuple[str, tuple[str, ...]], ...] = ()
 
 
 @dataclass(frozen=True)

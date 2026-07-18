@@ -1,0 +1,22 @@
+type: ability
+id: base:pawn_kamikaze
+name: Pawn Kamikaze
+
+# The one ability `development` had that this content set was missing. It needed no new effect
+# verb: `destroy` over a selector already existed, and the only thing standing in the way was
+# `adjacent:` ignoring its declared direction and always meaning orthogonal.
+owner: { tag_any: [base:pawn] }
+cost: { base:ap: 3 }
+
+# The player picks nothing: the pawn is the target, and the blast follows from where it stands.
+target: self
+
+effect:
+  type: destroy
+  # Itself included: the pawn does not survive what it sets off.
+  target:
+    scope: { of: self, adjacent: all, include_self: true }
+    # Kings live through it, and so does anything shielded. `not:` names a king by id, which is
+    # allowed here in a way it never would be in core: this file belongs to base:chess, and a mod
+    # naming its own content is the entire point of content.
+    filter: { not: base:king, not_status: [base:shield] }

@@ -30,6 +30,10 @@ class EngineState:
     current_side: str = ""
     action_log: list[list[object]] = field(default_factory=list)
     last_move: object | None = None
+    #: Piece ids each side has captured, in capture order. Filled by RecordCapture; the only
+    #: presentation data the engine stores rather than derives, because a board cannot say whether
+    #: a missing piece was taken or destroyed.
+    captures: dict[str, list[str]] = field(default_factory=dict)
 
     def royal_piece(self, side: str) -> Piece:
         for piece in self.board.pieces():

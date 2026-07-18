@@ -236,6 +236,25 @@ class EngineGameScreen(Screen):
                         text = self.shared.fonts["title"].render(self.presentation.glyph(piece.definition.id), True, text_color)
                         surface.blit(text, text.get_rect(center=rect.center))
                     self._draw_status_markers(surface, piece, rect, accent, layout.square_size)
+                self._draw_coordinates(surface, layout, board, row, col, rect, light, dark)
+
+    def _draw_coordinates(self, surface, layout, board, row, col, rect, light, dark):
+        """Rank down the left edge, file along the bottom, tinted into the square itself.
+
+        Boards here are any size, so the labels count from the board's own dimensions rather than
+        assuming eight of anything. Files run past 'z' on a wide enough board, which is a real
+        limit, but a 27-column board is not a thing any content has asked for.
+        """
+        if layout.square_size < 28:
+            return  # below this the label is unreadable and only adds noise
+        label_color = (dark if (row + col) % 2 == 0 else light)
+        font = self.shared.fonts["small"]
+        if col == 0:
+            rank = font.render(str(board.rows - row), True, label_color)
+            surface.blit(rank, (rect.x + 3, rect.y + 2))
+        if row == board.rows - 1:
+            file_label = font.render(chr(ord("a") + col), True, label_color)
+            surface.blit(file_label, (rect.right - file_label.get_width() - 3, rect.bottom - file_label.get_height() - 1))
 
     def _draw_status_markers(self, surface, piece, rect, accent, square_size):
         """Stack every visible status on the piece, not just the first: icon sprite when the
@@ -366,7 +385,19 @@ class EngineGameScreen(Screen):
         surface.blit(text, (rect.x + 12, y))
         return y + 22
 
-    _DRAW = {"turn": _widget_turn, "material": _widget_material, "countdown": _widget_countdown, "resources": _widget_resources, "log": _widget_log, "prompt": _widget_prompt, "clock": _widget_clock}
+    def _widget_captures(self, surface, widget, rect, y, snapshot, palette):
+        """A row of glyphs per side, in capture order. Uses each piece's own declared glyph, so a
+        mod's pieces appear here without core knowing any of their names."""
+        color = self._color(palette, "text", TEXT_PRIMARY)
+        for name, taken in snapshot.captures:
+            if not taken:
+                continue
+            glyphs = " ".join(self.presentation.glyph(piece_id) for piece_id in taken)
+            surface.blit(self.shared.fonts["small"].render(f"{name}: {glyphs}", True, color), (rect.x + 12, y))
+            y += 20
+        return y + (8 if any(taken for _, taken in snapshot.captures) else 0)
+
+    _DRAW = {"turn": _widget_turn, "material": _widget_material, "captures": _widget_captures, "countdown": _widget_countdown, "resources": _widget_resources, "log": _widget_log, "prompt": _widget_prompt, "clock": _widget_clock}
 
     def _draw_outcome_buttons(self, surface, layout, palette):
         panel = self._color(palette, "panel", CARD_BG)

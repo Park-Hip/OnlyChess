@@ -1,6 +1,6 @@
 """Apply, simulate, and undo moves through the one action path."""
 
-from .actions import AdjustResource, AdvanceTurn, CountMove, RecordMove, Replace
+from .actions import AdjustResource, AdvanceTurn, CountMove, RecordCapture, RecordMove, Replace
 from .abilities import build_ability_actions
 from .piece import Piece
 from .bus import Bus, Capture
@@ -32,8 +32,10 @@ class Pipeline:
         _apply(move, self.state)
         reactions = []
         if move.captured is not None:
-            reactions = self.bus.emit(Capture(move.piece, move.captured, displaced=True))
-            for action in reactions:
+            credit = RecordCapture(move.piece.side, move.captured.definition.id)
+            credit.apply(self.state)
+            reactions = [credit, *self.bus.emit(Capture(move.piece, move.captured, displaced=True))]
+            for action in reactions[1:]:
                 action.apply(self.state)
         turn = AdvanceTurn(); turn.apply(self.state)
         expiry = expiry_actions(self.state, move.piece.side)

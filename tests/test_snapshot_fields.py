@@ -88,6 +88,31 @@ class SnapshotFieldTests(unittest.TestCase):
 
         self.assertEqual(before, session.presentation_snapshot().event_countdown)
 
+    def test_captures_are_credited_to_the_taker_and_reverse_with_undo(self):
+        """The one piece of presentation data that is stored rather than derived: a board cannot
+        say whether a missing piece was captured or destroyed, and only the capture path knows."""
+        session = self.session()
+        for start, end in (((6, 4), (4, 4)), ((1, 3), (3, 3))):
+            session.move(start, end)
+        taker = session.state.current_side
+
+        session.move((4, 4), (3, 3))
+
+        credited = dict(session.presentation_snapshot().captures)[session.state.board.sides[taker].name]
+        self.assertEqual(("base:pawn",), credited)
+
+        session.undo()
+
+        self.assertEqual((), dict(session.presentation_snapshot().captures)[session.state.board.sides[taker].name])
+
+    def test_a_piece_destroyed_by_an_event_is_not_credited_as_a_capture(self):
+        session = self.session()
+        victim = next(piece for piece in session.state.board.pieces() if piece.definition.id == "base:queen")
+
+        Remove(victim).apply(session.state)
+
+        self.assertEqual({()}, {taken for _, taken in session.presentation_snapshot().captures})
+
     def test_a_mode_with_no_pool_has_no_countdown(self):
         self.assertIsNone(self.session("base:vanilla").presentation_snapshot().event_countdown)
 

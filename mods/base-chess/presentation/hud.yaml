@@ -8,6 +8,7 @@ widgets:
   - { type: clock, slot: side }
   - { type: resources, slot: side }
   - { type: material, slot: side }
+  - { type: captures, slot: side }
   - { type: countdown, slot: side }
   - { type: log, slot: side, max_lines: 12 }
   - { type: prompt, slot: bottom }

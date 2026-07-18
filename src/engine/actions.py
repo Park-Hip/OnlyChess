@@ -123,6 +123,26 @@ class AdvanceTurn:
 
 
 @dataclass
+class RecordCapture:
+    """Credit a captured piece to the side that took it.
+
+    Kept as an action rather than derived, unlike the other presentation data, because it cannot be
+    derived: a piece is gone from the board whether it was captured or destroyed by an event, and
+    only the capture path knows which happened. Recording it here keeps undo working the same way
+    everything else does — the list reverses with the move that filled it.
+    """
+
+    side: str
+    piece_id: str
+
+    def apply(self, state) -> None:
+        state.captures.setdefault(self.side, []).append(self.piece_id)
+
+    def undo(self, state) -> None:
+        state.captures[self.side].pop()
+
+
+@dataclass
 class RecordMove:
     """Make the previous completed move available to history-aware mod verbs."""
 

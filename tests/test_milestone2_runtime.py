@@ -58,10 +58,12 @@ rows:
         screen.selected_square = (6, 0)
         screen.ability_choices = screen._choices()
 
-        self.assertEqual(("Pawn Sprint",), tuple(choice.name for choice in screen.ability_choices))
+        self.assertEqual(("Pawn Kamikaze", "Pawn Sprint"), tuple(choice.name for choice in screen.ability_choices))
         modal = screen._modal_rect()
-        row = (modal.x + modal.width // 2, modal.y + 67)
-        screen._choose_ability(row)
+        # Row index follows the listed order, so pick Sprint by where it actually is rather than
+        # assuming a pawn only ever has one ability.
+        index = [choice.id for choice in screen.ability_choices].index("base:pawn_sprint")
+        screen._choose_ability((modal.x + modal.width // 2, modal.y + 67 + index * 42))
         self.assertEqual("base:pawn_sprint", screen.pending_ability)
 
 
