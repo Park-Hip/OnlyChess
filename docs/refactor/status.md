@@ -40,6 +40,36 @@ and [milestones.md](milestones.md) for the approved completion plan.
 - Event triggers beyond scheduled pools are not part of the data vocabulary.
 - Hot reload, a mod-manager UI, distribution, sandboxing, multiplayer, localization, and AI are out of scope.
 
+## The preview sign-off gate
+
+**Decision, 2026-07-19: the first release is a developer preview, and it ships when this list is
+empty — not when the engine stops growing.**
+
+| # | Item | Kind |
+|---|---|---|
+| 1 | P2 — a mode with no `presentation:` hides the promotion prompt | Code |
+| 2 | P0 — audible sound output confirmed by a human | Manual |
+| 3 | P1 — name the audience in `product-completion-spec.md` | Declaration |
+| 4 | P1 — keep the documented extension limits as the release promise | Declaration |
+
+Everything else currently known is already resolved below, and all four product-completion gates pass.
+
+**Why the list is written down rather than remembered.** This project's premise is that content is
+extensible, so there is always another verb, widget, or trigger that could land first. Without a stated
+boundary "when everything is finished" has no false condition, and a finished-but-unsigned build stays
+unsigned indefinitely. Clocks, custom HUD widgets, event triggers, and presentation effects are M7+ by
+the completion spec's own scoping; pulling any of them into this gate is what would make the finish line
+recede.
+
+Item 1 is on the list rather than deferred *because* this is a preview. Its victim is a modder writing
+their first minimal mod, which in a player release is an edge case and here is the entire audience.
+
+**Switching to a general-player release later is a milestone, not a relabel.** It needs a packaged
+executable, an installer, a mod-install flow, an enable/disable manager, and multi-root mod discovery —
+`load()` and `discover()` each take a single directory, and an installed application directory is not
+user-writable on Windows or macOS, so packaging cannot land without the loader change. The decision is
+cheap to defer; the delivery is not.
+
 ## Release-readiness blockers
 
 These are the items to fix or consciously sign off before calling the project release-ready. They are
