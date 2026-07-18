@@ -189,6 +189,46 @@ class ClickPathTests(unittest.TestCase):
         self.assertIsNone(screen.pending_ability)
         self.assertEqual(3, screen.session.state.resources["base:white"]["base:ap"])
 
+    def test_a_pending_prompt_is_drawn_even_when_no_prompt_widget_is_declared(self):
+        """A prompt blocks input, so a mode that never draws one looks broken rather than busy.
+
+        Asserts on pixels because the bug was invisible at every other layer: `_prompt_text()`
+        already returned the right string, the snapshot already carried it, and only the draw call
+        was missing.
+        """
+        screen = self.screen()
+        self.clear_to(
+            screen,
+            ("base:pawn", "base:white", (1, 0)),
+            ("base:king", "base:white", (7, 4)), ("base:king", "base:black", (0, 4)),
+        )
+        self.click(screen, (1, 0))
+        self.click(screen, (0, 0))
+        self.assertIsNotNone(screen.pending_move)
+
+        declared = screen.presentation.hud_widgets()
+        screen.presentation.hud_widgets = lambda: [w for w in declared if w["type"] != "prompt"]
+
+        def frame():
+            surface = p.Surface(self.surface.get_size())
+            surface.fill((0, 0, 0))
+            screen.draw(surface)
+            bottom = screen._layout(surface).bottom
+            return surface.subsurface(p.Rect(bottom.x, bottom.y, bottom.width, min(40, bottom.height))).copy()
+
+        # Compared against the same screen with the prompt cleared, not against a blank surface:
+        # other widgets colour this strip too, so a blank comparison passes whether or not the
+        # prompt is drawn.
+        with_prompt = frame()
+        screen.pending_move = None
+        without_prompt = frame()
+
+        self.assertNotEqual(
+            p.image.tostring(without_prompt, "RGB"),
+            p.image.tostring(with_prompt, "RGB"),
+            "the pending prompt left no pixels behind",
+        )
+
     def test_a_capture_clicked_on_the_board_fuses_and_undo_splits_it(self):
         screen = self.screen("base:advanced")
         self.clear_to(

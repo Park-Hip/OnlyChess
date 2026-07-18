@@ -219,6 +219,24 @@ class EngineGameScreen(Screen):
             cursor = rect.y + 12
             for widget in widgets:
                 cursor = self._DRAW[widget["type"]](self, surface, widget, rect, cursor, snapshot, palette)
+        if snapshot.prompt and not any(widget["type"] == "prompt" for widget in self.presentation.hud_widgets()):
+            self._draw_fallback_prompt(surface, layout, snapshot, palette)
+
+    def _draw_fallback_prompt(self, surface, layout, snapshot, palette):
+        """Draw the prompt line for a mode whose hud_layout does not carry a prompt widget.
+
+        A prompt is not decoration. While one is showing, `handle_event` refuses clicks until the
+        awaited key arrives, so a mode that declares no `presentation:` — or a layout that simply
+        omits the widget — leaves the board looking frozen with nothing on screen explaining why.
+        The modder who hits that is the one writing their first minimal mod.
+
+        Core drawing this is not a boundary violation: core already owns the render loop, and the
+        text comes from the pending move's own choices, so nothing here names content. Requiring
+        `presentation:` instead would have made the smallest possible mod harder to write, which is
+        the wrong trade for a project whose audience includes people who do not write code.
+        """
+        text = self.shared.fonts["small"].render(snapshot.prompt, True, self._color(palette, "warning", ACCENT_GOLD))
+        surface.blit(text, (layout.bottom.x + 12, layout.bottom.y + 12))
 
     def _color(self, palette, token, fallback):
         return p.Color(palette[token]) if palette else fallback

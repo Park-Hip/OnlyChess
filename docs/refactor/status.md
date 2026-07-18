@@ -47,7 +47,7 @@ empty — not when the engine stops growing.**
 
 | # | Item | Kind |
 |---|---|---|
-| 1 | P2 — a mode with no `presentation:` hides the promotion prompt | Code |
+| ~~1~~ | ~~P2 — a mode with no `presentation:` hides the promotion prompt~~ — done 2026-07-19 | Code |
 | 2 | P0 — audible sound output confirmed by a human | Manual |
 | 3 | P1 — name the audience in `product-completion-spec.md` | Declaration |
 | 4 | P1 — keep the documented extension limits as the release promise | Declaration |
@@ -120,7 +120,7 @@ as an ordinary mod depending on `base:chess` and `base:fusion`. 25 assertions, a
 Still needing a human: audible sound output. Cue dispatch is confirmed, but whether a clip is heard is not
 checkable headlessly.
 
-### P2 — A mode without `presentation:` hides the promotion prompt
+### Resolved 2026-07-19 — A mode without `presentation:` hid the promotion prompt
 
 A `game_mode` that declares no `presentation:` block renders no HUD, and the promotion prompt lives in the
 HUD. `_prompt_text()` still returns `"Promote: Q/R/B/K"`, but there is nowhere to draw it, and
@@ -128,11 +128,20 @@ HUD. `_prompt_text()` still returns `"Promote: Q/R/B/K"`, but there is nowhere t
 player guesses one of four keys. The same position in a mode that declares `presentation:` shows the
 prompt correctly.
 
-Every shipped mode declares presentation, so no player hits this. A modder writing their first minimal
-mode does, which is the audience the prime directive cares most about. The fix is a choice between making
-`presentation:` required at link with an attributed error, and having core draw a fallback prompt — core
-already owns the render loop, so a default chrome is not a boundary violation. Deferred rather than
-guessed at.
+Every shipped mode declares presentation, so no player hit this. A modder writing their first minimal
+mode did, which is the audience the prime directive cares most about.
+
+**Fixed by having core draw a fallback prompt** (`EngineGameScreen._draw_fallback_prompt`), rather than by
+requiring `presentation:` at link. Core already owns the render loop, and the text is derived from the
+pending move's own choices, so nothing here names content; requiring presentation would have made the
+smallest possible mod harder to write, which is the wrong trade for this audience. The fallback also
+covers a layout that declares `hud_layout` but omits the `prompt` widget, which is the same trap.
+
+The regression test asserts on pixels, because the defect was invisible at every other layer:
+`_prompt_text()` already returned the string and the snapshot already carried it — only the draw call was
+missing. Its first version compared the bottom strip against a blank surface and passed even with the fix
+removed, since other widgets colour that strip too; it now compares the same screen with and without a
+pending move, which fails when the fallback is disabled.
 
 ### Resolved 2026-07-18 — Royal-less sides crashed instead of failing to load
 
