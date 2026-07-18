@@ -1,0 +1,8 @@
+type: status
+id: proof:warded
+name: Warded
+expiry: { turns: 2 }
+modifies: {}
+# A glyph-only visible status: paired with proof:glow (which ships an icon), it lets
+# the proof fixture show two visible statuses on one piece — one sprite, one glyph.
+presentation: { visible: true, glyph: "+" }

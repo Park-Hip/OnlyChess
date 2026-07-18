@@ -1,0 +1,12 @@
+type: ability
+id: proof:glow_up
+name: Glow Up
+# Scope to the prism only. A piece with no `components` defaults to [its own id]
+# (factory.py), so this matches proof:prism without leaking onto other mods'
+# pieces the way an empty owner ({} = every piece) did.
+owner: { tag_any: [proof:prism] }
+cost: {}
+target: self
+effect:
+  type: apply_status
+  status: proof:glow

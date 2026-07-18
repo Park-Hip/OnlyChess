@@ -1,9 +1,18 @@
 # Spec — Status Effects
 
 **Status:** current status-effect contract.
+
+**Implementation note (2026-07-18):** The current engine has one central status model. A
+`StatusInstance` lives in `Piece.statuses`; `effective_moves`, `capturable`, and `expiry_actions`
+interpret status definitions, while `SetStatus`, `ClearStatus`, and `TickStatus` make changes
+reversible. The older event-tracker and raw-attribute descriptions later in this document are
+historical migration rationale, not current runtime behavior.
 **Satisfies:** UC8 (*add a new status* — the confirmed must-have).
 
 ## Why shield first
+
+This section records the historical reason for the two expiry policies. The Python excerpt and
+legacy attribute names below describe the pre-refactor implementation, not the active engine.
 
 Phase B flagged shield as the awkward case. Reading the code, it is worse than "a countdown with
 quirks" — **it is not a countdown at all**:
@@ -26,7 +35,15 @@ fires after every move *and* every ability). Two granularities, undocumented.
 
 ## The model
 
-A status is content, defined in data, in a mod's namespace — **the seventh content type**, subject to
+### Current implementation
+
+The migration described later in this document is complete. The active engine stores
+`StatusInstance` objects in `Piece.statuses`. `expiry_actions` runs after each completed move or
+ability and emits `ClearStatus` or `TickStatus`; those actions are recorded and undone with the
+rest of the turn. Events and abilities share this central path, and there are no active raw poison
+attributes or separate shield tracker.
+
+A status is content, defined in data, in a mod's namespace — one of the thirteen content types, subject to
 every universal rule in [content-schemas.md](content-schemas.md): it declares `type` and `id`,
 unknown keys are load errors, and it may be patched or replaced like anything else.
 
@@ -102,14 +119,15 @@ UC8 does not. Add them when content demands it.
 
 ## Ticking and ownership — the architectural change
 
-**Today, the event that applied a status ticks it.** `kho_ga_tron_ba_mia` owns a `poisoned_pieces`
-list, decrements its own `duration`, and clears poison in `cleanup()`. The status's lifetime is
-welded to its source event's lifetime, and the event's `duration` field does double duty as both.
+**Historical pre-refactor behavior:** the event that applied a status once ticked it. The current
+engine does not use `kho_ga_tron_ba_mia`, `poisoned_pieces`, or event-owned cleanup; those names are
+kept only to explain the migration.
 
-**Under this spec, a central status system ticks every status on every piece**, decoupled from
-whatever applied it.
+**The current engine uses a central status system that expires every status on every piece**, decoupled
+from whatever applied it. This migration is complete; the next paragraphs preserve the original
+rationale and old implementation names for historical reference.
 
-Consequences, all of them improvements:
+Historical consequences and rationale:
 
 - **Statuses outlive their source.** An ability and an event can apply the same status with the same
   semantics — impossible today, which is why shield needed its own tracker (F7).

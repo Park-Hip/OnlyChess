@@ -484,10 +484,12 @@ unreachable, because a dangling reference cannot survive load. Logged for E1.
 - **Reload.** The pipeline is specified as one-shot at startup. Hot reload is explicitly out of scope
   but the frozen-vocabulary rule at stage 4 is what would make
   it hard later. Noted, not solved.
-- **Historical asset note.** Asset loading was considered outside this pipeline; presentation assets
-  remain intentionally unsupported by the current runtime.
-- **Does `engine:` gate the verb vocabulary or the loader contract?** Inherited from mod-package.md,
-  and stage 4 sharpens it: they will version differently once code mods register verbs.
+- **Historical asset note.** Asset loading was once considered outside this pipeline. The current
+  runtime validates owned presentation assets during loading and consumes them through the normal
+  Pygame presentation path; see [presentation.md](presentation.md). Hot reload remains out of scope.
+- **Engine compatibility enforcement.** `engine:` is parsed and its range syntax is validated, but
+  the current loader does not yet compare it with the running engine version. Dependency ranges are
+  enforced at resolution; engine-range gating remains a known limitation.
 
 ## Gate 3 readiness
 

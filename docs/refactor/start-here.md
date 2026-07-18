@@ -1,7 +1,8 @@
 # Start Here: Contributing to the Mod-Driven Refactor
 
-Use this page before opening source files. The repository runs the mod-driven engine; the hardcoded
-runtime was removed at Wave 6.
+Use [the new contributor onboarding](../onboarding/README.md) first if you are joining from the
+legacy implementation. This page is the contributor-level architecture and decision orientation.
+The repository runs the mod-driven engine; the hardcoded runtime was removed at Wave 6.
 
 ## The ten-minute model
 

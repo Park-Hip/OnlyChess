@@ -42,7 +42,7 @@ version: 1.2.0                # required — semver
 authors: [Someone]
 description: Adds a dragon.
 
-engine: "^1.0"                # engine versions this works with
+engine: "^1.0"                # documented compatibility range; range syntax is validated
 
 dependencies:
   required:
@@ -130,8 +130,9 @@ Dependencies use caret ranges: `^1.2` means `>=1.2.0, <2.0.0`.
 letting them load and fail confusingly at runtime. This is standard across mod loaders and is what
 makes MAJOR mean anything.
 
-`engine: "^1.0"` gates against the game itself, whose surface is the verb vocabulary and the
-loader contract.
+`engine: "^1.0"` is stored and its caret-range syntax is validated. The current loader does not
+yet compare it with `ENGINE_VERSION` or disable a mod for an incompatible engine range; dependency
+version ranges are enforced. Engine-version gating is a documented follow-up limitation.
 
 ## Dependencies and load order
 
@@ -172,9 +173,9 @@ Any mod may be disabled, including base mods. Disabling `base:events` yields pla
 chess (UC11). Disabling a mod that others require disables those too, transitively, with the chain
 reported.
 
-## Open
+## Known limitations
 
-- **Where do mods live?** `mods/` beside the executable, or a per-user data directory? Affects
-  packaging and whether a game update can clobber mods.
-- **Does `engine:` gate the verb vocabulary or the loader contract?** They will version differently
-  once code mods register verbs.
+- **Engine compatibility enforcement.** The manifest field exists and is syntax-checked, but startup
+  does not yet compare it with the running engine version.
+- **Installation and distribution.** Mods currently live under the application's `mods/` directory;
+  there is no installer, marketplace, per-user data directory, or hot reload.

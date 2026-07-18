@@ -14,20 +14,26 @@ Requires Python and [`uv`](https://github.com/astral-sh/uv).
 uv run python main.py
 ```
 
-The menu offers two shipped modes:
+The menu offers every linked mode discovered under `mods/`. The shipped install currently includes:
 
-- **Start** — standard chess from `base:chess` only.
+- **Standard Chess** — standard chess from `base:chess` only.
 - **Advanced** — chess plus `base:fusion` and `base:events`.
+- **Prism Arena** — the independent 6x6 proof mod.
+
+The **Mods** button shows installed-mod metadata, flags code-bearing mods, and reports attributed
+load errors. It is informational; installing or disabling mods still happens by changing the
+folders under `mods/` and restarting the application.
 
 ### Controls
 
 - Click a piece, then a highlighted destination to move.
-- Press **Ctrl-Z** to undo the complete previous turn, including any event outcome.
-- Select a piece and press **A** to use its available ability; click a target when prompted.
+- Select a piece and click it again to choose one of its available abilities; click a target when prompted.
 - On promotion, press **Q**, **R**, **B**, or **N**.
+- Press **Ctrl-Z** to undo; **R** restarts the current mode and **Backspace** returns to the menu.
 
-The current screen renders letter glyphs for pieces. Mod-provided sprites, sounds, themes, and HUD
-elements are not yet part of the playable runtime.
+The current screen renders mod-provided glyphs or sprites, themes, sounds, status markers, and the
+declared built-in HUD widgets. It does not yet support custom HUD widget types, a chess clock, or
+arbitrary per-piece text/colour overlays.
 
 ## Mechanics
 
@@ -47,11 +53,14 @@ uv run python -m unittest @test_modules -q
 
 ## Documentation
 
+- [New contributor onboarding](docs/onboarding/README.md)
+- [Continuation roadmap](docs/onboarding/continuation-roadmap.md)
 - [Contributor start here](docs/refactor/start-here.md)
 - [Current runtime status](docs/refactor/status.md)
 - [Product completion specification](docs/refactor/product-completion-spec.md)
 - [Delivery milestones](docs/refactor/milestones.md)
 - [Modding guide](docs/modding/README.md)
+- [Presentation contract](docs/modding/spec/presentation.md)
 
 ## Tech stack
 

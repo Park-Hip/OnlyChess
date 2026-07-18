@@ -4,7 +4,7 @@
 stops being a slogan. Nothing in here may name a piece, an event, or a mod — gate G2 checks
 that mechanically, because a rule nobody can check is a rule that decays.
 
-Start with `docs/refactor/wave-1-loader.md` for the implemented boundary, then read
+Start with `docs/refactor/status.md` for the implemented boundary, then read
 `docs/modding/spec/loader-lifecycle.md` before changing lifecycle order. The ordering is
 load-bearing and looks arbitrary until you know why.
 """

@@ -10,21 +10,27 @@ import pygame as p
 @dataclass(frozen=True)
 class BoardLayout:
     board: p.Rect
-    panel: p.Rect
+    panel: p.Rect  # alias of `side`, kept so existing readers of `.panel` keep working
+    top: p.Rect
+    side: p.Rect
+    bottom: p.Rect
     square_size: int
     rows: int
     columns: int
 
     @classmethod
-    def for_viewport(cls, viewport: tuple[int, int], rows: int, columns: int, *, header: int = 56, margin: int = 16) -> "BoardLayout":
+    def for_viewport(cls, viewport: tuple[int, int], rows: int, columns: int, *, header: int = 56, margin: int = 16, footer: int = 44) -> "BoardLayout":
         width, height = viewport
         panel_width = max(180, width // 4)
         available_width = max(1, width - panel_width - margin * 3)
-        available_height = max(1, height - header - margin * 2)
+        # Reserve a bottom band (footer) for the `bottom` HUD slot, in addition to the top header band.
+        available_height = max(1, height - header - footer - margin * 2)
         square = max(1, min(available_width // columns, available_height // rows))
         board = p.Rect(margin, header + margin, columns * square, rows * square)
-        panel = p.Rect(board.right + margin, header + margin, max(1, width - board.right - margin * 2), available_height)
-        return cls(board, panel, square, rows, columns)
+        side = p.Rect(board.right + margin, header + margin, max(1, width - board.right - margin * 2), available_height)
+        top = p.Rect(margin, 0, max(1, width - margin * 2), header)
+        bottom = p.Rect(margin, height - footer, max(1, width - margin * 2), footer)
+        return cls(board=board, panel=side, top=top, side=side, bottom=bottom, square_size=square, rows=rows, columns=columns)
 
     def square_rect(self, square: tuple[int, int]) -> p.Rect:
         row, col = square

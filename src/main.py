@@ -26,6 +26,13 @@ def _load_fonts():
 def main():
     """Run the main Pygame application loop, swapping between screens."""
     p.init()
+    # Audio playback is core's job, but it must never take the game down: a machine
+    # with no output device should still run silently. The presentation runtime guards
+    # every play() call with mixer.get_init(), so a failure here degrades to no sound.
+    try:
+        p.mixer.init()
+    except p.error:
+        pass
     screen = p.display.set_mode((WIDTH, HEIGHT))
     p.display.set_caption("OnlyChess")
     clock = p.time.Clock()

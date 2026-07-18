@@ -3,4 +3,5 @@ id: proof:glow
 name: Glow
 expiry: { turns: 2 }
 modifies: {}
-presentation: { visible: true, glyph: "*" }
+# `glyph` is the fallback; `icon` is the owned sprite drawn when present.
+presentation: { visible: true, glyph: "*", icon: assets/icons/glow.png }

@@ -49,12 +49,22 @@ class Manifest:
         return self.root / CODE_DIR / CODE_ENTRY
 
 
+@dataclass(frozen=True)
+class ModInfo:
+    """Read-only installed-mod metadata safe to expose to presentation code."""
+
+    mod_id: str
+    name: str
+    ships_code: bool
+
+
 @dataclass
 class LoadResult:
     """What a load produced: the registries, who loaded, and everything that went wrong."""
 
     registries: Registries
     mods: tuple[str, ...] = ()
+    installed: tuple[ModInfo, ...] = ()
     errors: list[ContentError] = field(default_factory=list)
     linked: Optional[LinkedContent] = None
     mod_roots: dict[str, Path] = field(default_factory=dict)
@@ -614,13 +624,10 @@ def register_content(files: list[ParsedFile], registries: Registries) -> list[Co
     **This is where `CLAUDE.md`'s "registries are populated by the loader at runtime"
     becomes real**, and where `@register_event` + an `__init__.py` import list dies.
 
-    Two things stage 7 owes and does not yet do, both waiting on stage 5:
-
-    - **Normalization** (`limit: 3` -> internal `4`; unqualified ids -> qualified). It is
-      defined over the *vocabulary*, not over one content type, so it lands when there is a
-      vocabulary to define it over.
-    - The `id` check below belongs to validate. It is here because registration needs a key
-      and the honest alternative is a `KeyError`.
+    Patches and post-patch validation have already completed when this stage runs. The load
+    pipeline normalizes author-facing references and values before registration, so registries
+    receive the effective runtime definitions. The `id` check remains here as a defensive guard
+    because registration needs a key and the honest alternative is a `KeyError`.
     """
     errors: list[ContentError] = []
 
@@ -733,6 +740,7 @@ def load(
     return LoadResult(
         registries=registries,
         mods=loaded,
+        installed=tuple(ModInfo(m.mod_id, m.name, m.ships_code) for m in manifests),
         errors=errors,
         linked=linked,
         mod_roots={manifest.mod_id: manifest.root for manifest in manifests},

@@ -2,13 +2,31 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from .engine import Pipeline, build_state
+from .engine.actions import ClearStatus, SetPendingEvent, SetStatus
 from .engine.movegen import threatened
 from .modding.loader import LoadResult, activate, load
 from .presentation import PresentationNotification, PresentationPiece, PresentationSnapshot
+
+
+def consequence_kinds(record) -> list[str]:
+    """Map recorded state consequences to presentation notifications once each.
+
+    The action log is the observation boundary: effects only need to emit reversible
+    actions, and this scan remains useful for content the engine does not otherwise know.
+    """
+    found = set()
+    for action in record:
+        if isinstance(action, SetStatus):
+            found.add("status_applied")
+        elif isinstance(action, ClearStatus):
+            found.add("status_expired")
+        elif isinstance(action, SetPendingEvent):
+            found.add("event_warning" if action.event_id is not None else "event_executed")
+    return [kind for kind in ("status_applied", "status_expired", "event_warning", "event_executed") if kind in found]
 
 
 @dataclass(frozen=True)
@@ -19,6 +37,7 @@ class ModeCatalogEntry:
     name: str
     rows: int
     columns: int
+    palette: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -28,16 +47,33 @@ class ApplicationContext:
     load_result: LoadResult
     modes: tuple[ModeCatalogEntry, ...]
 
+    @property
+    def installed(self):
+        """Read-only summaries of every selected installed mod."""
+        return self.load_result.installed
+
+    @property
+    def errors(self):
+        """Loader errors retained for the read-only trust/error surface."""
+        return tuple(self.load_result.errors)
+
     @classmethod
     def load(cls, mods_dir: Path | None = None) -> "ApplicationContext":
         mods_dir = mods_dir or Path(__file__).resolve().parent.parent / "mods"
         result = load(mods_dir, validate=True, link=True)
+        if result.errors:
+            return cls(result, ())
         activate(result)
         assert result.linked is not None
         entries = []
         for mode_id, linked in result.linked.modes.items():
             parsed = result.registries.content["game_mode"].get(mode_id).value.tree
-            entries.append(ModeCatalogEntry(mode_id, parsed["name"], linked.board.rows, linked.board.columns))
+            palette = {}
+            presentation = parsed.get("presentation", {})
+            theme_id = presentation.get("theme") if isinstance(presentation, dict) else None
+            if theme_id:
+                palette = dict(result.registries.content["theme"].get(theme_id).value.tree.get("palette", {}))
+            entries.append(ModeCatalogEntry(mode_id, parsed["name"], linked.board.rows, linked.board.columns, palette))
         return cls(result, tuple(sorted(entries, key=lambda item: (item.name.casefold(), item.id))))
 
     def mode(self, mode_id: str) -> ModeCatalogEntry:
@@ -72,7 +108,12 @@ class EngineSession:
         if not candidates:
             raise ValueError("that move is not legal")
         record = self.pipeline.apply(candidates[0], choice=choice)
-        self.notifications.append(PresentationNotification("capture_completed" if candidates[0].captured else "move_completed", self.mode_id, end, candidates[0].piece.definition.id))
+        # One notification per player action, most-specific kind first: a promotion is
+        # reported as a promotion (not the move/capture it also is) so a mod can cue it.
+        kind = "promotion_chosen" if choice else ("capture_completed" if candidates[0].captured else "move_completed")
+        self.notifications.append(PresentationNotification(kind, self.mode_id, end, candidates[0].piece.definition.id))
+        self.notifications.extend(PresentationNotification(consequence, self.mode_id) for consequence in consequence_kinds(record))
+        self._notify_outcome()
         return record
 
     def undo(self):
@@ -97,7 +138,15 @@ class EngineSession:
             raise ValueError("select a piece before choosing an ability")
         record = self.pipeline.use_ability(owner, ability_id, target=target)
         self.notifications.append(PresentationNotification("ability_used", self.mode_id, owner.pos, owner.definition.id))
+        self.notifications.extend(PresentationNotification(consequence, self.mode_id) for consequence in consequence_kinds(record))
+        self._notify_outcome()
         return record
+
+    def _notify_outcome(self):
+        """Emit `outcome_reached` once when an action leaves the game in a terminal
+        position. Reads the same computed `outcome` the UI shows; no state is mutated."""
+        if self.outcome is not None:
+            self.notifications.append(PresentationNotification("outcome_reached", self.mode_id))
 
     def presentation_snapshot(self, *, prompt: str | None = None):
         board = self.state.board

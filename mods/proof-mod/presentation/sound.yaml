@@ -1,4 +1,7 @@
 type: sound
 id: proof:sound
-name: Silent Proof Sound
-cues: {}
+name: Prism Proof Sound
+# The proof mod ships its own owned cue asset, proving a third-party mod drives
+# audio through the same notification path as the base game.
+cues:
+  move_completed: assets/sfx/move.wav

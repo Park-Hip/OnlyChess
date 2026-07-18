@@ -1,4 +1,4 @@
-"""Immutable public data contracts for the future presentation runtime."""
+"""Immutable public data contracts consumed by the presentation runtime."""
 
 from __future__ import annotations
 

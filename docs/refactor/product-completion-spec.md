@@ -113,7 +113,7 @@ The implementation must fulfil the documented nine-stage lifecycle:
 8. Link every cross-reference before a session starts.
 9. Activate only when at least one fully linked game mode is available.
 
-All ten content types must have an engine consumer or be rejected as unsupported; they must never be
+All thirteen content types must have an engine consumer or be rejected as unsupported; they must never be
 silently accepted as registry-only data. Error reports must name the mod, file, position, field, the
 problem, and the expected correction.
 
@@ -143,13 +143,16 @@ The initial presentation vocabulary stays declarative and small:
 | `sound` | Reusable audio assets and mappings from engine-owned lifecycle notifications to cues. |
 | Game-mode presentation selection | References the theme and HUD layout active for that mode. |
 
-The exact schema is not approved until its normative specification passes the same review as the
-gameplay schemas. Prefer separate reusable `theme`, `hud_layout`, and `sound` definitions, while
-keeping piece- and status-specific visuals on the content they describe.
+The schema is defined by [spec/presentation.md](../modding/spec/presentation.md) and is consumed by
+the playable runtime. It is intentionally small: separate reusable `theme`, `hud_layout`, and
+`sound` definitions, with piece- and status-specific visuals on the content they describe. The
+current public code API registers movement verbs only; custom presentation widgets remain future
+work.
 
-Core exposes generic layout/rendering primitives and read-only state. Code mods may register
-presentation vocabulary through `ModApi`, but they return declarative values rather than receive
-surfaces, fonts, audio devices, or mutable game state.
+Core exposes generic layout/rendering primitives and read-only state. Future presentation verbs may
+be registered through `ModApi` as declarative values, but code mods must never receive surfaces,
+fonts, audio devices, or mutable game state. In the current implementation, `ModApi` registers
+movement verbs only.
 
 ### 4. Presentation notifications
 
@@ -205,9 +208,8 @@ The detailed work sequence and acceptance criteria live in
 
 - Whether v1 supports more than two sides. Board data remains generic, but the release proof only
   requires two-side modes until real content earns multiplayer-side rules and UI treatment.
-- The exact widget set for `hud_layout`. It must be earned from the shipped HUD and proof-mod needs,
-  not designed as a general UI language.
-- The exact asset formats and scaling policy. The presentation specification must decide these before
-  runtime implementation, with a deterministic fallback policy for glyph-only content.
+- Presentation depth beyond the current static vocabulary: custom widgets, clock state, arbitrary
+  per-piece text/colour fields, and effect-driven animation primitives. The current asset formats,
+  scaling policy, fallback behavior, and four-widget HUD set are defined in the presentation spec.
 - New code-mod verb kinds beyond the requirements needed to implement the approved presentation
   contract. Each addition needs a content consumer and action-safe API design.

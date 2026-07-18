@@ -56,6 +56,18 @@ class EngineGameScreen(Screen):
             if choice:
                 self.session.move(self.pending_move.start, self.pending_move.end, choice=choice); self.pending_move = None
             return
+        # Shell navigation: reachable any time during play, not only from the outcome screen.
+        if event.type == p.KEYDOWN and event.key == p.K_r:
+            self._restart(); return
+        if event.type == p.KEYDOWN and event.key == p.K_BACKSPACE:
+            self._go_to_menu(); return
+        if self.session.outcome and event.type == p.MOUSEBUTTONDOWN and event.button == 1:
+            restart_rect, menu_rect = self._outcome_button_rects(self._layout(p.display.get_surface()))
+            position = p.mouse.get_pos()
+            if restart_rect.collidepoint(position):
+                self._restart(); return
+            if menu_rect.collidepoint(position):
+                self._go_to_menu(); return
         if event.type != p.MOUSEBUTTONDOWN or event.button != 1 or self.pending_move is not None:
             return
         position = p.mouse.get_pos()
@@ -87,6 +99,21 @@ class EngineGameScreen(Screen):
         else:
             self.selected_square = square if self.session.state.board.at(square) is not None else None
 
+    def _restart(self):
+        """A fresh game of the same mode: a brand-new EngineSession with an empty action
+        log, never a replay or reversal of the current one's log."""
+        self.next_screen = EngineGameScreen(self.shared, session=EngineSession(self.session.load_result, self.session.mode_id))
+
+    def _go_to_menu(self):
+        from .menu_screen import MenuScreen  # deferred: menu_screen imports this module at top level
+        self.next_screen = MenuScreen(self.shared)
+
+    def _outcome_button_rects(self, layout):
+        center = layout.board.center
+        restart = p.Rect(0, 0, 140, 40).move(center[0] - 150, center[1] + 40)
+        menu = p.Rect(0, 0, 140, 40).move(center[0] + 10, center[1] + 40)
+        return restart, menu
+
     def _choose_ability(self, position):
         modal = self._modal_rect()
         for index, choice in enumerate(self.ability_choices):
@@ -110,19 +137,19 @@ class EngineGameScreen(Screen):
         palette = self.presentation.palette()
         surface.fill(p.Color(palette["background"]) if palette else PANEL_BG)
         layout = self._layout(surface)
-        self._draw_header(surface)
         self._draw_board(surface, layout)
-        self._draw_messages(surface, layout)
+        self._draw_hud(surface, layout, palette)
         if self.session.outcome:
+            # Dim the finished game toward the theme's own void, then draw the overlay on top.
+            veil = p.Color(palette["background"]) if palette else PANEL_BG
+            scrim = p.Surface(surface.get_size(), p.SRCALPHA)
+            scrim.fill((veil.r, veil.g, veil.b, 180))
+            surface.blit(scrim, (0, 0))
             text = self.shared.fonts["title"].render(self.session.outcome, True, ACCENT_GOLD)
             surface.blit(text, text.get_rect(center=layout.board.center))
+            self._draw_outcome_buttons(surface, layout, palette)
         if self.ability_choices:
             self._draw_ability_modal(surface)
-
-    def _draw_header(self, surface):
-        side = self.session.state.board.sides[self.session.state.current_side].name
-        label = f"{side} to move | Ctrl-Z: undo | click a selected piece again for abilities"
-        surface.blit(self.shared.fonts["normal"].render(label, True, TEXT_PRIMARY), (12, 12))
 
     def _draw_board(self, surface, layout):
         board = self.session.state.board
@@ -145,24 +172,93 @@ class EngineGameScreen(Screen):
                     else:
                         text = self.shared.fonts["title"].render(self.presentation.glyph(piece.definition.id), True, text_color)
                         surface.blit(text, text.get_rect(center=rect.center))
-                    visible = [status for status in piece.statuses if self.session.load_result.registries.content["status"].get(status).value.tree.get("presentation", {}).get("visible")]
-                    if visible:
-                        marker = self.session.load_result.registries.content["status"].get(visible[0]).value.tree["presentation"].get("glyph", "*")
-                        surface.blit(self.shared.fonts["small"].render(marker, True, accent), (rect.right - 12, rect.y + 2))
+                    self._draw_status_markers(surface, piece, rect, accent, layout.square_size)
 
-    def _draw_messages(self, surface, layout):
-        panel = layout.panel
-        palette = self.presentation.palette()
-        p.draw.rect(surface, p.Color(palette["panel"]) if palette else CARD_BG, panel, border_radius=8)
-        surface.blit(self.shared.fonts["normal"].render("Game log", True, TEXT_PRIMARY), (panel.x + 12, panel.y + 12))
-        for index, message in enumerate(self.session.state.event_messages[-12:]):
-            surface.blit(self.shared.fonts["small"].render(message, True, TEXT_PRIMARY), (panel.x + 12, panel.y + 42 + index * 22))
-        prompt = None
+    def _draw_status_markers(self, surface, piece, rect, accent, square_size):
+        """Stack every visible status on the piece, not just the first: icon sprite when the
+        status declares one, else its glyph. The mod owns which statuses are visible and how."""
+        icon_size = max(10, square_size // 3)
+        x, y = rect.right - icon_size - 2, rect.y + 2
+        for status_id in piece.statuses:
+            presentation = self.presentation.status_presentation(status_id)
+            if not presentation.get("visible"):
+                continue
+            icon = self.presentation.status_icon(status_id, icon_size)
+            if icon:
+                surface.blit(icon, (x, y))
+            else:
+                surface.blit(self.shared.fonts["small"].render(presentation.get("glyph", "*"), True, accent), (x, y))
+            y += icon_size + 1
+
+    def _prompt_text(self):
+        """The transient prompt line. This is UI state, not game state, so it enters the
+        read-only snapshot through the dedicated ``prompt=`` parameter rather than a game field."""
         if self.pending_move is not None:
-            prompt = "Promote: " + "/".join(choice.rsplit(":", 1)[-1][0].upper() for choice in self.pending_move.choices)
-        elif self.pending_ability is not None: prompt = "Choose an ability target (Esc cancels)"
-        elif self.error_message: prompt = self.error_message
-        if prompt: surface.blit(self.shared.fonts["small"].render(prompt, True, ACCENT_GOLD), (panel.x + 12, panel.bottom - 30))
+            return "Promote: " + "/".join(choice.rsplit(":", 1)[-1][0].upper() for choice in self.pending_move.choices)
+        if self.pending_ability is not None:
+            return "Choose an ability target (Esc cancels)"
+        if self.error_message:
+            return self.error_message
+        return None
+
+    def _draw_hud(self, surface, layout, palette):
+        """Render exactly the widgets the active mode's hud_layout declares, into their slots.
+
+        Core owns the loop; the mod owns which widgets exist and their order. Nothing here names a
+        widget type, colour, or label except as a dispatch key tied to the four validated widget types.
+        """
+        snapshot = self.session.presentation_snapshot(prompt=self._prompt_text())
+        slots = {"top": layout.top, "side": layout.side, "bottom": layout.bottom}
+        grouped = {"top": [], "side": [], "bottom": []}
+        for widget in self.presentation.hud_widgets():
+            grouped[widget["slot"]].append(widget)
+        if grouped["side"]:  # draw the side background only when a side widget is declared
+            p.draw.rect(surface, p.Color(palette["panel"]) if palette else CARD_BG, layout.side, border_radius=8)
+        for slot_name, widgets in grouped.items():
+            rect = slots[slot_name]
+            cursor = rect.y + 12
+            for widget in widgets:
+                cursor = self._DRAW[widget["type"]](self, surface, widget, rect, cursor, snapshot, palette)
+
+    def _color(self, palette, token, fallback):
+        return p.Color(palette[token]) if palette else fallback
+
+    def _widget_turn(self, surface, widget, rect, y, snapshot, palette):
+        label = f"{snapshot.current_side_name} to move | Ctrl-Z: undo | click a selected piece again for abilities"
+        surface.blit(self.shared.fonts["normal"].render(label, True, self._color(palette, "text", TEXT_PRIMARY)), (rect.x + 12, y))
+        return y + 24
+
+    def _widget_resources(self, surface, widget, rect, y, snapshot, palette):
+        color = self._color(palette, "text", TEXT_PRIMARY)
+        for index, (key, value) in enumerate(snapshot.resources):
+            parts = key.split(":")
+            label = f"{parts[1]} {parts[-1]}: {value}"  # side tail + resource tail, e.g. "white ap: 0"
+            surface.blit(self.shared.fonts["small"].render(label, True, color), (rect.x + 12, y + index * 20))
+        return y + max(1, len(snapshot.resources)) * 20 + 12
+
+    def _widget_log(self, surface, widget, rect, y, snapshot, palette):
+        color = self._color(palette, "text", TEXT_PRIMARY)
+        max_lines = widget.get("max_lines", 8)
+        for index, message in enumerate(snapshot.messages[-max_lines:]):
+            surface.blit(self.shared.fonts["small"].render(message, True, color), (rect.x + 12, y + index * 22))
+        return y + min(len(snapshot.messages), max_lines) * 22 + 12
+
+    def _widget_prompt(self, surface, widget, rect, y, snapshot, palette):
+        if snapshot.prompt:
+            surface.blit(self.shared.fonts["small"].render(snapshot.prompt, True, self._color(palette, "warning", ACCENT_GOLD)), (rect.x + 12, y))
+        return y + 22
+
+    _DRAW = {"turn": _widget_turn, "resources": _widget_resources, "log": _widget_log, "prompt": _widget_prompt}
+
+    def _draw_outcome_buttons(self, surface, layout, palette):
+        panel = self._color(palette, "panel", CARD_BG)
+        border = self._color(palette, "selection", ACCENT_GOLD)
+        text_color = self._color(palette, "text", TEXT_PRIMARY)
+        for rect, label in zip(self._outcome_button_rects(layout), ("Restart (R)", "Menu (Backspace)")):
+            p.draw.rect(surface, panel, rect, border_radius=8)
+            p.draw.rect(surface, border, rect, width=2, border_radius=8)
+            text = self.shared.fonts["small"].render(label, True, text_color)
+            surface.blit(text, text.get_rect(center=rect.center))
 
     def _modal_rect(self):
         height = 74 + len(self.ability_choices) * 42

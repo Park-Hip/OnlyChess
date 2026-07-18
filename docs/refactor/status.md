@@ -1,9 +1,10 @@
 # Current Runtime Status
 
 **State:** the mod-driven gameplay runtime is the only playable runtime. The former hardcoded
-runtime and its implementation-specific tests have been removed. The full loader contract remains
-in progress; see [product-completion-spec.md](product-completion-spec.md) and
-[milestones.md](milestones.md) for the approved completion plan.
+runtime and its implementation-specific tests have been removed. The loader, generic mode runtime,
+and static presentation contract are implemented; post-v1 presentation depth and broader gameplay
+vocabulary remain intentionally limited. See [product-completion-spec.md](product-completion-spec.md)
+and [milestones.md](milestones.md) for the approved completion plan.
 
 ## Supported now
 
@@ -19,9 +20,21 @@ in progress; see [product-completion-spec.md](product-completion-spec.md) and
 
 ## Deliberate current limits
 
-- Mod sprites, sounds, themes, and HUD elements are not yet rendered by the playable runtime.
-- Side colours, themes, HUD definitions, sprites, and sounds remain presentation-contract work for
-  Milestones 3 and 4; M2 deliberately uses the neutral core palette and glyph fallback.
+- The playable runtime renders mod themes, piece sprites/glyphs, the declared `hud_layout` widgets
+  (turn, resources, log, prompt) into top/side/bottom slots (Milestone 6 slice 1), and — as of
+  Milestone 6 slice 2 — plays the mode's declared sound cues: base ships clips for `move_completed`,
+  `capture_completed`, `ability_used`, `promotion_chosen`, `undo_completed`, and `outcome_reached`,
+  and the proof mod ships its own owned move cue. As of Milestone 6 slice 3, a finished game offers
+  restart (fresh `EngineSession`, same mode) and return-to-menu, from the outcome overlay and via
+  keyboard during play. As of Milestone 6 slice 5, a piece renders every visible status — its declared
+  `icon` sprite when present, else its `glyph` — not just the first. Milestone 6 is now complete.
+  The proof mod offers a `proof:glow_up` ability (scoped to its prism, so it does not leak onto other
+  mods' pieces) that applies its owned visible `proof:glow` icon during normal play. Status and scheduled-event notifications
+  are now derived from recorded action lists, and base declares owned cues for all four kinds.
+  The menu now previews each mode's palette per row and uses the first catalog palette for chrome;
+  it falls back to UI constants only when no mode supplies a palette.
+  The read-only Mods screen now lists installed metadata, flags code-bearing mods, and renders
+  attributed load errors; a failed application load returns an empty catalog instead of crashing.
 - Registry-only test helpers may opt out of strict validation/linking; the playable runtime always
   enables them. They exist only for isolated loader tests, not as a game-loading path.
 - Event triggers beyond scheduled pools are not part of the data vocabulary.

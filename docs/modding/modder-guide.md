@@ -13,9 +13,10 @@ There is no secret second way of doing it that the original authors used.
 > game parses, validates, links, and activates it through the same public path used by the shipped
 > base mods. A malformed file is rejected with an attributed error before a game starts.
 >
-> The current runtime still renders glyphs rather than mod-provided sprites, sounds, themes, or HUD
-> elements. Those presentation capabilities are planned work; pieces, rules, events, abilities,
-> statuses, fusion, boards, resources, and game modes are loadable now.
+> The current runtime renders mod-provided glyphs and sprites, themes, sounds, status markers, and
+> the built-in HUD widgets. It does not let a mod define arbitrary Pygame drawing, a new HUD widget,
+> a chess clock, or arbitrary text overlays. Pieces, rules, events, abilities, statuses, fusion,
+> boards, resources, and game modes are loadable through the same path.
 
 ---
 
@@ -56,15 +57,15 @@ in a folder called `pieces/`. It knows it is a piece because the file says `type
 first line. If you put everything in one folder called `stuff/`, your mod still works — it will
 just be harder for you to find things later.
 
-There are ten kinds of content you can write. This guide covers the two you asked about, plus the
-one you need to make an event fire:
+There are thirteen kinds of content you can write. This guide covers the two you asked about, plus
+the one you need to make an event fire:
 
 | `type:` | What it is |
 |---|---|
 | `piece` | A piece: how it moves, what it's worth |
 | `event` | Something that happens to the whole board on a timer |
 | `patch` | A small change to somebody else's file |
-| `ability`, `status`, `fusion`, `board`, `event_pool`, `resource`, `game_mode` | The other seven — see the [reference cards](#7-reference-cards) |
+| `ability`, `status`, `fusion`, `board`, `event_pool`, `resource`, `game_mode`, `theme`, `hud_layout`, `sound` | The other ten — see the [reference cards](#7-reference-cards) |
 
 ---
 
@@ -77,7 +78,7 @@ type: piece
 id: frostmod:griffin
 ```
 
-`type` tells the game which of the nine kinds this is. `id` is the name the game uses internally.
+`type` tells the game which of the thirteen kinds this is. `id` is the name the game uses internally.
 
 ### Rule 2 — Every name has your mod's name in front of it
 
@@ -247,11 +248,13 @@ For `slide`, you name a direction instead:
 And `limit:` is **how many squares**, counted normally. `limit: 2` means two squares. `limit:
 unlimited` means as far as it can go.
 
-### Presentation runtime is not available yet
+### Presentation runtime
 
 The declarative presentation contract is specified in [presentation.md](spec/presentation.md), and
-its data validates at load time. The current playable runtime still renders glyphs and does not yet
-draw themes/HUDs or play cues; that runtime work is Milestone 4.
+its data validates at load time. The playable runtime consumes the selected mode's theme, HUD layout,
+and sound mapping, loads owned piece/status assets, and draws declared status markers. The HUD
+vocabulary is intentionally fixed to `turn`, `resources`, `log`, and `prompt`; presentation data
+cannot add a clock or arbitrary drawing behavior yet.
 
 ### Optional extras
 
@@ -487,7 +490,7 @@ It won't silently pick one behind your back.
 
 Everything above, plus the parts this guide didn't walk through. Keep this section; skim the rest.
 
-### The ten content types
+### The thirteen content types
 
 | `type:` | What it does | Covered above? |
 |---|---|---|
@@ -501,6 +504,9 @@ Everything above, plus the parts this guide didn't walk through. Keep this secti
 | `board` | Board size, layout, and the two sides | below |
 | `resource` | The points abilities are paid with | below |
 | `game_mode` | A playable entry in the menu: a board plus its events | below |
+| `theme` | Palette and presentation colours | [Presentation spec](spec/presentation.md) |
+| `hud_layout` | Ordered built-in HUD widgets and slots | [Presentation spec](spec/presentation.md) |
+| `sound` | Notification-to-audio mappings | [Presentation spec](spec/presentation.md) |
 
 ### Ability
 
@@ -709,6 +715,14 @@ programmer adds by writing a small code mod, which then lets *you* use hit point
 
 **Statuses can only do the four things in the table.** Want a status that doubles a piece's range?
 That needs a code mod to add the ability first.
+
+**Presentation has a deliberately small vocabulary.** A piece can choose a glyph or owned PNG
+sprite, and a visible status can add a glyph or owned icon. Themes are global to a mode, and HUDs
+can only arrange the four built-in widget types. A clock, per-piece colour property, arbitrary text
+label, or custom widget requires an engine/API extension; it cannot be expressed by data alone.
+
+**Code mods currently add movement verbs only.** They receive `ModApi`, but the public API does not
+yet register effects, conditions, triggers, selectors, or presentation widgets.
 
 **If you need something that isn't here**, that's worth reporting rather than working around. The
 whole design is built on the idea that new abilities get added as *vocabulary everybody can use*,

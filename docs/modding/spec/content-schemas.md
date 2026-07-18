@@ -6,7 +6,14 @@
 (statuses — **already specified, not restated here**).
 **Scope:** the content shapes supported by the active loader and engine.
 
-**There are ten content types.** Eight are specified here — **piece**, **event**, **event pool**,
+**Current type set:** the loader accepts thirteen content types: `piece`, `event`, `event_pool`,
+`ability`, `fusion`, `board`, `status`, `patch`, `resource`, `game_mode`, `theme`, `hud_layout`,
+and `sound`. The presentation types are specified in [presentation.md](presentation.md), and all
+thirteen types use the same discovery, validation, patching, registration, and linking pipeline.
+The older ten-type wording immediately below is retained as historical design context and must not
+be used as an authoring reference.
+
+**Historical ten-type draft:** Eight were originally specified here — **piece**, **event**, **event pool**,
 **ability**, **fusion**, **board layout**, **resource**, **game mode**. **status** is specified in
 [status-model.md](status-model.md) and **patch** in [Patches](#patch), but both are content types
 like any other: they live in files, they declare `type` and `id`, and the loader treats them
@@ -39,8 +46,8 @@ replaces: <id>            # optional, rare — ADR-002's blunt instrument. See P
 ```
 
 `type` is what makes folders cosmetic (mod-package.md). The loader reads `type`, never the path.
-The ten legal values are the ten content types: `piece`, `event`, `event_pool`, `ability`,
-`fusion`, `board`, `status`, `patch`, `resource`, `game_mode`.
+The thirteen legal values are: `piece`, `event`, `event_pool`, `ability`, `fusion`, `board`,
+`status`, `patch`, `resource`, `game_mode`, `theme`, `hud_layout`, and `sound`.
 
 **Parameterless choices are written bare; parameterised ones are a single-key mapping.** This is a
 convention the schemas already use everywhere and never stated, which made it look like several
@@ -95,11 +102,10 @@ on:
     effect: { … }                           # or a list of effects
 ```
 
-A code mod registers new triggers through the same public verb path as move types and effects, and
-stage 5 reports an unregistered one by listing the registered set. This is where the probes land:
-UC14 and UC15 both need triggers this list does not have (`piece_captured`, `turn_started`), and
-both get them by **a code mod adding a verb**, not by us guessing at a trigger vocabulary no base
-content exercises.
+The current public `ModApi` does not yet register triggers, effects, conditions, or selectors. The
+only code-mod verb kind currently implemented is `move_type`; `moved` is the built-in content hook
+used by promotion. New trigger and effect kinds remain future extensions to be earned by real
+content.
 
 ---
 
@@ -668,8 +674,8 @@ exercises.
 
 # Event pool
 
-The pool is content, not engine. It is currently hardcoded across `mode_config.py` and three
-constants (`EVENT_CYCLE_TURNS`, `EVENT_WARNING_OFFSET`, `EVENT_EXECUTE_OFFSET`).
+The pool is content, not engine. The loader registers each `event_pool`; the selected mode names its
+active pools, and the engine advances them according to the data fields below.
 
 ```yaml
 type: event_pool
@@ -705,8 +711,8 @@ max: 5
 gain: { amount: 1, every_moves: 2 }
 ```
 
-Replaces `STARTING_AP`, `MAX_AP`, and `AP_GAIN_MOVE_INTERVAL` in `constants.py`, and the
-`ActionPointTracker` that reads them.
+Replaces the old `STARTING_AP`, `MAX_AP`, and `AP_GAIN_MOVE_INTERVAL` constants. The current engine
+loads resource definitions and applies their `gain` rules from `EngineState`/`Pipeline`.
 
 **Why this is not gold-plating, given the "vocabulary is earned" rule.** D1 found the AP economy had
 no home at all: `cost: { ap: 3 }` was data, but the numbers that decide whether a player *has* 3 AP
@@ -728,7 +734,8 @@ The engine tracks per-side quantities of whatever resources are registered, and 
 what they mean. A modder's `mymod:mana` works on day one, and `base:ap` gets no privileges.
 
 `gain: { amount: N, every_moves: M }` is the only accrual rule, and it is the only one earned —
-`ActionPointTracker.gain_for_move` counts completed moves per side and awards on the interval.
+The current pipeline counts completed moves per side and awards the configured amount on the
+configured interval.
 
 > **Not here: "using an ability ends your turn."** D1 initially read `ability_used_this_turn` as
 > missing tuning, and it is not. Spending an ability *is* spending your turn — that is the **turn

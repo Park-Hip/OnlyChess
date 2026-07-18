@@ -1,4 +1,16 @@
 type: sound
 id: base:classic_sounds
 name: Classic Sounds
-cues: {}
+# Each key is a runtime notification kind; the engine plays the mapped clip when
+# that notification fires. Only kinds the runtime actually emits are declared.
+cues:
+  move_completed: assets/sfx/move.wav
+  capture_completed: assets/sfx/capture.wav
+  ability_used: assets/sfx/ability.wav
+  promotion_chosen: assets/sfx/promote.wav
+  undo_completed: assets/sfx/undo.wav
+  outcome_reached: assets/sfx/outcome.wav
+  status_applied: assets/sfx/status-applied.wav
+  status_expired: assets/sfx/status-expired.wav
+  event_warning: assets/sfx/event-warning.wav
+  event_executed: assets/sfx/event-executed.wav

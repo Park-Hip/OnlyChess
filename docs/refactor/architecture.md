@@ -9,7 +9,7 @@ supported modding surface.
 |---|---|---|
 | Game state | board geometry, turn lifecycle, action application/undo | board layouts and starting positions |
 | Rules | move/capture pipeline, registries, validation, event bus | piece moves, effects, conditions, selectors, fusion rules |
-| Presentation | render loop, input dispatch, glyph rendering | Future content-defined sprites, sounds, themes, and HUD elements |
+| Presentation | render loop, input dispatch, generic rendering primitives, audio playback | themes, piece glyphs/sprites, status markers, sound mappings, and layouts using the built-in HUD widgets |
 | Loading | discovery, dependency order, attribution, link/activation | manifests, content files, optional trusted code |
 
 The dividing question is simple: if a third-party modder would need to edit `src/` to add it, the
@@ -38,8 +38,9 @@ must fail loudly rather than being treated as playable.
 - Error messages identify the mod, file, field, and expected correction.
 - `simulate` calculates legality without permanent effects; `apply` records actions and can undo.
 - `main.py` creates an engine-backed session through the public loader; it does not import content
-  rules or a compatibility runtime. The current screen intentionally renders glyphs while the
-  presentation extension surface remains future work.
+  rules or a compatibility runtime. The current screen resolves mod-owned presentation data, but
+  the presentation vocabulary remains intentionally small: no custom drawing callbacks, clock
+  state, arbitrary per-piece text/colour fields, or code-registered HUD widgets.
 
 ## Which document answers which question?
 
