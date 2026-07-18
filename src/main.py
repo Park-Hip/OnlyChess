@@ -7,11 +7,16 @@ currently active, swapping screens or exiting when a screen requests it.
 
 import pygame as p
 
+from pathlib import Path
+
 from .constants import HEIGHT, MAX_FPS, WIDTH
 from .runtime import ApplicationContext
+from .settings import Settings
 from .ui.screens.menu_screen import MenuScreen
 from .ui.screens.shared_resources import SharedResources
 from .ui.ui_constants import PANEL_BG
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 #: Preferred UI faces, best first. A mod's piece and status glyphs are arbitrary characters —
@@ -69,6 +74,8 @@ def main():
         fonts=_load_fonts(),
         menu_background=menu_background,
         app_context=ApplicationContext.load(),
+        settings=Settings.load(REPO_ROOT),
+        settings_root=REPO_ROOT,
     )
 
     current_screen = MenuScreen(shared)

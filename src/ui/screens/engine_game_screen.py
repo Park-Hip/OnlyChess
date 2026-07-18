@@ -54,6 +54,14 @@ class EngineGameScreen(Screen):
         self._last_tick = p.time.get_ticks()
         self.presentation = PresentationRuntime(session.load_result, session.mode_id)
 
+    def _palette(self):
+        """The active mode's palette with the player's colour preferences laid over it.
+
+        Settings are the one layer allowed to overrule a mod, and the override is narrow: it
+        replaces named tokens the theme already has and leaves everything else as authored.
+        """
+        return self.shared.settings.apply(self.presentation.palette())
+
     def _layout(self, surface):
         board = self.session.state.board
         return BoardLayout.for_viewport(surface.get_size(), board.rows, board.columns)
@@ -134,7 +142,7 @@ class EngineGameScreen(Screen):
     def _restart(self):
         """A fresh game of the same mode: a brand-new EngineSession with an empty action
         log, never a replay or reversal of the current one's log."""
-        self.next_screen = EngineGameScreen(self.shared, session=EngineSession(self.session.load_result, self.session.mode_id))
+        self.next_screen = EngineGameScreen(self.shared, session=EngineSession(self.session.load_result, self.session.mode_id, time_limit=self.shared.settings.time_limit))
 
     def _go_to_menu(self):
         from .menu_screen import MenuScreen  # deferred: menu_screen imports this module at top level
@@ -179,7 +187,7 @@ class EngineGameScreen(Screen):
             self.session.tick(elapsed)
 
     def draw(self, surface):
-        palette = self.presentation.palette()
+        palette = self._palette()
         surface.fill(p.Color(palette["background"]) if palette else PANEL_BG)
         layout = self._layout(surface)
         self._draw_board(surface, layout)
@@ -200,7 +208,7 @@ class EngineGameScreen(Screen):
 
     def _draw_board(self, surface, layout):
         board = self.session.state.board
-        palette = self.presentation.palette()
+        palette = self._palette()
         light, dark = (p.Color(palette["board_light"]), p.Color(palette["board_dark"])) if palette else (COLOR_LIGHT, COLOR_DARK)
         text_color = p.Color(palette["text"]) if palette else TEXT_PRIMARY
         accent = p.Color(palette["selection"]) if palette else ACCENT_GOLD

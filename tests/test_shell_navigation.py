@@ -5,6 +5,7 @@ EngineSession (a fresh, empty action log) rather than reversing or replaying the
 import os
 import unittest
 
+
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 import pygame as p
@@ -12,6 +13,7 @@ import pygame as p
 from src.runtime import ApplicationContext, EngineSession
 from src.ui.screens.engine_game_screen import EngineGameScreen
 from src.ui.screens.menu_screen import MenuScreen
+from src.settings import Settings
 
 
 class ShellNavigationTests(unittest.TestCase):
@@ -27,7 +29,7 @@ class ShellNavigationTests(unittest.TestCase):
 
     def _screen(self):
         session = EngineSession(self.context.load_result, self.MODE)
-        shared = type("Shared", (), {"fonts": self._fonts(), "app_context": self.context})()
+        shared = type("Shared", (), {"fonts": self._fonts(), "app_context": self.context, "settings": Settings()})()
         return EngineGameScreen(shared, session=session)
 
     def test_restart_builds_a_fresh_session_with_an_empty_action_log(self):

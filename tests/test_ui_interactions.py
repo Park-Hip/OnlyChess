@@ -13,6 +13,7 @@ which is played out, because its legality depends on the previous move rather th
 import os
 import unittest
 
+
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 import pygame as p
@@ -22,6 +23,7 @@ from src.engine.movegen import pseudo_moves
 from src.engine.piece import Piece
 from src.runtime import ApplicationContext, EngineSession
 from src.ui.screens.engine_game_screen import PAUSE_ENTRIES, EngineGameScreen
+from src.settings import Settings
 
 
 class ClickPathTests(unittest.TestCase):
@@ -34,7 +36,7 @@ class ClickPathTests(unittest.TestCase):
 
     def screen(self, mode_id="base:vanilla"):
         session = EngineSession(self.context.load_result, mode_id)
-        shared = type("Shared", (), {"fonts": self._fonts(), "app_context": self.context})()
+        shared = type("Shared", (), {"fonts": self._fonts(), "app_context": self.context, "settings": Settings()})()
         return EngineGameScreen(shared, session=session)
 
     def _fonts(self):

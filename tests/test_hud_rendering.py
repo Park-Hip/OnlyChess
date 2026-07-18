@@ -4,11 +4,13 @@ hardcoded panel. Removing a widget from the layout removes it from screen with n
 import os
 import unittest
 
+
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 import pygame as p
 
 from src.runtime import ApplicationContext, EngineSession
 from src.ui.screens.engine_game_screen import EngineGameScreen
+from src.settings import Settings
 
 
 class _RecordingFont:
@@ -37,7 +39,7 @@ class HudRenderingTests(unittest.TestCase):
 
     def _screen(self, fonts=None):
         session = EngineSession(self.context.load_result, self.MODE)
-        shared = type("Shared", (), {"fonts": fonts or self._fonts()})()
+        shared = type("Shared", (), {"fonts": fonts or self._fonts(), "settings": Settings()})()
         return EngineGameScreen(shared, session=session)
 
     def test_declared_side_widgets_draw_the_panel(self):

@@ -7,6 +7,7 @@ only. A piece wearing both must draw the glow via its icon and the ward via its 
 import os
 import unittest
 
+
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 import pygame as p
@@ -15,6 +16,7 @@ from src.engine.piece import StatusInstance
 from src.runtime import ApplicationContext, EngineSession
 from src.ui.presentation_runtime import PresentationRuntime
 from src.ui.screens.engine_game_screen import EngineGameScreen
+from src.settings import Settings
 
 
 class _RecordingFont:
@@ -58,7 +60,7 @@ class StatusIconTests(unittest.TestCase):
         recording = _RecordingFont(p.font.Font(None, 13))
         fonts = {"title": p.font.Font(None, 24), "normal": p.font.Font(None, 16), "small": recording}
         session = EngineSession(self.context.load_result, self.MODE)
-        shared = type("Shared", (), {"fonts": fonts})()
+        shared = type("Shared", (), {"fonts": fonts, "settings": Settings()})()
         screen = EngineGameScreen(shared, session=session)
 
         piece = next(iter(session.state.board.pieces()))

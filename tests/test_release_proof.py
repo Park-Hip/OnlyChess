@@ -3,11 +3,13 @@
 import os
 import unittest
 
+
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 import pygame as p
 
 from src.runtime import ApplicationContext, EngineSession
 from src.ui.screens.engine_game_screen import EngineGameScreen
+from src.settings import Settings
 
 
 class ReleaseProofTests(unittest.TestCase):
@@ -25,7 +27,7 @@ class ReleaseProofTests(unittest.TestCase):
 
     def test_proof_mode_renders_headlessly_with_its_theme(self):
         session = EngineSession(self.context.load_result, "proof:arena_mode")
-        shared = type("Shared", (), {"fonts": self.fonts})()
+        shared = type("Shared", (), {"fonts": self.fonts, "settings": Settings()})()
         screen = EngineGameScreen(shared, session=session)
         surface = p.Surface((960, 640))
         screen.draw(surface)

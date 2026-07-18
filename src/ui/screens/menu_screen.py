@@ -22,6 +22,7 @@ class MenuScreen(Screen):
         self.scroll = 0
         self.quit_rect = p.Rect(WIDTH // 2 - 100, HEIGHT - 80, 200, 48)
         self.mods_rect = p.Rect(WIDTH // 2 - 320, HEIGHT - 80, 200, 48)
+        self.options_rect = p.Rect(WIDTH // 2 + 120, HEIGHT - 80, 200, 48)
 
     @property
     def modes(self):
@@ -49,9 +50,13 @@ class MenuScreen(Screen):
         if self.mods_rect.collidepoint(position):
             self.next_screen = ModsScreen(self.shared)
             return
+        if self.options_rect.collidepoint(position):
+            from .options_screen import OptionsScreen  # deferred: options_screen imports this module
+            self.next_screen = OptionsScreen(self.shared)
+            return
         for index, mode in enumerate(self.modes):
             if self._row_rect(index).collidepoint(position):
-                self.next_screen = EngineGameScreen(self.shared, session=EngineSession(self.shared.app_context.load_result, mode.id))
+                self.next_screen = EngineGameScreen(self.shared, session=EngineSession(self.shared.app_context.load_result, mode.id, time_limit=self.shared.settings.time_limit))
                 return
 
     def draw(self, surface):
@@ -76,5 +81,9 @@ class MenuScreen(Screen):
         surface.blit(quit_text, quit_text.get_rect(center=self.quit_rect.center))
         p.draw.rect(surface, self._color(chrome, "panel", CARD_BG), self.mods_rect, border_radius=8)
         p.draw.rect(surface, self._color(chrome, "selection", ACCENT_GOLD), self.mods_rect, width=2, border_radius=8)
+        p.draw.rect(surface, self._color(chrome, "panel", CARD_BG), self.options_rect, border_radius=8)
+        p.draw.rect(surface, self._color(chrome, "selection", ACCENT_GOLD), self.options_rect, width=2, border_radius=8)
+        options_text = self.shared.fonts["normal"].render("Options", True, self._color(chrome, "text", TEXT_PRIMARY))
+        surface.blit(options_text, options_text.get_rect(center=self.options_rect.center))
         mods_text = self.shared.fonts["normal"].render("Mods", True, self._color(chrome, "text", TEXT_PRIMARY))
         surface.blit(mods_text, mods_text.get_rect(center=self.mods_rect.center))
