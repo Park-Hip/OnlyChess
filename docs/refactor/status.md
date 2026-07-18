@@ -206,8 +206,19 @@ $test_modules = rg --files tests -g 'test_*.py' | ForEach-Object { $_.Replace('\
 uv run python -m unittest @test_modules -q
 ```
 
+The POSIX equivalent, which needs neither `uv` nor `rg`:
+
+```bash
+MODS=$(find tests -name 'test_*.py' | sed 's|/|.|g; s|\.py$||' | sort)
+SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy python -m unittest $MODS -q
+```
+
+Only the PowerShell form was documented until 2026-07-18, which is why the suite had never run on
+another platform and a Windows-only path assertion survived in it. Keep both forms working.
+
 The runtime interaction coverage includes promotion, abilities, fusion, scheduled-event warning and
-execution, and undo.
+execution, and undo, and `tests/test_ui_interactions.py` covers the same interactions through the
+screen's event handler rather than the session API.
 
 The independent `proof:arena_mode` is automatically discovered and provides the 6x6 Prism Arena
 release fixture. The automated suite and the 2026-07-17 manual checklist passed historically with no
