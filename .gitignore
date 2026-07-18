@@ -19,5 +19,7 @@ CONTEXT.md
 !/docs/modding/
 !/docs/refactor/
 !/docs/refactor/**
+!/docs/onboarding/
+!/docs/onboarding/**
 mode.md
 AGENTS.md
