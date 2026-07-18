@@ -1,42 +1,37 @@
-# The explicit ordered-pair table. Do not derive it from a rule.
+# Fusion by composition: a capture absorbs the captured piece's components, and the
+# capturer's moves are rebuilt from everything it now contains.
 #
-# The principle is "the capturer's movement dominates" — and it is only half
-# applied: knight pairs collapse to Archbishop regardless of direction, with both
-# components full. A derivation rule would have to special-case knights, which is
-# a table with extra steps.
+# This replaced an explicit ordered-pair table on 2026-07-19. The table named a
+# hand-authored result per pair — Rook+Bishop became a Warden, Bishop+Rook an
+# Inquisitor — which meant only the six combinations someone had written down could
+# fuse at all, and capture order changed the outcome. Composition fuses any pair, and
+# a Rook taking a Bishop is now the same piece as a Bishop taking a Rook.
+#
+# What was given up is worth stating plainly, because a previous decision defended it:
+# Warden's diagonal was deliberately limited to 3 squares, and no derived rule can
+# express that. Under composition a rook-bishop moves as a full rook and a full bishop.
+# That is a balance change, chosen knowingly, not an oversight.
+#
+# The four authored fused pieces still exist as content and remain placeable by any
+# mod. Nothing produces them any more.
 
 type: fusion
 id: base:fusion_table
 
-# The two sides match on DIFFERENT axes, and this line is load-bearing in both
-# directions:
-#
-#   captured: primary  -> a Rook taking an Inquisitor (primarily a bishop) looks
-#                         up (rook, bishop) and fuses into a Warden. Reading this
-#                         as `exact` silently deletes fusion-with-fused-pieces.
-#   capturer: exact    -> a Warden (primary: rook) taking a bishop looks up
-#                         (warden, bishop), which is not in the table, so nothing
-#                         happens. This is what makes can_fuse() redundant.
-match: { capturer: exact, captured: primary }
-
-# Which captures fuse. `displacing_captures` = the capturer ended up standing on
-# the captured square, which is what fusion means physically.
+# Which captures fuse. `displacing_captures` = the capturer ended up standing on the
+# captured square, which is what fusion means physically.
 #
 # This is what keeps bishop_snipe out: it emits a capture (`credit: self`) but the
-# bishop never moves, so it does not displace and does not fuse — today's
-# behaviour, preserved exactly. base:chess cannot reference base:fusion (UC11),
-# so the ability could never have opted out by name; the decision has to live
-# here, and now it is one line rather than a hook in the engine.
+# bishop never moves, so it does not displace and does not fuse — today's behaviour,
+# preserved exactly. base:chess cannot reference base:fusion (UC11), so the ability
+# could never have opted out by name; the decision has to live here.
 fuses_on: displacing_captures
 
-rules:
-  - { capturer: base:knight, captured: base:bishop, into: base:archbishop }
-  - { capturer: base:bishop, captured: base:knight, into: base:archbishop }
-  - { capturer: base:rook,   captured: base:knight, into: base:chancellor }
-  - { capturer: base:knight, captured: base:rook,   into: base:chancellor }
-  - { capturer: base:rook,   captured: base:bishop, into: base:warden }
-  - { capturer: base:bishop, captured: base:rook,   into: base:inquisitor }
-
-# No eligibility field. The table is already total: king, pawn, queen, and every
-# fused piece simply appear in no row. Piece.can_fuse() and King.can_fuse()
-# become deletable — logged for E1.
+# Derive the result instead of looking it up. Components accumulate in capture order,
+# so `components[0]` stays the original piece and every selector reading `primary`
+# keeps working — a fused rook is still primarily a rook.
+#
+# Royalty is not absorbed. That rule lives in the engine as a property check rather
+# than here as a piece id, because core naming a king would be the special-casing the
+# prime directive forbids.
+compose: union

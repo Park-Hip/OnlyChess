@@ -21,7 +21,7 @@ _FIELDS = {
     "board": _COMMON | {"size", "sides", "rows"},
     "event": _COMMON | {"name", "warning", "execute", "empty_message"},
     "event_pool": _COMMON | {"name", "every", "warn_before", "pick", "members"},
-    "fusion": _COMMON | {"name", "match", "fuses_on", "rules"},
+    "fusion": _COMMON | {"name", "match", "fuses_on", "rules", "compose"},
     "game_mode": _COMMON | {"name", "board", "pools", "presentation"},
     "patch": _COMMON | {"patches"},
     "piece": _COMMON | {"name", "material", "components", "moves", "on", "properties", "sprite", "presentation"},
@@ -168,7 +168,13 @@ def _pool(parsed: ParsedFile, _registries: Registries | None) -> list[ContentErr
 def _fusion(parsed: ParsedFile, _registries: Registries | None) -> list[ContentError]:
     errors = []
     if parsed.tree.get("fuses_on") != "displacing_captures": errors.append(parsed.error("must declare the supported capture trigger", field=("fuses_on",), expected="`displacing_captures`"))
-    if not isinstance(parsed.tree.get("rules"), list): errors.append(parsed.error("must be a list", field=("rules",), expected="ordered fusion rules"))
+    compose = parsed.tree.get("compose")
+    if compose is not None and compose != "union":
+        errors.append(parsed.error("is not a supported composition mode", field=("compose",), expected="`union`, or omit it and declare `rules`"))
+    # A table declares how a pair resolves; `compose: union` derives it instead. One or the other:
+    # a table with neither says a capture fuses without saying into what.
+    if compose is None and not isinstance(parsed.tree.get("rules"), list):
+        errors.append(parsed.error("must be a list", field=("rules",), expected="ordered fusion rules, or `compose: union`"))
     return errors
 
 

@@ -18,6 +18,7 @@ os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 import pygame as p
 
 from src.engine.actions import AdjustResource
+from src.engine.movegen import pseudo_moves
 from src.engine.piece import Piece
 from src.runtime import ApplicationContext, EngineSession
 from src.ui.screens.engine_game_screen import EngineGameScreen
@@ -240,7 +241,11 @@ class ClickPathTests(unittest.TestCase):
         self.click(screen, (4, 0))
         self.click(screen, (3, 0))
 
-        self.assertEqual("base:warden", self.occupant(screen, (3, 0)))
+        fused = screen.session.state.board.at((3, 0))
+        self.assertEqual(("base:rook", "base:bishop"), fused.definition.components)
+        # It moves as both now: a diagonal destination no plain rook could reach. Generated rather
+        # than read from legal_moves, which is current-side only and it is Black's turn.
+        self.assertIn((2, 1), [move.end for move in pseudo_moves(screen.session.state, fused)])
 
         self.undo(screen)
 

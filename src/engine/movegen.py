@@ -37,7 +37,26 @@ def pseudo_moves(state, piece, *, threat=False):
             moves.extend(_leaps(state, piece, part, threat))
         else:
             moves.extend(_registered_moves(state, piece, part, threat))
+    if len(piece.definition.components) > 1:
+        moves = _without_duplicate_destinations(moves)
     return moves
+
+
+def _without_duplicate_destinations(moves):
+    """Drop repeats a composed piece's overlapping parts produce.
+
+    A queen that absorbs a rook contributes orthogonal slides twice, and the same square must not be
+    offered as two moves — the UI would draw one marker over another and perft would double-count.
+    Deliberately confined to multi-component pieces so single-component generation, which the perft
+    oracle measures, produces the identical list it always has.
+    """
+    seen, unique = set(), []
+    for move in moves:
+        key = (move.start, move.end)
+        if key not in seen:
+            seen.add(key)
+            unique.append(move)
+    return unique
 
 
 def threatened(state, side):

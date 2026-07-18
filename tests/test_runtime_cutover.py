@@ -71,7 +71,7 @@ class RuntimeCutoverTests(unittest.TestCase):
                 state.board.remove(piece.pos)
         session.pipeline.apply(Move(rook, rook.pos, knight.pos, [Remove(knight), Relocate(rook, knight.pos)], knight))
 
-        self.assertEqual("base:chancellor", state.board.at((0, 1)).definition.id)
+        self.assertEqual(("base:rook", "base:knight"), state.board.at((0, 1)).definition.components)
 
     def test_runtime_session_records_event_warning_then_execution_with_moves(self):
         session = self.session()

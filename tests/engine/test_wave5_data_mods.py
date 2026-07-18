@@ -20,14 +20,23 @@ class WaveFiveDataModTests(unittest.TestCase):
         result.raise_if_failed()
         self.state = build_state(result.registries, "base:advanced")
 
-    def test_displacing_capture_fuses_using_the_loaded_ordered_table(self):
+    def test_a_displacing_capture_composes_the_captured_pieces_components(self):
         rook = self.state.board.at((7, 0))
         knight = self.state.board.at((0, 1))
         for piece in list(self.state.board.pieces()):
             if piece not in (rook, knight): self.state.board.remove(piece.pos)
         move = Move(rook, rook.pos, knight.pos, [Remove(knight), Relocate(rook, knight.pos)], knight)
         Pipeline(self.state).apply(move)
-        self.assertEqual(self.state.board.at((0, 1)).definition.id, "base:chancellor")
+
+        fused = self.state.board.at((0, 1))
+        self.assertEqual(fused.definition.components, ("base:rook", "base:knight"))
+        # Identity follows the capturer: the absorbed piece contributes vocabulary, not a new name.
+        self.assertEqual(fused.definition.id, "base:rook")
+        self.assertEqual(
+            {part["type"] for part in fused.definition.moves},
+            {part["type"] for part in self.state.piece_defs["base:rook"].moves}
+            | {part["type"] for part in self.state.piece_defs["base:knight"].moves},
+        )
 
     def test_event_transform_is_a_reversible_action_list(self):
         runner = EventRunner(self.state, seed=1)
