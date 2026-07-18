@@ -20,6 +20,25 @@ class AbilityChoice:
     cost: str
 
 
+#: Pause entries, in the order they are drawn. Shell chrome, not content: these act on the session
+#: and the screen stack, and none of them names a piece, mode, or mod.
+PAUSE_ENTRIES = ("Resume", "Restart", "Help", "Main Menu")
+
+#: Help describes the controls core itself implements. It deliberately says nothing about pieces,
+#: abilities, or fusion — that text would have to name content, and content is a mod's to describe.
+HELP_LINES = (
+    "Click a piece, then a highlighted square, to move it.",
+    "Click a selected piece again to see its abilities.",
+    "When promoting, press the letter shown in the prompt.",
+    "",
+    "Ctrl-Z    undo the last move or ability",
+    "R         restart this mode",
+    "Backspace return to the menu",
+    "Esc       pause, or cancel what is open",
+    "H         this screen",
+)
+
+
 class EngineGameScreen(Screen):
     """Render an arbitrary rectangular board and explicit ability choices."""
 
@@ -31,6 +50,7 @@ class EngineGameScreen(Screen):
         self.pending_ability = None
         self.ability_choices: tuple[AbilityChoice, ...] = ()
         self.error_message = None
+        self.overlay = None
         self.presentation = PresentationRuntime(session.load_result, session.mode_id)
 
     def _layout(self, surface):
@@ -46,10 +66,21 @@ class EngineGameScreen(Screen):
         return tuple(choices)
 
     def handle_event(self, event):
+        # An open overlay swallows input. Pausing that still let the board be clicked would be a
+        # pause menu in appearance only.
+        if self.overlay is not None:
+            self._handle_overlay_event(event)
+            return
         if event.type == p.KEYDOWN and event.key == p.K_z and (event.mod & p.KMOD_CTRL):
             self.session.undo(); self.selected_square = None; return
         if event.type == p.KEYDOWN and event.key == p.K_ESCAPE:
-            self.ability_choices = (); self.pending_ability = None; return
+            # Esc means "back out of the innermost thing". Only once nothing is open does it pause,
+            # so it never strands a half-made choice behind a menu.
+            if self.ability_choices or self.pending_ability is not None:
+                self.ability_choices = (); self.pending_ability = None; return
+            self.overlay = "pause"; return
+        if event.type == p.KEYDOWN and event.key == p.K_h and self.pending_move is None:
+            self.overlay = "help"; return
         if event.type == p.KEYDOWN and self.pending_move is not None:
             choices = {choice.rsplit(":", 1)[-1][0].lower(): choice for choice in self.pending_move.choices}
             choice = choices.get(event.unicode.lower())
@@ -150,6 +181,8 @@ class EngineGameScreen(Screen):
             self._draw_outcome_buttons(surface, layout, palette)
         if self.ability_choices:
             self._draw_ability_modal(surface)
+        if self.overlay is not None:
+            self._draw_overlay(surface, palette)
 
     def _draw_board(self, surface, layout):
         board = self.session.state.board
@@ -281,6 +314,64 @@ class EngineGameScreen(Screen):
     def _modal_rect(self):
         height = 74 + len(self.ability_choices) * 42
         return p.Rect(0, 0, 360, height).move(220, 150)
+
+    def _overlay_rect(self):
+        height = 96 + (len(PAUSE_ENTRIES) * 44 if self.overlay == "pause" else len(HELP_LINES) * 26)
+        return p.Rect(0, 0, 460, height).move(170, 110)
+
+    def _overlay_entry_rects(self):
+        """Clickable rows for the pause overlay. Help has none — it closes and nothing else."""
+        if self.overlay != "pause":
+            return ()
+        panel = self._overlay_rect()
+        return tuple(p.Rect(panel.x + 24, panel.y + 66 + index * 44, panel.width - 48, 36) for index in range(len(PAUSE_ENTRIES)))
+
+    def _handle_overlay_event(self, event):
+        if event.type == p.KEYDOWN and event.key in (p.K_ESCAPE, p.K_h):
+            self.overlay = None
+            return
+        if event.type != p.MOUSEBUTTONDOWN or event.button != 1:
+            return
+        position = p.mouse.get_pos()
+        for rect, entry in zip(self._overlay_entry_rects(), PAUSE_ENTRIES):
+            if rect.collidepoint(position):
+                self._choose_pause_entry(entry)
+                return
+        if self.overlay == "help" and not self._overlay_rect().collidepoint(position):
+            self.overlay = None
+
+    def _choose_pause_entry(self, entry):
+        if entry == "Resume":
+            self.overlay = None
+        elif entry == "Restart":
+            self._restart()
+        elif entry == "Help":
+            self.overlay = "help"
+        elif entry == "Main Menu":
+            self._go_to_menu()
+
+    def _draw_overlay(self, surface, palette):
+        panel = self._overlay_rect()
+        veil = p.Color(palette["background"]) if palette else PANEL_BG
+        scrim = p.Surface(surface.get_size(), p.SRCALPHA)
+        scrim.fill((veil.r, veil.g, veil.b, 200))
+        surface.blit(scrim, (0, 0))
+
+        border = self._color(palette, "selection", ACCENT_GOLD)
+        text_color = self._color(palette, "text", TEXT_PRIMARY)
+        p.draw.rect(surface, self._color(palette, "panel", CARD_BG), panel, border_radius=10)
+        p.draw.rect(surface, border, panel, width=2, border_radius=10)
+        title = self.shared.fonts["title"].render("Paused" if self.overlay == "pause" else "Controls", True, border)
+        surface.blit(title, (panel.x + 24, panel.y + 20))
+
+        if self.overlay == "pause":
+            for rect, entry in zip(self._overlay_entry_rects(), PAUSE_ENTRIES):
+                p.draw.rect(surface, border, rect, width=1, border_radius=6)
+                label = self.shared.fonts["normal"].render(entry, True, text_color)
+                surface.blit(label, label.get_rect(center=rect.center))
+            return
+        for index, line in enumerate(HELP_LINES):
+            surface.blit(self.shared.fonts["small"].render(line, True, text_color), (panel.x + 24, panel.y + 66 + index * 26))
 
     def _draw_ability_modal(self, surface):
         modal = self._modal_rect()

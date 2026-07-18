@@ -21,7 +21,7 @@ from src.engine.actions import AdjustResource
 from src.engine.movegen import pseudo_moves
 from src.engine.piece import Piece
 from src.runtime import ApplicationContext, EngineSession
-from src.ui.screens.engine_game_screen import EngineGameScreen
+from src.ui.screens.engine_game_screen import PAUSE_ENTRIES, EngineGameScreen
 
 
 class ClickPathTests(unittest.TestCase):
@@ -229,6 +229,74 @@ class ClickPathTests(unittest.TestCase):
             p.image.tostring(with_prompt, "RGB"),
             "the pending prompt left no pixels behind",
         )
+
+    def test_escape_pauses_only_once_nothing_else_is_open(self):
+        """Esc backs out of the innermost thing, so it never strands a half-made choice."""
+        screen = self.screen()
+        AdjustResource("base:white", "base:ap", 3).apply(screen.session.state)
+        self.click(screen, (7, 1))
+        self.click(screen, (7, 1))
+        self.assertTrue(screen.ability_choices)
+
+        self.press(screen, p.K_ESCAPE)
+        self.assertEqual((), screen.ability_choices)
+        self.assertIsNone(screen.overlay)
+
+        self.press(screen, p.K_ESCAPE)
+        self.assertEqual("pause", screen.overlay)
+
+        self.press(screen, p.K_ESCAPE)
+        self.assertIsNone(screen.overlay)
+
+    def test_a_paused_game_ignores_board_clicks(self):
+        """A pause that still let the board be clicked would be a pause menu in appearance only."""
+        screen = self.screen()
+        move = screen.session.legal_moves[0]
+        self.press(screen, p.K_ESCAPE)
+
+        self.click(screen, move.start)
+        self.click(screen, move.end)
+
+        self.assertIsNone(screen.selected_square)
+        self.assertEqual("base:pawn", self.occupant(screen, move.start))
+        self.assertEqual([], screen.session.state.action_log)
+
+    def test_pause_entries_resume_restart_and_leave(self):
+        screen = self.screen()
+        move = screen.session.legal_moves[0]
+        screen.session.move(move.start, move.end)
+
+        self.press(screen, p.K_ESCAPE)
+        self.click_at(screen, screen._overlay_entry_rects()[PAUSE_ENTRIES.index("Resume")].center)
+        self.assertIsNone(screen.overlay)
+
+        self.press(screen, p.K_ESCAPE)
+        self.click_at(screen, screen._overlay_entry_rects()[PAUSE_ENTRIES.index("Help")].center)
+        self.assertEqual("help", screen.overlay)
+        self.press(screen, p.K_ESCAPE)
+
+        self.press(screen, p.K_ESCAPE)
+        self.click_at(screen, screen._overlay_entry_rects()[PAUSE_ENTRIES.index("Restart")].center)
+        self.assertIsInstance(screen.next_screen, EngineGameScreen)
+        self.assertEqual([], screen.next_screen.session.state.action_log)
+
+    def test_pause_offers_a_route_to_the_main_menu(self):
+        screen = self.screen()
+        self.press(screen, p.K_ESCAPE)
+
+        self.click_at(screen, screen._overlay_entry_rects()[PAUSE_ENTRIES.index("Main Menu")].center)
+
+        self.assertIsNotNone(screen.next_screen)
+        self.assertNotIsInstance(screen.next_screen, EngineGameScreen)
+
+    def test_h_opens_help_during_play_and_closes_again(self):
+        screen = self.screen()
+
+        self.press(screen, p.K_h, "h")
+        self.assertEqual("help", screen.overlay)
+
+        self.press(screen, p.K_h, "h")
+        self.assertIsNone(screen.overlay)
 
     def test_a_capture_clicked_on_the_board_fuses_and_undo_splits_it(self):
         screen = self.screen("base:advanced")
