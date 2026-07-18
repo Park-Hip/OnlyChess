@@ -4,6 +4,7 @@
 type: piece
 id: base:pawn
 name: Pawn
+presentation: { glyph: P }
 material: 1
 
 moves:

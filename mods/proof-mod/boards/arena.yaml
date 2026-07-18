@@ -1,0 +1,9 @@
+type: board
+id: proof:arena
+size: [6, 6]
+sides:
+  - { id: proof:amber, name: Amber, forward: up, promotes_at: 0, moves_first: true }
+  - { id: proof:violet, name: Violet, forward: down, promotes_at: 5 }
+rows:
+  - { row: 0, side: proof:violet, fill: proof:prism }
+  - { row: 5, side: proof:amber, fill: proof:prism }

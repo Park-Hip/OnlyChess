@@ -14,6 +14,7 @@ def build_state(registries, mode_id: str) -> EngineState:
     sides = {
         item["id"]: Side(
             item["id"],
+            item["name"],
             -1 if item["forward"] == "up" else 1,
             item.get("moves_first", False),
             item.get("promotes_at"),
@@ -41,6 +42,7 @@ def build_state(registries, mode_id: str) -> EngineState:
         data = entry.value.tree
         abilities[entry.id] = AbilityDef(
             entry.id,
+            data.get("name", entry.id.rsplit(":", 1)[-1]),
             dict(data["owner"]),
             dict(data.get("cost", {})),
             data["target"],

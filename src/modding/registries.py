@@ -24,7 +24,7 @@ from typing import Any, Iterator, Optional
 
 from .errors import ContentError
 
-#: The ten content types (content-schemas.md, "Universal rules"). `type` is what makes
+#: The thirteen content types (content-schemas.md, "Universal rules"). `type` is what makes
 #: folders cosmetic — the loader reads the declaration inside the file, never the path.
 #:
 #: This is not core naming content. `piece` is a *kind* of content; `base:queen` is content.
@@ -40,6 +40,9 @@ CONTENT_TYPES = (
     "piece",
     "resource",
     "status",
+    "theme",
+    "hud_layout",
+    "sound",
 )
 
 #: The kinds of verb a code mod can register. One, for now, and that is deliberate:

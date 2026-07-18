@@ -3,6 +3,7 @@
 type: piece
 id: base:chancellor
 name: Chancellor
+presentation: { glyph: C }
 material: 8
 
 # Primary is rook, so gia_xang_tang ("all rooks become knights") hits this.

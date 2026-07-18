@@ -1,0 +1,7 @@
+type: piece
+id: proof:prism
+name: Prism
+properties: { royal: true }
+presentation: { glyph: "◆" }
+moves:
+  - { type: slide, dirs: diagonal, limit: 2 }

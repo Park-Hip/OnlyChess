@@ -6,6 +6,7 @@
 type: piece
 id: base:knight
 name: Knight
+presentation: { glyph: N }
 material: 3
 
 moves:

@@ -11,8 +11,8 @@ sides:
   # `forward` is what makes the piece frame work — every `dirs: forward` and
   # every [forward, right] offset resolves through it. It replaces
   # `self.direction = -1 if color == WHITE else 1` inside Pawn.__init__.
-  - { id: base:white, forward: up,   promotes_at: 0, moves_first: true }
-  - { id: base:black, forward: down, promotes_at: 7 }
+  - { id: base:white, name: White, forward: up,   promotes_at: 0, moves_first: true }
+  - { id: base:black, name: Black, forward: down, promotes_at: 7 }
 
 rows:
   - row: 0

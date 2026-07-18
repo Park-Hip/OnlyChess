@@ -16,7 +16,7 @@ class WaveFiveProbeTests(unittest.TestCase):
             (code / "code").mkdir()
             (code / "code" / "__init__.py").write_text("def register(api):\n    api.move_type('dash', lambda context, piece, part, threat: [])\n", encoding="utf-8")
             data = root / "content"; data.mkdir()
-            (data / "manifest.yaml").write_text("id: probe:content\nname: Content\nversion: 1\ncode: false\n", encoding="utf-8")
+            (data / "manifest.yaml").write_text("id: probe:content\nname: Content\nversion: 1\ncode: false\ndependencies:\n  required:\n    probe:language: '^1'\n", encoding="utf-8")
             (data / "piece.yaml").write_text("type: piece\nid: probe:runner\nmoves: [{type: dash}]\n", encoding="utf-8")
             result = load(root)
             self.assertTrue(result.ok, [error.format() for error in result.errors])

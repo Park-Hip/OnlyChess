@@ -51,6 +51,7 @@ class ResourceDef:
 @dataclass(frozen=True)
 class AbilityDef:
     id: str
+    name: str
     owner: dict
     cost: dict
     target: object

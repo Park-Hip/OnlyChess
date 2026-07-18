@@ -4,6 +4,7 @@
 type: piece
 id: base:king
 name: King
+presentation: { glyph: K }
 material: 0
 properties: { royal: true }
 

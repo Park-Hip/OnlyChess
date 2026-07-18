@@ -23,7 +23,7 @@ wrong.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional, Union
 
@@ -72,6 +72,16 @@ def _reader() -> YAML:
 
 
 @dataclass(frozen=True)
+class Provenance:
+    """The source location of a field supplied by a patch."""
+
+    mod_id: str
+    file: str
+    line: Optional[int]
+    col: Optional[int]
+
+
+@dataclass
 class ParsedFile:
     """One content file, its position data intact.
 
@@ -83,6 +93,7 @@ class ParsedFile:
     path: Path
     display: str
     tree: Any  # CommentedMap — typed loosely; ruamel's stubs do not describe .lc
+    provenance: dict[FieldPath, Provenance] = field(default_factory=dict)
 
     @property
     def content_type(self) -> str:
@@ -146,16 +157,29 @@ class ParsedFile:
         to remember at every raise site.
         """
         position = self.position(field)
+        source = self._provenance_for(field) if position is None else None
         return ContentError(
-            mod_id=self.mod_id,
-            file=self.display,
+            mod_id=source.mod_id if source else self.mod_id,
+            file=source.file if source else self.display,
             problem=problem,
-            line=position[0] if position else None,
-            col=position[1] if position else None,
+            line=position[0] if position else (source.line if source else None),
+            col=position[1] if position else (source.col if source else None),
             field=render_path(field) if field else None,
             expected=expected,
             suggestion=suggestion,
         )
+
+    def stamp_provenance(self, path: FieldPath, source: Provenance) -> None:
+        """Record the patch location for a field that did not exist in this file."""
+        self.provenance[path] = source
+
+    def _provenance_for(self, field: FieldPath) -> Optional[Provenance]:
+        """Use the closest patched ancestor when a key has no YAML location."""
+        for size in range(len(field), -1, -1):
+            source = self.provenance.get(field[:size])
+            if source is not None:
+                return source
+        return None
 
 
 def _one_based(raw: Optional[tuple[int, int]]) -> Optional[tuple[int, int]]:

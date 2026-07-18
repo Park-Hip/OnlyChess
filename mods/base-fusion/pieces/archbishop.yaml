@@ -3,6 +3,7 @@
 type: piece
 id: base:archbishop
 name: Archbishop
+presentation: { glyph: A }
 material: 6
 
 # Ordered: first element is the primary. Archbishop's primary is knight, so

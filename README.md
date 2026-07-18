@@ -41,14 +41,16 @@ elements are not yet part of the playable runtime.
 ## Verify
 
 ```powershell
-$testModules = rg --files tests -g "test_*.py" | ForEach-Object { $_.Replace("\", ".").Replace("/", ".").Replace(".py", "") }
-uv run python -m unittest @testModules
+$test_modules = rg --files tests -g 'test_*.py' | ForEach-Object { $_.Replace('\\', '.').Replace('/', '.').Replace('.py', '') }
+uv run python -m unittest @test_modules -q
 ```
 
 ## Documentation
 
 - [Contributor start here](docs/refactor/start-here.md)
 - [Current runtime status](docs/refactor/status.md)
+- [Product completion specification](docs/refactor/product-completion-spec.md)
+- [Delivery milestones](docs/refactor/milestones.md)
 - [Modding guide](docs/modding/README.md)
 
 ## Tech stack

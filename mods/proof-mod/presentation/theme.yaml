@@ -1,0 +1,5 @@
+type: theme
+id: proof:theme
+name: Prism Night
+palette: { background: "#111827", panel: "#1F2937", board_light: "#C4B5FD", board_dark: "#6D28D9", text: "#F9FAFB", accent: "#FBBF24", warning: "#FB7185", selection: "#38BDF8", target: "#4ADE80" }
+typography: { scale: 1, weight: normal }

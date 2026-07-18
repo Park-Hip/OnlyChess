@@ -18,3 +18,4 @@ name: Standard Chess
 
 board: base:standard
 pools: []          # the empty list is legal and load-bearing: a game with no events
+presentation: { theme: base:classic_theme, hud_layout: base:classic_hud, sound: base:classic_sounds }

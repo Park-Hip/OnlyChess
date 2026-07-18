@@ -1,21 +1,8 @@
-"""The loader — enough of the nine stages to read a mod, register it, and hand it over.
+"""The nine-stage, data-first mod loader.
 
-Wave 1 implements **1 discover, 3 parse, 4 load code, 7 register, 9 activate**. Wave 2 adds
-an opt-in **5 validate** and **8 link** path for the three content types its preview consumes.
-The remaining work is not stubbed, because a stub that returns success is a lie that passes tests:
-
-- **2 resolve** (graph, cycles, the originator rule) arrives with the first mod that has a
-  dependency. Until then, load order is the tie-break rule — mod id, alphabetically.
-- **6 patch** arrives with ADR-002's ops.
-- Validation/linking for the other seven content types arrive with their engine consumers.
-
-Unsupported content remains registry-only. That is a real gap and it is recorded here rather
-than hidden behind a `def validate(): pass`.
-
-**Errors are collected, not fail-fast.** The loader runs every stage over every mod and
-reports everything at once. A non-coder with six typos should learn about six typos, not
-run the game six times. The exception is a failure that makes later stages meaningless —
-stage 4's freeze — where continuing would only manufacture cascade noise.
+The loader is the enforcement point for the public mod contract: dependency order precedes code
+registration, vocabulary freezes before validation, patches land before normalization, and nothing
+reaches the engine with an unresolved content reference.
 """
 
 from __future__ import annotations
@@ -30,9 +17,10 @@ from typing import Iterable, Optional
 from .api import ModApi, ModApiError
 from .errors import ContentError, ModLoadError
 from .linking import LinkedContent, link_content
+from .patching import apply_patches
 from .parse import CONTENT_SUFFIX, ParsedFile, describe_shape, parse_file, read_yaml
-from .registries import Registries, is_valid_id
-from .validation import validate_content
+from .registries import Registries, is_valid_id, qualify
+from .validation import validate_assets, validate_content
 
 MANIFEST_NAME = "manifest.yaml"
 CODE_DIR = "code"
@@ -40,6 +28,7 @@ CODE_ENTRY = "__init__.py"
 
 #: Manifest fields without which a mod cannot be loaded or attributed (mod-package.md).
 REQUIRED_MANIFEST_FIELDS = ("id", "name", "version")
+ENGINE_VERSION = "1.0.0"
 
 
 @dataclass(frozen=True)
@@ -51,6 +40,9 @@ class Manifest:
     version: str
     root: Path
     ships_code: bool
+    engine: str | None = None
+    required_dependencies: dict[str, str] = field(default_factory=dict)
+    optional_dependencies: dict[str, str] = field(default_factory=dict)
 
     @property
     def code_entry(self) -> Path:
@@ -66,6 +58,7 @@ class LoadResult:
     errors: list[ContentError] = field(default_factory=list)
     linked: Optional[LinkedContent] = None
     mod_roots: dict[str, Path] = field(default_factory=dict)
+    warnings: list[str] = field(default_factory=list)
 
     @property
     def ok(self) -> bool:
@@ -167,7 +160,13 @@ def _read_manifest(path: Path, folder: Path) -> tuple[Optional[Manifest], list[C
         ]
 
     # From here the mod can be named, so errors stop saying <folder>.
-    parsed = ParsedFile(mod_id=mod_id, path=parsed.path, display=parsed.display, tree=tree)
+    parsed = ParsedFile(
+        mod_id=mod_id,
+        path=parsed.path,
+        display=parsed.display,
+        tree=tree,
+        provenance=parsed.provenance,
+    )
 
     ships_code = tree.get("code", False)
     if not isinstance(ships_code, bool):
@@ -209,6 +208,16 @@ def _read_manifest(path: Path, folder: Path) -> tuple[Optional[Manifest], list[C
             )
         ]
 
+    dependencies, dependency_errors = _read_dependencies(parsed)
+    if dependency_errors:
+        return None, dependency_errors
+
+    engine = tree.get("engine")
+    if engine is not None and not isinstance(engine, str):
+        return None, [
+            parsed.error("must be a version range", field=("engine",), expected="a caret range such as `^1.0`")
+        ]
+
     return (
         Manifest(
             mod_id=mod_id,
@@ -216,9 +225,232 @@ def _read_manifest(path: Path, folder: Path) -> tuple[Optional[Manifest], list[C
             version=str(tree["version"]),
             root=folder,
             ships_code=ships_code,
+            engine=engine,
+            required_dependencies=dependencies["required"],
+            optional_dependencies=dependencies["optional"],
         ),
         [],
     )
+
+
+def _read_dependencies(parsed: ParsedFile) -> tuple[dict[str, dict[str, str]], list[ContentError]]:
+    """Validate the manifest's dependency maps before graph resolution needs them."""
+    raw = parsed.tree.get("dependencies", {})
+    if raw is None:
+        raw = {}
+    if not isinstance(raw, dict):
+        return {"required": {}, "optional": {}}, [
+            parsed.error("must be a block of dependency maps", field=("dependencies",), expected="`dependencies: { required: {}, optional: {} }`")
+        ]
+    allowed = {"required", "optional"}
+    errors: list[ContentError] = []
+    for key in raw:
+        if key not in allowed:
+            errors.append(parsed.error(f"unknown key '{key}'", field=("dependencies", key), expected="one of optional, required"))
+    result: dict[str, dict[str, str]] = {"required": {}, "optional": {}}
+    for kind in result:
+        values = raw.get(kind, {})
+        if not isinstance(values, dict):
+            errors.append(parsed.error("must be a map of mod ids to version ranges", field=("dependencies", kind), expected="a dependency map whose keys are namespaced mod identifiers"))
+            continue
+        for mod_id, version_range in values.items():
+            if not isinstance(mod_id, str) or not is_valid_id(mod_id):
+                errors.append(parsed.error("dependency id is not valid", field=("dependencies", kind), expected="`namespace:name` keys"))
+                continue
+            if not isinstance(version_range, str) or not _valid_range(version_range):
+                errors.append(parsed.error("dependency version is not a supported caret range", field=("dependencies", kind, mod_id), expected="a range such as `^1.0`"))
+                continue
+            result[kind][mod_id] = version_range
+    return result, errors
+
+
+def _valid_range(value: str) -> bool:
+    return value.startswith("^") and _parse_version(value[1:]) is not None
+
+
+def _parse_version(value: str) -> tuple[int, int, int] | None:
+    parts = value.split(".")
+    if not 1 <= len(parts) <= 3:
+        return None
+    try:
+        numbers = tuple(int(part) for part in parts)
+    except ValueError:
+        return None
+    if any(number < 0 for number in numbers):
+        return None
+    return (*numbers, *([0] * (3 - len(numbers))))
+
+
+def _satisfies(version: str, version_range: str) -> bool:
+    """Return whether a semver version is inside the documented caret range."""
+    actual = _parse_version(version)
+    lower = _parse_version(version_range[1:]) if version_range.startswith("^") else None
+    if actual is None or lower is None:
+        return False
+    if actual < lower:
+        return False
+    major, minor, patch = lower
+    if major > 0:
+        return actual[0] == major
+    if minor > 0:
+        return actual[:2] == (major, minor)
+    return actual == (major, minor, patch)
+
+
+def resolve(manifests: list[Manifest], enabled_mod_ids: Optional[Iterable[str]] = None) -> tuple[list[Manifest], list[ContentError]]:
+    """Stage 2 — select compatible mods, report dependency faults, and order survivors.
+
+    Explicitly selected mods pull in their required dependencies.  With no selection every
+    discovered mod is a root, which is the normal application-startup behaviour.
+    """
+    by_id = {manifest.mod_id: manifest for manifest in manifests}
+    errors: list[ContentError] = []
+    roots = set(by_id) if enabled_mod_ids is None else set(enabled_mod_ids)
+    for mod_id in sorted(roots - set(by_id)):
+        errors.append(ContentError(mod_id="<engine>", file="<startup>", problem=f"enabled mod '{mod_id}' is not installed", expected="an id from a discovered mod manifest"))
+    roots &= set(by_id)
+
+    selected: set[str] = set()
+    pending = list(roots)
+    while pending:
+        mod_id = pending.pop()
+        if mod_id in selected or mod_id not in by_id:
+            continue
+        selected.add(mod_id)
+        manifest = by_id[mod_id]
+        for dependency in manifest.required_dependencies:
+            if dependency in by_id:
+                pending.append(dependency)
+        # Optional dependencies participate when present in an automatically loaded install.
+        if enabled_mod_ids is None:
+            for dependency in manifest.optional_dependencies:
+                if dependency in by_id:
+                    pending.append(dependency)
+
+    broken: set[str] = set()
+    edges: dict[str, set[str]] = {mod_id: set() for mod_id in selected}
+    for mod_id in sorted(selected):
+        manifest = by_id[mod_id]
+        for dependency, wanted in manifest.required_dependencies.items():
+            candidate = by_id.get(dependency)
+            if candidate is None:
+                broken.add(mod_id)
+                errors.append(ContentError(mod_id=mod_id, file=MANIFEST_NAME, problem=f"required dependency '{dependency}' is not installed", field="dependencies.required", expected=f"{dependency}: {wanted}"))
+                continue
+            if not _satisfies(candidate.version, wanted):
+                broken.add(mod_id)
+                errors.append(ContentError(mod_id=mod_id, file=MANIFEST_NAME, problem=f"required dependency '{dependency}' is version {candidate.version}, which is incompatible", field="dependencies.required", expected=f"{dependency}: {wanted}"))
+                continue
+            if dependency in selected:
+                edges[mod_id].add(dependency)
+        for dependency, wanted in manifest.optional_dependencies.items():
+            candidate = by_id.get(dependency)
+            if candidate is not None and dependency in selected:
+                if _satisfies(candidate.version, wanted):
+                    edges[mod_id].add(dependency)
+                else:
+                    errors.append(ContentError(mod_id=mod_id, file=MANIFEST_NAME, problem=f"optional dependency '{dependency}' is version {candidate.version}, which is incompatible", field="dependencies.optional", expected=f"{dependency}: {wanted}"))
+
+    cycle = _find_cycle(edges)
+    if cycle:
+        broken.update(cycle[:-1])
+        errors.append(ContentError(mod_id=cycle[0], file=MANIFEST_NAME, problem="dependency cycle: " + " -> ".join(cycle), field="dependencies", expected="an acyclic dependency graph"))
+
+    _propagate_required_failures(broken, edges, errors)
+    active = selected - broken
+    active_edges = {mod_id: {dependency for dependency in dependencies if dependency in active} for mod_id, dependencies in edges.items() if mod_id in active}
+    _validate_namespace_originators(active, active_edges, by_id, errors, broken)
+    _propagate_required_failures(broken, edges, errors)
+    active = selected - broken
+    active_edges = {mod_id: {dependency for dependency in dependencies if dependency in active} for mod_id, dependencies in edges.items() if mod_id in active}
+    return _topological_order(active, active_edges, by_id), errors
+
+
+def _find_cycle(edges: dict[str, set[str]]) -> list[str] | None:
+    visiting: set[str] = set()
+    visited: set[str] = set()
+    trail: list[str] = []
+
+    def walk(node: str) -> list[str] | None:
+        if node in visiting:
+            start = trail.index(node)
+            return trail[start:] + [node]
+        if node in visited:
+            return None
+        visiting.add(node)
+        trail.append(node)
+        for dependency in sorted(edges.get(node, ())):
+            found = walk(dependency)
+            if found:
+                return found
+        trail.pop()
+        visiting.remove(node)
+        visited.add(node)
+        return None
+
+    for node in sorted(edges):
+        found = walk(node)
+        if found:
+            return found
+    return None
+
+
+def _propagate_required_failures(broken: set[str], edges: dict[str, set[str]], errors: list[ContentError]) -> None:
+    """Disable required dependents without flooding the report with duplicate chains."""
+    changed = True
+    while changed:
+        changed = False
+        for mod_id, dependencies in edges.items():
+            if mod_id in broken:
+                continue
+            failed = sorted(dependency for dependency in dependencies if dependency in broken)
+            if failed:
+                broken.add(mod_id)
+                errors.append(ContentError(mod_id=mod_id, file=MANIFEST_NAME, problem=f"disabled because required dependency '{failed[0]}' is disabled", field="dependencies.required", expected="enable a compatible dependency or remove this dependent mod"))
+                changed = True
+
+
+def _validate_namespace_originators(active: set[str], edges: dict[str, set[str]], by_id: dict[str, Manifest], errors: list[ContentError], broken: set[str]) -> None:
+    by_namespace: dict[str, list[str]] = {}
+    for mod_id in active:
+        namespace = mod_id.split(":", 1)[0]
+        by_namespace.setdefault(namespace, []).append(mod_id)
+
+    def depends_on(mod_id: str, candidate: str) -> bool:
+        pending = list(edges.get(mod_id, ()))
+        seen: set[str] = set()
+        while pending:
+            item = pending.pop()
+            if item == candidate:
+                return True
+            if item not in seen:
+                seen.add(item)
+                pending.extend(edges.get(item, ()))
+        return False
+
+    for namespace, claimants in by_namespace.items():
+        if len(claimants) < 2:
+            continue
+        origins = [candidate for candidate in claimants if all(other == candidate or depends_on(other, candidate) for other in claimants)]
+        if len(origins) != 1:
+            broken.update(claimants)
+            errors.append(ContentError(mod_id=claimants[0], file=MANIFEST_NAME, problem=f"mods {', '.join(sorted(claimants))} claim namespace '{namespace}' without one dependency originator", field="id", expected="exactly one claimant must be a direct or transitive dependency of every other claimant"))
+
+
+def _topological_order(active: set[str], edges: dict[str, set[str]], by_id: dict[str, Manifest]) -> list[Manifest]:
+    remaining = {mod_id: set(dependencies) for mod_id, dependencies in edges.items()}
+    ordered: list[Manifest] = []
+    while remaining:
+        ready = sorted(mod_id for mod_id, dependencies in remaining.items() if not dependencies)
+        if not ready:
+            break
+        for mod_id in ready:
+            ordered.append(by_id[mod_id])
+            del remaining[mod_id]
+        done = set(ready)
+        for dependencies in remaining.values():
+            dependencies.difference_update(done)
+    return ordered
 
 
 def parse_content(manifest: Manifest) -> tuple[list[ParsedFile], list[ContentError]]:
@@ -431,28 +663,16 @@ def load(
     validate: bool = False,
     link: bool = False,
 ) -> LoadResult:
-    """Run the loader over enabled mods, optionally including Wave 2 validation/linking.
+    """Run the nine loader stages and return every attributable failure.
 
-    Returns a result rather than raising, so a caller can report every error at once. See
-    `activate` for the check that decides whether the game can start. `validate` and `link`
-    are explicit until every registered content type has an engine consumer; the walking
-    skeleton enables both and the Wave 1 registry-contract tests leave both disabled.
+    The two flags are retained for the small registry-only fixtures from the first refactor
+    wave.  The application must use the defaults below: content is not loadable game content
+    until it has passed both schema validation and reference linking.
     """
     registries = Registries()
     manifests, errors = discover(mods_dir)
-    requested = set(enabled_mod_ids) if enabled_mod_ids is not None else None
-    if requested is not None:
-        found = {manifest.mod_id for manifest in manifests}
-        for mod_id in sorted(requested - found):
-            errors.append(
-                ContentError(
-                    mod_id="<engine>",
-                    file="<startup>",
-                    problem=f"enabled mod '{mod_id}' is not installed",
-                    expected="an id from a discovered mod manifest",
-                )
-            )
-        manifests = [manifest for manifest in manifests if manifest.mod_id in requested]
+    manifests, resolution_errors = resolve(manifests, enabled_mod_ids)
+    errors.extend(resolution_errors)
 
     files: list[ParsedFile] = []
     for manifest in manifests:
@@ -466,13 +686,35 @@ def load(
     # intentionally remains raw until a caller asks for a linked playable slice; otherwise
     # its registry-only tests would start claiming unsupported types were playable.
     if validate:
-        errors.extend(validate_content(files))
+        errors.extend(validate_content(files, registries))
 
     # A mod with any error is disabled whole, so its content never reaches the registries in
     # the first place — but a mod can only be known to be broken once every stage before
     # this one has run, which is why the filter is here and not at each stage.
     broken = {error.mod_id for error in errors}
-    errors.extend(register_content([f for f in files if f.mod_id not in broken], registries))
+    survivors = [file for file in files if file.mod_id not in broken]
+    warnings: list[str] = []
+    if validate:
+        patched = apply_patches(survivors)
+        errors.extend(patched.errors)
+        warnings.extend(patched.warnings)
+        broken.update(error.mod_id for error in patched.errors)
+        survivors = [file for file in patched.files if file.mod_id not in broken]
+        _normalise_references(survivors, patched.aliases)
+        # Patches are writes, not a validation bypass.  Run the same schema pass on the
+        # effective definitions so a patch that changes a valid value into an invalid one is
+        # blamed during startup, before it can reach a registry.
+        post_patch_errors = validate_content(survivors, registries)
+        post_patch_errors.extend(validate_assets(survivors, {manifest.mod_id: manifest.root for manifest in manifests}))
+        errors.extend(post_patch_errors)
+        broken.update(error.mod_id for error in post_patch_errors)
+        survivors = [file for file in survivors if file.mod_id not in broken]
+    else:
+        # Registry-only callers deliberately see raw definitions, including patches.  This
+        # compatibility path is not used by a game session.
+        survivors = [file for file in survivors if file.content_type != "patch"]
+
+    errors.extend(register_content(survivors, registries))
 
     # Registration itself can break a previously clean mod (a duplicate id), and a code mod
     # may have registered verbs before raising. Both mean the survivor set shrank after the
@@ -494,7 +736,52 @@ def load(
         errors=errors,
         linked=linked,
         mod_roots={manifest.mod_id: manifest.root for manifest in manifests},
+        warnings=warnings,
     )
+
+
+# These are references in the published data vocabulary, not an engine list of content.  The
+# normalizer deliberately runs over field *roles* so an unqualified ``queen`` in a third-party
+# board becomes that mod's ``namespace:queen`` without teaching core who a queen is.
+_ID_FIELDS = frozenset({
+    "board", "pools", "members", "components", "status", "into", "capturer", "captured",
+    "owner", "resource", "abilities", "not_status", "has_status", "tag_any", "primary",
+    "theme", "hud_layout", "sound",
+})
+
+
+def _normalise_references(files: list[ParsedFile], aliases: dict[str, str]) -> None:
+    def resolve(value: str, mod_id: str) -> str:
+        if value.startswith("$"):
+            return value
+        value = qualify(value, mod_id)
+        seen: set[str] = set()
+        while value in aliases and value not in seen:
+            seen.add(value)
+            value = aliases[value]
+        return value
+
+    def walk(value: object, mod_id: str, role: str | None = None) -> object:
+        if isinstance(value, dict):
+            for key, child in list(value.items()):
+                if key == "id":
+                    continue
+                if key == "type" and isinstance(child, str) and value is not None:
+                    # Move types are the one namespaced vocabulary reference; content type
+                    # declarations and effect names are fixed vocabulary words.
+                    if isinstance(value, dict) and "moves" not in value:
+                        value[key] = child
+                    continue
+                value[key] = walk(child, mod_id, str(key))
+            return value
+        if isinstance(value, list):
+            return [walk(child, mod_id, role) for child in value]
+        if isinstance(value, str) and role in _ID_FIELDS:
+            return resolve(value, mod_id)
+        return value
+
+    for parsed in files:
+        walk(parsed.tree, parsed.mod_id)
 
 
 def activate(result: LoadResult) -> Registries:

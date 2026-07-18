@@ -8,6 +8,7 @@ currently active, swapping screens or exiting when a screen requests it.
 import pygame as p
 
 from .constants import HEIGHT, MAX_FPS, WIDTH
+from .runtime import ApplicationContext
 from .ui.screens.menu_screen import MenuScreen
 from .ui.screens.shared_resources import SharedResources
 from .ui.ui_constants import PANEL_BG
@@ -36,6 +37,7 @@ def main():
         images={},
         fonts=_load_fonts(),
         menu_background=menu_background,
+        app_context=ApplicationContext.load(),
     )
 
     current_screen = MenuScreen(shared)

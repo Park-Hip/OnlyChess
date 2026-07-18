@@ -3,6 +3,7 @@ id: skeleton:preview_board
 size: [1, 1]
 sides:
   - id: skeleton:blue
+    name: Blue
     forward: down
     promotes_at: 0
     moves_first: true

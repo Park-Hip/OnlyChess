@@ -1,6 +1,7 @@
 type: piece
 id: base:queen
 name: Queen
+presentation: { glyph: Q }
 material: 9
 
 moves:

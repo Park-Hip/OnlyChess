@@ -108,9 +108,9 @@ class RegistryTests(unittest.TestCase):
 
 
 class RegistriesTests(unittest.TestCase):
-    def test_there_is_a_registry_for_each_of_the_ten_content_types(self):
+    def test_there_is_a_registry_for_each_of_the_thirteen_content_types(self):
         registries = Registries()
-        self.assertEqual(len(CONTENT_TYPES), 10)
+        self.assertEqual(len(CONTENT_TYPES), 13)
         self.assertEqual(set(registries.content), set(CONTENT_TYPES))
 
     def test_registries_are_instances_not_globals(self):

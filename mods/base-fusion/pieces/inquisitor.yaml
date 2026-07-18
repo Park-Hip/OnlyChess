@@ -7,6 +7,7 @@
 type: piece
 id: base:inquisitor
 name: Inquisitor
+presentation: { glyph: I }
 material: 7
 
 # Primary is BISHOP. This is the single most consequential line in this file:

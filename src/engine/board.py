@@ -10,6 +10,7 @@ from .piece import Piece
 @dataclass(frozen=True)
 class Side:
     id: str
+    name: str
     forward: int
     moves_first: bool = False
     promotes_at: int | None = None

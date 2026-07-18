@@ -4,16 +4,11 @@ name: Pawn Sprint
 owner: { tag_any: [base:pawn] }
 cost: { base:ap: 1 }
 
-# The only ability that checks its own stun. The other three do not — F2's
-# pattern in a new place, made visible rather than fixed.
-when: { not_status: [base:stun] }
-
+# This mod must remain loadable without base:events, which owns base:stun.
 target:
-  scope: { of: self, offset: [3, 0] }       # 3 forward, 0 right — the piece's own frame
+  scope: { of: self, offset: [3, 0] }
   filter: { empty: true }
 
-# Two steps, and the second is a trigger -> condition -> effect appearing
-# spontaneously inside an ability that shipped years before we chose that shape.
 effect:
   - { type: move, target: self, to: $target }
   - { type: transform, target: self, into: base:queen, preserve: [has_moved],

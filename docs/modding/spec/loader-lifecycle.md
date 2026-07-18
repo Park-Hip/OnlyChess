@@ -498,7 +498,7 @@ carried into Gate 3, all deliberate and all recorded:
 | Gap | Where | Status |
 |---|---|---|
 | Event triggers (F5) | content-schemas.md | Deferred out loud; v1 is pool-invoked only |
-| Player choice (promotion) | content-schemas.md, finding 2 | **Real gap.** Needs a move-pipeline home |
+| Player choice (promotion) | content-schemas.md, finding 2 | ✅ **Closed by the runtime cutover** — `choose: mover` and promotion interaction are implemented and tested |
 | `credit` → fusion? | content-schemas.md | Recommendation recorded; human decides |
 | Board layout selection | this doc | Needs an owner in Phase D |
 | ~~`.lc` position mapping~~ | this doc | ✅ **Closed by Wave 0 S1** — spiked, confirmed, `ruamel` declared |

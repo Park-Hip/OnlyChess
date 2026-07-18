@@ -1,4 +1,4 @@
-"""Title screen shown before a game session starts."""
+"""Catalog-driven title screen."""
 
 import pygame as p
 
@@ -8,73 +8,60 @@ from ..ui_constants import ACCENT_GOLD, CARD_BG, TEXT_PRIMARY
 from .base import Screen
 from .engine_game_screen import EngineGameScreen
 
-GAME_TITLE = "OnlyChess"
-START_BUTTON_LABEL = "Start"
-ADVANCED_BUTTON_LABEL = "Advanced"
-QUIT_BUTTON_LABEL = "Quit"
-
-BUTTON_WIDTH = 200
-BUTTON_HEIGHT = 56
-BUTTON_SPACING = 24
-BUTTON_BORDER_RADIUS = 8
-BUTTON_BORDER_WIDTH = 2
-
-TITLE_CENTER_Y = HEIGHT // 3
-BUTTONS_CENTER_Y = HEIGHT // 2
-
 
 class MenuScreen(Screen):
-    """Shows the game title with Start and Quit buttons.
+    """Offer every linked game mode loaded at application startup."""
 
-    Clicking Start swaps to a fresh GameScreen. Clicking Quit requests
-    application exit through the should_quit flag.
-    """
+    row_height = 54
+    top = 190
 
     def __init__(self, shared):
         super().__init__()
         self.shared = shared
-        self.start_button_rect = self._button_rect(center_y=BUTTONS_CENTER_Y)
-        self.advanced_button_rect = self._button_rect(center_y=BUTTONS_CENTER_Y + BUTTON_HEIGHT + BUTTON_SPACING)
-        self.quit_button_rect = self._button_rect(center_y=BUTTONS_CENTER_Y + 2 * (BUTTON_HEIGHT + BUTTON_SPACING))
+        self.scroll = 0
+        self.quit_rect = p.Rect(WIDTH // 2 - 100, HEIGHT - 80, 200, 48)
 
-    @staticmethod
-    def _button_rect(center_y):
-        rect = p.Rect(0, 0, BUTTON_WIDTH, BUTTON_HEIGHT)
-        rect.center = (WIDTH // 2, center_y)
-        return rect
+    @property
+    def modes(self):
+        return self.shared.app_context.modes
+
+    def _visible_rows(self):
+        return max(1, (self.quit_rect.top - self.top - 12) // self.row_height)
+
+    def _row_rect(self, index):
+        return p.Rect(WIDTH // 2 - 220, self.top + (index - self.scroll) * self.row_height, 440, self.row_height - 8)
 
     def handle_event(self, event):
-        """Start a new game or request quit when a button is clicked."""
-        if event.type != p.MOUSEBUTTONDOWN:
+        if event.type == p.MOUSEWHEEL:
+            self.scroll = max(0, min(max(0, len(self.modes) - self._visible_rows()), self.scroll - event.y))
             return
-        mouse_pos = p.mouse.get_pos()
-        if self.start_button_rect.collidepoint(mouse_pos):
-            self.next_screen = EngineGameScreen(
-                self.shared, session=EngineSession(enabled_mod_ids=("base:chess",), mode_id="base:vanilla")
-            )
-        elif self.advanced_button_rect.collidepoint(mouse_pos):
-            self.next_screen = EngineGameScreen(self.shared)
-        elif self.quit_button_rect.collidepoint(mouse_pos):
+        if event.type != p.MOUSEBUTTONDOWN or event.button != 1:
+            return
+        position = p.mouse.get_pos()
+        if self.quit_rect.collidepoint(position):
             self.should_quit = True
+            return
+        for index, mode in enumerate(self.modes):
+            if self._row_rect(index).collidepoint(position):
+                self.next_screen = EngineGameScreen(self.shared, session=EngineSession(self.shared.app_context.load_result, mode.id))
+                return
 
     def draw(self, surface):
-        """Draw the background image, title, and the Start/Quit buttons."""
         surface.blit(self.shared.menu_background, (0, 0))
-
-        title_font = self.shared.fonts["title"]
-        title_surface = title_font.render(GAME_TITLE, True, ACCENT_GOLD)
-        title_rect = title_surface.get_rect(center=(WIDTH // 2, TITLE_CENTER_Y))
-        surface.blit(title_surface, title_rect)
-
-        button_font = self.shared.fonts["normal"]
-        self._draw_button(surface, button_font, self.start_button_rect, START_BUTTON_LABEL)
-        self._draw_button(surface, button_font, self.advanced_button_rect, ADVANCED_BUTTON_LABEL)
-        self._draw_button(surface, button_font, self.quit_button_rect, QUIT_BUTTON_LABEL)
-
-    @staticmethod
-    def _draw_button(surface, font, rect, label):
-        p.draw.rect(surface, CARD_BG, rect, border_radius=BUTTON_BORDER_RADIUS)
-        p.draw.rect(surface, ACCENT_GOLD, rect, width=BUTTON_BORDER_WIDTH, border_radius=BUTTON_BORDER_RADIUS)
-        text_surface = font.render(label, True, TEXT_PRIMARY)
-        text_rect = text_surface.get_rect(center=rect.center)
-        surface.blit(text_surface, text_rect)
+        title = self.shared.fonts["title"].render("OnlyChess", True, ACCENT_GOLD)
+        surface.blit(title, title.get_rect(center=(WIDTH // 2, 90)))
+        subtitle = self.shared.fonts["normal"].render("Choose a game mode", True, TEXT_PRIMARY)
+        surface.blit(subtitle, subtitle.get_rect(center=(WIDTH // 2, 132)))
+        for index, mode in enumerate(self.modes):
+            rect = self._row_rect(index)
+            if rect.bottom < self.top or rect.top >= self.quit_rect.top:
+                continue
+            p.draw.rect(surface, CARD_BG, rect, border_radius=8)
+            p.draw.rect(surface, ACCENT_GOLD, rect, width=2, border_radius=8)
+            label = f"{mode.name}  ({mode.rows} x {mode.columns})"
+            text = self.shared.fonts["normal"].render(label, True, TEXT_PRIMARY)
+            surface.blit(text, text.get_rect(center=rect.center))
+        p.draw.rect(surface, CARD_BG, self.quit_rect, border_radius=8)
+        p.draw.rect(surface, ACCENT_GOLD, self.quit_rect, width=2, border_radius=8)
+        quit_text = self.shared.fonts["normal"].render("Quit", True, TEXT_PRIMARY)
+        surface.blit(quit_text, quit_text.get_rect(center=self.quit_rect.center))

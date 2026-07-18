@@ -34,10 +34,10 @@ class WalkingSkeletonTests(unittest.TestCase):
                 mods,
                 "good",
                 "good:demo",
-                pieces__beacon="type: piece\nid: good:beacon\nsprite: good:beacon\nmoves: []\n",
+                pieces__beacon="type: piece\nid: good:beacon\nname: Beacon\nsprite: good:beacon\nmoves: []\n",
                 board__preview=(
                     "type: board\nid: good:board\nsize: [1, 1]\nsides:\n"
-                    "  - { id: good:blue, forward: down, promotes_at: 0, moves_first: true }\n"
+                    "  - { id: good:blue, name: Blue, forward: down, promotes_at: 0, moves_first: true }\n"
                     "rows:\n  - { row: 0, side: good:blue, pieces: [good:beacon] }\n"
                 ),
                 modes__preview="type: game_mode\nid: good:preview\nname: Good\nboard: good:board\npools: []\n",
@@ -57,7 +57,7 @@ class WalkingSkeletonTests(unittest.TestCase):
                 "bad:demo",
                 board__preview=(
                     "type: board\nid: bad:board\nsize: [1, 1]\nsides:\n"
-                    "  - { id: bad:blue, forward: down, promotes_at: 0, moves_first: true }\n"
+                    "  - { id: bad:blue, name: Blue, forward: down, promotes_at: 0, moves_first: true }\n"
                     "rows:\n  - { row: 0, side: bad:blue, pieces: [bad:missing] }\n"
                 ),
                 modes__preview="type: game_mode\nid: bad:preview\nname: Bad\nboard: bad:board\npools: []\n",

@@ -2,8 +2,8 @@ type: board
 id: fixture:board
 size: [8, 8]
 sides:
-  - { id: fixture:white, forward: up, moves_first: true }
-  - { id: fixture:black, forward: down }
+  - { id: fixture:white, name: White, forward: up, moves_first: true }
+  - { id: fixture:black, name: Black, forward: down }
 rows:
   - { row: 0, side: fixture:black, pieces: [fixture:rook, fixture:knight, fixture:bishop, fixture:queen, fixture:king, fixture:bishop, fixture:knight, fixture:rook] }
   - { row: 1, side: fixture:black, fill: fixture:pawn }

@@ -1,0 +1,5 @@
+type: theme
+id: base:classic_theme
+name: Classic Warmth
+palette: { background: "#2B1B17", panel: "#4A3728", board_light: "#E8D5B5", board_dark: "#8B6F47", text: "#D4C5A9", accent: "#C9A84C", warning: "#B85450", selection: "#C9A84C", target: "#C9A84C" }
+typography: { scale: 1, weight: normal }

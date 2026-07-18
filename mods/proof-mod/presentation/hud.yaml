@@ -1,0 +1,8 @@
+type: hud_layout
+id: proof:hud
+name: Prism HUD
+widgets:
+  - { type: turn, slot: top }
+  - { type: resources, slot: side }
+  - { type: log, slot: side, max_lines: 8 }
+  - { type: prompt, slot: bottom }

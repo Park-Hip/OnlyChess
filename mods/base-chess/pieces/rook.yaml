@@ -1,6 +1,7 @@
 type: piece
 id: base:rook
 name: Rook
+presentation: { glyph: R }
 material: 5
 
 moves:

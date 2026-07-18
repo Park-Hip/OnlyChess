@@ -4,6 +4,7 @@
 type: piece
 id: base:warden
 name: Warden
+presentation: { glyph: W }
 material: 7
 
 # Primary is rook: gia_xang_tang hits a Warden, and does not hit an Inquisitor.

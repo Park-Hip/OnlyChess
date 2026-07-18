@@ -23,10 +23,13 @@ mods/ -> loader -> runtime registries -> engine verbs -> actions -> game state/U
 
 ## Read in this order
 
-1. [status.md](status.md) — current wave, completed evidence, and deliberate gaps.
-2. [architecture.md](architecture.md) — component responsibilities and boundaries.
-3. [contributing.md](contributing.md) — the checklist for a safe change.
-4. The relevant normative spec under `docs/modding/spec/`, only when changing its contract.
+1. [status.md](status.md) — executable behaviour, current evidence, and known gaps.
+2. [product-completion-spec.md](product-completion-spec.md) — approved v1 finish definition and
+   architecture decisions.
+3. [milestones.md](milestones.md) — the dependency-ordered delivery plan.
+4. [architecture.md](architecture.md) — component responsibilities and boundaries.
+5. [contributing.md](contributing.md) — the checklist for a safe change.
+6. The relevant normative spec under `docs/modding/spec/`, only when changing its contract.
 
 ## Vocabulary
 

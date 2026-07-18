@@ -18,3 +18,4 @@ name: Advanced
 
 board: base:standard
 pools: [base:main_pool]
+presentation: { theme: base:classic_theme, hud_layout: base:classic_hud, sound: base:classic_sounds }

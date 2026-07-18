@@ -7,15 +7,15 @@ By the end you will have written a mod that adds a new piece and a new event. Ev
 game — the queen, the pawn, every event — is written exactly the way you are about to write yours.
 There is no secret second way of doing it that the original authors used.
 
-> ### Read this bit first: the game cannot run your mod yet
+> ### Read this bit first: the game can run your mod
 >
-> The mod system is designed but not built. There is no loader, so nothing here can be tested by
-> playing. **Your mod is written on paper, and that is expected** — right now we are checking whether
-> the design makes sense to somebody who did not invent it.
+> The mod loader is part of the playable runtime. Once your mod is under `mods/` and enabled, the
+> game parses, validates, links, and activates it through the same public path used by the shipped
+> base mods. A malformed file is rejected with an attributed error before a game starts.
 >
-> This matters for you in one practical way: **nothing will tell you when you make a mistake.** Where
-> this guide says "you'll get an error", that is a promise about the finished game, not something you
-> can try today. So take the checklists seriously; they're standing in for the computer.
+> The current runtime still renders glyphs rather than mod-provided sprites, sounds, themes, or HUD
+> elements. Those presentation capabilities are planned work; pieces, rules, events, abilities,
+> statuses, fusion, boards, resources, and game modes are loadable now.
 
 ---
 
@@ -247,10 +247,11 @@ For `slide`, you name a direction instead:
 And `limit:` is **how many squares**, counted normally. `limit: 2` means two squares. `limit:
 unlimited` means as far as it can go.
 
-### Presentation is not available yet
+### Presentation runtime is not available yet
 
-The current playable runtime renders letter glyphs for pieces. It does not load mod-provided sprites,
-sounds, themes, or HUD elements yet, so leave presentation fields out of a mod for now.
+The declarative presentation contract is specified in [presentation.md](spec/presentation.md), and
+its data validates at load time. The current playable runtime still renders glyphs and does not yet
+draw themes/HUDs or play cues; that runtime work is Milestone 4.
 
 ### Optional extras
 
@@ -486,7 +487,7 @@ It won't silently pick one behind your back.
 
 Everything above, plus the parts this guide didn't walk through. Keep this section; skim the rest.
 
-### The nine content types
+### The ten content types
 
 | `type:` | What it does | Covered above? |
 |---|---|---|
@@ -585,8 +586,8 @@ type: board
 id: frostmod:tiny
 size: [8, 8]
 sides:
-  - { id: base:white, forward: up,   promotes_at: 0, moves_first: true }
-  - { id: base:black, forward: down, promotes_at: 7 }
+  - { id: base:white, name: White, forward: up,   promotes_at: 0, moves_first: true }
+  - { id: base:black, name: Black, forward: down, promotes_at: 7 }
 rows:
   - { row: 0, side: base:black, pieces: [base:rook, base:knight, ...] }   # positional
   - { row: 1, side: base:black, fill: base:pawn }                          # whole row

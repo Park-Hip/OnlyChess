@@ -413,10 +413,11 @@ class LoadCodeTests(LoaderTest):
         # The api knows the mod but not the file; the loader knows both. Without the
         # re-point this says "<registration>" while the loader is holding the path.
         for folder, mod_id in (("a", "base:one"), ("b", "base:two")):
+            dependencies = "" if mod_id == "base:one" else "dependencies:\n  required:\n    base:one: '^1.0'\n"
             write_mod(
                 self.mods,
                 folder,
-                manifest=f"id: {mod_id}\nname: {folder}\nversion: 1.0.0\ncode: true\n",
+                manifest=f"id: {mod_id}\nname: {folder}\nversion: 1.0.0\n{dependencies}code: true\n",
                 code="def register(api):\n    api.move_type('castle', lambda: [])\n",
             )
         result = load(self.mods)
@@ -535,7 +536,7 @@ class RealBaseModsTests(unittest.TestCase):
 
     def test_base_mods_and_the_walking_skeleton_are_discovered(self):
         self.assertEqual(
-            [m.mod_id for m in self.manifests], ["base:chess", "base:events", "base:fusion", "skeleton:demo"]
+            [m.mod_id for m in self.manifests], ["base:chess", "base:events", "base:fusion", "proof:mod", "skeleton:demo"]
         )
         self.assertEqual(self.discover_errors, [])
 
@@ -567,8 +568,8 @@ class RealBaseModsTests(unittest.TestCase):
 
     def test_the_mods_that_do_not_owe_code_load_their_content(self):
         populated = {name for name, reg in self.result.registries.content.items() if len(reg)}
-        self.assertEqual(populated, {"ability", "board", "event", "event_pool", "fusion", "game_mode", "piece", "resource", "status"})
-        self.assertEqual(self.result.mods, ("base:chess", "base:events", "base:fusion", "skeleton:demo"))
+        self.assertEqual(populated, {"ability", "board", "event", "event_pool", "fusion", "game_mode", "piece", "resource", "status", "theme", "hud_layout", "sound"})
+        self.assertEqual(self.result.mods, ("base:chess", "proof:mod", "skeleton:demo", "base:events", "base:fusion"))
 
 
 if __name__ == "__main__":

@@ -902,8 +902,8 @@ id: base:standard
 size: [8, 8]
 
 sides:
-  - { id: base:white, forward: up,   promotes_at: 0, moves_first: true }
-  - { id: base:black, forward: down, promotes_at: 7 }
+  - { id: base:white, name: White, forward: up,   promotes_at: 0, moves_first: true }
+  - { id: base:black, name: Black, forward: down, promotes_at: 7 }
 
 rows:
   - { row: 0, side: base:black, pieces: [base:rook, base:knight, base:bishop, base:queen,
@@ -927,6 +927,7 @@ width. Rows not listed are empty.
 | `forward` | which way this side's pieces face | `self.direction = -1 if color == WHITE else 1` |
 | `promotes_at` | the rank `at_promotion_rank` tests | `promotion_row = 0 if color == WHITE else BOARD_ROWS - 1` |
 | `moves_first` | turn order | the assumption that white starts |
+| `name` | player-facing side label | deriving a label from an ID suffix |
 
 `forward` is what makes the piece frame work — every `dirs: forward` and every `[forward, right]`
 offset resolves through it. `promotes_at` is what makes `at_promotion_rank` a condition rather than a
@@ -1078,14 +1079,14 @@ one is a genuine gap; one is a correction to this spec's own first draft.
 places where a verb was derived from the audit's *summary* of an event rather than from the event.
 That is the pattern worth carrying forward, and it is why D1 exists.
 
-### Finding 2 — normal promotion needs a player choice
+### Finding 2 — normal promotion needs a player choice (closed)
 
 Phase B sketched promotion from `pawn_sprint`, which auto-promotes to Queen. **Normal promotion does
 not.** `Board._resolve_pawn_promotion` takes a `promotion_choice` and accepts Q, R, B, or N.
 
-Nothing in this spec, the feasibility study, or the status model models a player *choice*. It is not
-an effect (effects don't ask questions), not a condition (the condition line forbids it), and not a
-selector. It is an interaction.
+The interaction is now part of the active content contract. It is not an effect (effects do not ask
+questions), not a condition (the condition line forbids it), and not a selector; it is a move-pipeline
+choice presented by the runtime.
 
 **Minimum viable form**, above:
 
@@ -1095,7 +1096,8 @@ choose: mover
 ```
 
 `into` accepting a list means "offer these; `choose:` says who picks". One value of `choose` —
-`mover` — is earned. This is a required concept for the active content contract.
+`mover` — is earned. This is the required concept used by the active content contract and is
+covered by runtime tests.
 standard chess, and it drags in a UI contract (the engine must be able to *ask*, and the ability
 pipeline must be able to suspend). Flagged for C4: the loader lifecycle is not affected, but the
 **move pipeline** is, and E1 should expect it.
@@ -1194,12 +1196,21 @@ source looked complete, was reviewed, passed Gate 3, and was wrong.
 - ~~**Does `credit` trigger fusion?**~~ **Decided after D1** ([above](#destroy)): no — displacement
   does. `base:fusion` declares `fuses_on: displacing_captures`, which preserves today's behaviour and
   keeps `bishop_snipe` from fusing. It is also ADR-002's first plausible base-game patch target.
-- **Player choice is a new concept** (finding 2) — needs a home in the move pipeline. C4 or E1.
+- ~~**Player choice is a new concept** (finding 2)~~ **Closed by the runtime cutover** — promotion
+  uses `choose: mover`, with the UI suspending the move until the player selects a destination piece.
 - **`material` may belong in `properties`** ([above](#properties--the-open-bag-d10)) — depends on
   whether scoring is engine or base-game UI.
 - **`has_status` has no consumer** ([above](#filter--which-qualify)) — cut it if a reviewer objects.
 - **Message templates on abilities?** Events have `message`; abilities emit nothing today. Left
   unspecified rather than guessed.
+
+## Milestone 1 correction: independently loadable base chess
+
+The historical `pawn_sprint` example and finding 4 below describe an earlier state. Strict
+reference linking made its hidden dependency visible: `base:stun` belongs to the independently
+disableable `base:events` mod. To preserve UC11, shipped `base:chess` no longer names that status.
+The current YAML is authoritative; this note prevents the historical discussion being read as a
+live content requirement.
 
 # Checklist for Gate 3
 

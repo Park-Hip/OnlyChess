@@ -95,4 +95,53 @@ def link_content(registries: Registries) -> tuple[LinkedContent, list[ContentErr
                 target = effect.get(field)
                 if target is not None and registries.content[registry_name].get(target) is None:
                     errors.append(parsed.error(f"{registry_name} '{target}' is not registered", field=("execute", index, "effect", field), expected=f"an enabled {registry_name} id"))
+    errors.extend(_link_schema_references(registries))
     return LinkedContent(modes=modes), errors
+
+
+# The runtime only constructs boards and modes at this milestone, but content that it does not
+# yet execute still has to be link-safe.  These field roles are schema vocabulary, not shipped
+# content names: adding a new reference-bearing field is a deliberate contract edit here.
+_REFERENCE_ROLES = {
+    "board": "board", "pools": "event_pool", "members": "event", "components": "piece",
+    "status": "status", "not_status": "status", "has_status": "status", "into": "piece",
+    "capturer": "piece", "captured": "piece", "tag_any": "piece", "primary": "piece",
+    "theme": "theme", "hud_layout": "hud_layout", "sound": "sound",
+}
+
+
+def _link_schema_references(registries: Registries) -> list[ContentError]:
+    errors: list[ContentError] = []
+
+    def check(parsed: ParsedFile, value: object, path: tuple[object, ...], role: str | None = None) -> None:
+        if isinstance(value, dict):
+            for key, child in value.items():
+                # Resource maps use the resource id as a key (`{ base:ap: 3 }`).
+                if key == "cost" and isinstance(child, dict):
+                    for resource_id in child:
+                        if registries.content["resource"].get(resource_id) is None:
+                            errors.append(parsed.error(f"resource '{resource_id}' is not registered", field=path + (key, resource_id), expected="an enabled resource id"))
+                check(parsed, child, path + (key,), str(key))
+            return
+        if isinstance(value, list):
+            for index, child in enumerate(value):
+                check(parsed, child, path + (index,), role)
+            return
+        # Fusion ``match`` uses the words capturer/captured as enum keys; only a
+        # fusion-rule row uses them as piece references (and is linked above).
+        if role in {"capturer", "captured"} and "rules" not in path:
+            return
+        registry_name = _REFERENCE_ROLES.get(role or "")
+        if registry_name and isinstance(value, str) and not value.startswith("$"):
+            if registries.content[registry_name].get(value) is None:
+                errors.append(parsed.error(f"{registry_name} '{value}' is not registered", field=path, expected=f"an enabled {registry_name} id"))
+
+    for registry in registries.content.values():
+        for entry in registry:
+            check(entry.value, entry.value.tree, ())
+    # Board/mode/event/fusion have richer, user-specific messages above; remove equivalent
+    # generic duplicates while retaining errors for every other schema reference.
+    unique: dict[tuple[str, str, str | None], ContentError] = {}
+    for error in errors:
+        unique[(error.mod_id, error.problem, error.field)] = error
+    return list(unique.values())

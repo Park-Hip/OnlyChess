@@ -1,0 +1,6 @@
+type: game_mode
+id: proof:arena_mode
+name: Prism Arena
+board: proof:arena
+pools: []
+presentation: { theme: proof:theme, hud_layout: proof:hud, sound: proof:sound }

@@ -1,0 +1,6 @@
+type: status
+id: proof:glow
+name: Glow
+expiry: { turns: 2 }
+modifies: {}
+presentation: { visible: true, glyph: "*" }

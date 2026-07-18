@@ -1,6 +1,7 @@
 type: piece
 id: base:bishop
 name: Bishop
+presentation: { glyph: B }
 material: 3
 
 moves:
