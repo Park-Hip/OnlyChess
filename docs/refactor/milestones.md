@@ -17,8 +17,10 @@ presentation: it is bringing the loader and engine to the contract already docum
 
 ## Milestone 1 — Loader and content-contract parity
 
-**Status:** complete. The runtime uses the nine-stage loader; registry-only tests may explicitly
-exercise earlier stages without activation.
+**Status:** functionally complete except for engine-range enforcement. The runtime uses the nine-stage
+loader; registry-only tests may explicitly exercise earlier stages without activation. Do not grant
+release sign-off until `manifest.yaml`'s `engine:` range is compared with `ENGINE_VERSION` and covered
+by an attributed-error test.
 
 **Goal:** make every documented loader and content guarantee real before adding more mod-owned
 content such as presentation.

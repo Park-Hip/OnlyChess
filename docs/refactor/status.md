@@ -10,7 +10,7 @@ and [milestones.md](milestones.md) for the approved completion plan.
 
 | Area | Current behavior |
 |---|---|
-| Loading | Discovers compatible mods automatically or from an explicit selection; resolves dependencies in deterministic topological order; loads trusted code; validates, patches, normalizes, registers, and links content before a runtime session activates it. |
+| Loading | Discovers installed mods automatically or from an explicit selection; resolves dependency versions in deterministic topological order; loads trusted code; validates, patches, normalizes, registers, and links content before a runtime session activates it. The `engine:` range is syntax-checked but is not yet enforced against `ENGINE_VERSION`. |
 | Rules | Data-defined slide/leap movement plus code-mod castle and en-passant verbs. |
 | Turns and undo | Every completed move, ability, fusion reaction, status expiry, and scheduled event is recorded as reversible actions. |
 | Modes | Startup discovers compatible mods once and exposes every linked game mode in an alphabetically stable player-facing catalog. |
@@ -40,6 +40,51 @@ and [milestones.md](milestones.md) for the approved completion plan.
 - Event triggers beyond scheduled pools are not part of the data vocabulary.
 - Hot reload, a mod-manager UI, distribution, sandboxing, multiplayer, localization, and AI are out of scope.
 
+## Release-readiness blockers
+
+These are the items to fix or consciously sign off before calling the project release-ready. They are
+ordered by risk, not by feature excitement.
+
+### P0 — Clean verification must be reproducible
+
+The release claim requires both the documented automated suite and the manual checklist to pass from a
+clean checkout. The 2026-07-18 audit could not reproduce that gate in the local environment: `uv` could
+not use the repository's `.venv`, while the system Python lacked `pygame` and `ruamel.yaml`. Treat the
+release gate as **unverified**, not passed, until a clean dependency setup runs the full suite and the
+manual checklist again.
+
+The fix belongs in the project setup/workflow, not in individual developer machines. Record the exact
+setup command and the successful command output in the release notes or CI once established.
+
+### P0 — Enforce engine compatibility
+
+`manifest.yaml` accepts an `engine: "^1.0"` range and validates its shape, but the loader does not yet
+compare that range with `ENGINE_VERSION` or disable an incompatible mod. Implement the check with an
+attributed load error and tests, or remove engine compatibility from the release promise. Do not keep
+describing these mods as fully compatible while this remains open.
+
+### P1 — Decide what kind of release this is
+
+The current install is a developer preview: it requires Python and `uv`, and mods are copied manually
+under the application's `mods/` directory. There is no packaged executable, installer, per-user mod
+directory, marketplace, or enable/disable manager. This is acceptable for a contributor release, but
+is a blocker for a general-player release unless the product scope explicitly says so.
+
+### P1 — Do not overpromise mod extensibility
+
+The current public extension surface is smaller than the phrase “anything can be a mod” suggests. Data
+mods can compose the existing vocabulary, and code mods can register `move_type` verbs only. They cannot
+yet add clocks, custom HUD widgets, arbitrary text overlays, visual-only piece colours, new event
+triggers, or presentation effects. These are documented limitations, not hidden bugs; either keep them
+out of the release promise or implement them through the normal loader, action, snapshot, and proof-mod
+path.
+
+### P2 — UI polish is optional, readability is not
+
+The UI is intentionally basic and static. Do not block a developer-preview release on visual polish.
+Do block it for clipped or unreadable text, broken board bounds, missing interaction feedback, or a
+manual checklist failure. Animation, particles, banners, and richer overlays are post-v1 work.
+
 ## Verification
 
 Run the suite from the repository root:
@@ -53,8 +98,8 @@ The runtime interaction coverage includes promotion, abilities, fusion, schedule
 execution, and undo.
 
 The independent `proof:arena_mode` is automatically discovered and provides the 6x6 Prism Arena
-release fixture. The automated suite and the 2026-07-17 manual checklist both passed with no bugs
-detected.
+release fixture. The automated suite and the 2026-07-17 manual checklist passed historically with no
+bugs detected; rerun both from a clean environment before a new release sign-off.
 
 ## Documentation ownership
 

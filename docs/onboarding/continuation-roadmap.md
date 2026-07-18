@@ -32,14 +32,36 @@ These are the gaps a new contributor should know before choosing a feature:
 | Presentation effects | Static presentation and sounds exist; particles, banners, animation, and screenshake are proposed as M7. | Continue with M7 only after static presentation remains stable. |
 | Installation | Mods are manually placed under `mods/`; no installer, marketplace, hot reload, or enable/disable UI exists. | Out of scope unless product direction changes. |
 
+## Release gate before feature work
+
+The current branch is suitable for a developer preview only until these checks are closed or explicitly
+accepted by the project owner:
+
+1. Recreate the environment from a clean checkout and run the complete documented test command. A local
+   audit on 2026-07-18 could not do this because `uv` could not use the repository `.venv`, and the
+   system Python did not have the declared dependencies. This is an unverified release gate, not proof
+   that the tests are failing.
+2. Enforce `manifest.yaml`'s `engine:` range against `src/modding/loader.py:ENGINE_VERSION`, with an
+   attributed load error and regression tests. The syntax is currently checked but compatibility is
+   not enforced.
+3. Run [manual-release-checklist.md](../refactor/manual-release-checklist.md) from that clean setup.
+4. Choose the release audience. Manual Python/`uv` setup and folder-based mod installation are fine for
+   contributors; a general-player release needs packaging and an installation story.
+
+Ugly visuals are not a sign-off blocker while the game remains readable and the interaction checklist
+passes. The incomplete presentation vocabulary is a sign-off blocker only if the release claims that
+modders can add arbitrary UI or presentation features.
+
 ## Recommended milestone order
 
 ### M8 — Contract and developer-experience hardening
 
 Do this before adding a large feature.
 
-- Reconcile the M1 acceptance text with the actual loader, especially `engine:` enforcement.
-- Run the complete suite in a clean environment and repair the project setup if it cannot start.
+- Reconcile the M1 acceptance text with the actual loader, especially `engine:` enforcement; do not
+  mark M1 fully complete while the compatibility gate is missing.
+- Make the clean-checkout dependency setup reproducible, then run the complete suite and repair the
+  project setup if it cannot start.
 - Add focused tests for every documented current limitation that must not silently change.
 - Keep `status.md`, the specs, and the onboarding roadmap synchronized.
 - Add a small fixture or proof-mod assertion for every new public extension surface.
