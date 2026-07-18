@@ -8,11 +8,24 @@ and tuning from `mods/`. The base game uses the same public path as any third-pa
 
 ## Play
 
-Requires Python and [`uv`](https://github.com/astral-sh/uv).
+Requires Python 3.12. Either set up a virtual environment with the standard library:
+
+```bash
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+.venv/bin/python main.py
+```
+
+or, on Windows, `.venv\Scripts\python main.py`. [`uv`](https://github.com/astral-sh/uv) works too if
+you have it:
 
 ```powershell
 uv run python main.py
 ```
+
+`uv` is a convenience, not a requirement — the dependencies are `pygame` and `ruamel.yaml`, and
+nothing in the project needs more than a plain venv. The game needs a display; over SSH, connect
+with `ssh -X` so `DISPLAY` is set.
 
 The menu offers every linked mode discovered under `mods/`. The shipped install currently includes:
 
@@ -46,10 +59,21 @@ arbitrary per-piece text/colour overlays.
 
 ## Verify
 
+```bash
+MODS=$(find tests -name 'test_*.py' | sed 's|/|.|g; s|\.py$||' | sort)
+SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy .venv/bin/python -m unittest $MODS -q
+```
+
+The dummy SDL drivers let the Pygame suites run with no display or audio device. The PowerShell
+equivalent:
+
 ```powershell
 $test_modules = rg --files tests -g 'test_*.py' | ForEach-Object { $_.Replace('\\', '.').Replace('/', '.').Replace('.py', '') }
 uv run python -m unittest @test_modules -q
 ```
+
+Do not use `uv run` for a single module: it drops the repository root from `sys.path` and every test
+fails with `ModuleNotFoundError: No module named 'src'`.
 
 ## Documentation
 
