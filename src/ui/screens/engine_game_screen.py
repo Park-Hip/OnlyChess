@@ -577,13 +577,28 @@ class EngineGameScreen(Screen):
 
         Read rather than scanned line by line: a numbered turn holds both players' moves side by
         side, so comparing what each did takes one glance instead of two. Events break the columns
-        because they belong to neither player.
+        because they belong to neither player, and are centred for the same reason.
+
+        The whole thing is clipped to its panel. Without that a long move or a mod's long event
+        message simply kept drawing, out past the side panel and off the window.
         """
-        color = self._color(palette, "text", TEXT_PRIMARY)
-        band = self._color(palette, "board_dark", CARD_BG)
-        accent = self._color(palette, "warning", ACCENT_GOLD)
         font = self.shared.fonts["small"]
+        text_color = self._color(palette, "text", TEXT_PRIMARY)
+        quiet = self._color(palette, "board_dark", CARD_BG)
+        card = self._color(palette, "panel", CARD_BG)
+        accent = self._color(palette, "warning", ACCENT_GOLD)
         seats = [side for side, _ in snapshot.seats] or [""]
+        names = dict(snapshot.seats)
+
+        row_height, number_width = 19, 26
+        column = (rect.width - 16 - number_width) // max(1, len(seats))
+
+        # Column headings, then a rule: the log is a table, and a table says what its columns are.
+        surface.blit(font.render("#", True, quiet), (rect.x + 12, y))
+        for index, side in enumerate(seats):
+            surface.blit(font.render(names.get(side, ""), True, quiet), (rect.x + 12 + number_width + index * column, y))
+        y += 18
+        p.draw.line(surface, quiet, (rect.x + 8, y - 2), (rect.right - 8, y - 2))
 
         rows = self._history_rows(snapshot, seats)
         max_rows = widget.get("max_lines", 10)
@@ -591,29 +606,35 @@ class EngineGameScreen(Screen):
         end = len(rows) - back
         shown = rows[max(0, end - max_rows):end]
 
-        header = p.Rect(rect.x + 8, y - 2, rect.width - 16, 18)
-        surface.blit(font.render("Moves", True, band), (header.x + 4, header.y))
-        cursor = header.bottom + 4
-        column = (rect.width - 16 - 34) // max(1, len(seats))
+        previous_clip = surface.get_clip()
+        surface.set_clip(p.Rect(rect.x, y, rect.width, max_rows * row_height + 4))
+        cursor = y + 2
         for index, row in enumerate(shown):
+            strip = p.Rect(rect.x + 6, cursor, rect.width - 12, row_height - 1)
             if row["kind"] == "event":
-                for line in self._wrap(row["text"], rect.width - 32):
-                    surface.blit(font.render(line, True, accent), (rect.x + 20, cursor))
-                    cursor += 16
-                cursor += 2
+                # Full width and centred, in the card colour: an event belongs to neither column.
+                # The row grows to hold the whole message rather than showing its first line —
+                # half of "BOTH KINGS WILL BE IMMOBILIZED" is worse than none of it.
+                lines = self._wrap(row["text"], strip.width - 12)
+                strip.height = len(lines) * 15 + 4
+                p.draw.rect(surface, card, strip, border_radius=3)
+                for line_index, line in enumerate(lines):
+                    label = font.render(line, True, accent)
+                    surface.blit(label, label.get_rect(centerx=strip.centerx, y=strip.y + 2 + line_index * 15))
+                cursor = strip.bottom + 1
                 continue
-            strip = p.Rect(rect.x + 8, cursor - 2, rect.width - 16, 18)
             if index % 2:
-                tint = p.Surface(strip.size, p.SRCALPHA)
-                tint.fill((band.r, band.g, band.b, 60))
-                surface.blit(tint, strip.topleft)
-            surface.blit(font.render(f"{row['turn']}.", True, band), (strip.x + 4, strip.y + 1))
+                p.draw.rect(surface, card, strip, border_radius=3)
+            surface.blit(font.render(f"{row['turn']}.", True, quiet), (strip.x + 6, strip.y + 2))
             for seat_index, side in enumerate(seats):
                 text = row["moves"].get(side)
                 if text:
-                    surface.blit(font.render(text, True, color), (strip.x + 34 + seat_index * column, strip.y + 1))
-            cursor = strip.bottom
-        return cursor + 8
+                    label = font.render(text, True, text_color)
+                    surface.blit(label, (strip.x + 6 + number_width + seat_index * column, strip.y + 2),
+                                 area=p.Rect(0, 0, column - 4, row_height))
+            cursor = strip.bottom + 1
+        surface.set_clip(previous_clip)
+        return y + max_rows * row_height + 8
 
     def _history_rows(self, snapshot, seats):
         """Group the flat history into numbered turns, with events as their own full-width rows."""
