@@ -1,7 +1,7 @@
 """Apply, simulate, and undo moves through the one action path."""
 
 from .actions import AdjustResource, AdvanceTurn, CountMove, RecordAbility, RecordCapture, RecordMove, Replace
-from .abilities import build_ability_actions
+from .abilities import build_ability_actions, select_targets
 from .piece import Piece
 from .bus import Bus, Capture
 from .movegen import _apply, _undo, legal_moves
@@ -72,6 +72,19 @@ class Pipeline:
         costs = [AdjustResource(owner.side, resource_id, -amount) for resource_id, amount in ability.cost.items()]
         if any(self.state.resources[owner.side][cost.resource_id] < -cost.amount for cost in costs):
             raise ValueError("insufficient resources")
+        # Read before anything is applied: an ability that relocates its owner would otherwise be
+        # recorded at the square it finished on, labelled as though that were where it began.
+        origin = owner.pos
+        effect = ability.effect[0] if isinstance(ability.effect, list) else ability.effect
+        # What the log should point at is whatever the player was asked to choose, and when they
+        # were asked for nothing, whatever the effect reached on its own. A swap and a sprint both
+        # declare `target: self` on the effect while the destination is the player's click; a blast
+        # and a group shield ask for nothing and are described by what they touched.
+        if target is not None:
+            aimed = (target if isinstance(target, tuple) else target.pos,)
+        else:
+            reach = effect.get("target") if isinstance(effect, dict) and "target" in effect else ability.target
+            aimed = tuple(item if isinstance(item, tuple) else item.pos for item in select_targets(self.state, owner, reach, None))
         actions = [*costs, *build_ability_actions(self.state, owner, ability, target)]
         for action in actions:
             action.apply(self.state)
@@ -79,7 +92,11 @@ class Pipeline:
         expiry = expiry_actions(self.state, owner.side)
         for action in expiry:
             action.apply(self.state)
-        noted = RecordAbility(owner.definition.id, owner.pos, ability.name, ", ".join(f"-{amount} {resource.rsplit(':', 1)[-1]}" for resource, amount in ability.cost.items()))
+        noted = RecordAbility(
+            owner.definition.id, origin, ability.name,
+            "".join(f"-{amount}{resource.rsplit(':', 1)[-1].upper()}" for resource, amount in ability.cost.items()),
+            aimed, effect.get("type", "") if isinstance(effect, dict) else "",
+        )
         record = [*actions, turn, *expiry, noted]
         self.state.action_log.append(record)
         return record

@@ -58,9 +58,27 @@ def _move(move, record, state, glyph) -> str:
     return text
 
 
+#: How each engine effect verb reads in the log. These are the engine's own words — a mod's ability
+#: is written with the operator of whatever verb it invoked, so a log describes what happened
+#: without core ever learning the ability's name.
+_VERB_MARKS = {"swap": "<>", "destroy": "x", "move": ">>", "apply_status": "[]", "transform": "=>"}
+
+
 def _ability(action, state, glyph) -> str:
-    used = f"~{glyph(action.piece_id)}{square_name(action.square, state.board.rows)} {action.name}"
-    return f"{used} [{action.cost}]" if action.cost else used
+    rows = state.board.rows
+    mark = _VERB_MARKS.get(action.verb, "*")
+    text = f"~{glyph(action.piece_id)}{square_name(action.square, rows)}{mark}"
+    # The owner's own square is dropped: an ability that acts on itself is fully described by its
+    # operator, and `~Ra1[]a1` says the same thing twice. One remaining target reads as a
+    # destination; several would be a list longer than the column, so a count says as much in the
+    # space there is. Counts are digits and squares begin with a letter, so the two cannot be read
+    # for each other.
+    elsewhere = [square for square in action.targets if square != action.square]
+    if len(elsewhere) == 1:
+        text += square_name(elsewhere[0], rows)
+    elif len(elsewhere) > 1:
+        text += str(len(elsewhere))
+    return f"{text} [{action.cost}]" if action.cost else text
 
 
 def history(state, glyph) -> tuple[tuple[str, str, tuple[str, ...]], ...]:

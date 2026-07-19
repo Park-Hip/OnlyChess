@@ -155,6 +155,12 @@ class RecordAbility:
     square: tuple[int, int]
     name: str
     cost: str = ""
+    #: Where the ability acted. Recorded because an ability that moves its owner leaves no other
+    #: trace of where it started, and a log saying only where the piece ended is worse than none.
+    targets: tuple[tuple[int, int], ...] = ()
+    #: The effect verb invoked — engine vocabulary such as `swap` or `destroy`, never a content
+    #: name — so history can write what happened without knowing which ability did it.
+    verb: str = ""
 
     def apply(self, state) -> None:
         pass

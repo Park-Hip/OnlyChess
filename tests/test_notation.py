@@ -84,18 +84,52 @@ class HistoryTests(unittest.TestCase):
 
         self.assertEqual("Pa7-a8=Q", self.history(session)[-1])
 
-    def test_an_ability_names_itself_and_its_cost(self):
-        """An ability's record is costs and effects with nothing naming what was invoked, so a log
-        derived from it alone could report a resource change but never 'Knight Swap'."""
+    def test_an_ability_reads_as_owner_verb_target_and_cost(self):
+        """The operator comes from the effect verb, which is engine vocabulary, so a mod's ability
+        is written correctly without core learning its name."""
         session = self.session()
         AdjustResource("base:white", "base:ap", 3).apply(session.state)
 
         session.use_ability((7, 1), "base:knight_swap", target=(7, 0))
 
-        line = self.history(session)[-1]
-        self.assertIn("Knight Swap", line)
-        self.assertIn("-2 ap", line)
-        self.assertTrue(line.startswith("~N"), line)
+        self.assertEqual("~Nb1<>a1 [-2AP]", self.history(session)[-1])
+
+    def test_an_ability_is_recorded_where_it_began_not_where_it_ended(self):
+        """Pawn sprint moves its own owner. Read after the actions were applied, the log said the
+        pawn started on the square it had just arrived at."""
+        session = self.session()
+        AdjustResource("base:white", "base:ap", 3).apply(session.state)
+
+        session.use_ability((6, 0), "base:pawn_sprint", target=(3, 0))
+
+        self.assertEqual("~Pa2>>a5 [-1AP]", self.history(session)[-1])
+
+    def test_an_ability_acting_only_on_itself_needs_no_target(self):
+        """`~Ra1[]a1` says the same thing twice; the operator alone already means "on itself"."""
+        session = self.session()
+        AdjustResource("base:white", "base:ap", 3).apply(session.state)
+        for piece in list(session.state.board.pieces()):
+            if piece.pos != (7, 0) and not piece.definition.royal:
+                session.state.board.remove(piece.pos)
+
+        session.use_ability((7, 0), "base:rook_shield")
+
+        self.assertEqual("~Ra1[] [-3AP]", self.history(session)[-1])
+
+    def test_an_ability_reaching_several_squares_reports_how_many(self):
+        session = self.session()
+        AdjustResource("base:white", "base:ap", 3).apply(session.state)
+        state = session.state
+        for piece in list(state.board.pieces()):
+            if not piece.definition.royal:
+                state.board.remove(piece.pos)
+        state.board.place(Piece(90, state.piece_defs["base:pawn"], "base:white", (4, 4)), (4, 4))
+        for index, square in enumerate(((3, 3), (3, 4), (5, 5))):
+            state.board.place(Piece(91 + index, state.piece_defs["base:knight"], "base:black", square), square)
+
+        session.use_ability((4, 4), "base:pawn_kamikaze")
+
+        self.assertEqual("~Pe4x3 [-3AP]", self.history(session)[-1])
 
     def test_undo_shortens_the_history(self):
         """Derived from the log, so it needs no separate bookkeeping to stay in step."""
