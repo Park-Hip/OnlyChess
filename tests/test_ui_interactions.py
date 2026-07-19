@@ -51,6 +51,13 @@ class ClickPathTests(unittest.TestCase):
     def click(self, screen, square):
         self.click_at(screen, screen._layout(self.surface).square_rect(square).center)
 
+    def right_click(self, screen, square):
+        """How a piece's abilities are opened. The double-click route was removed because it made
+        the menu something you found by accident rather than something you asked for."""
+        position = screen._layout(self.surface).square_rect(square).center
+        p.mouse.get_pos = lambda: position
+        screen.handle_event(p.event.Event(p.MOUSEBUTTONDOWN, {"pos": position, "button": 3}))
+
     def press(self, screen, code, unicode_="", mod=0):
         screen.handle_event(p.event.Event(p.KEYDOWN, {"key": code, "unicode": unicode_, "mod": mod}))
 
@@ -152,12 +159,11 @@ class ClickPathTests(unittest.TestCase):
 
         self.assertEqual("base:pawn", self.occupant(screen, (1, 0)))
 
-    def test_clicking_a_selected_piece_opens_its_abilities_and_targeting_spends_ap(self):
+    def test_right_clicking_a_piece_opens_its_abilities_and_targeting_spends_ap(self):
         screen = self.screen()
         AdjustResource("base:white", "base:ap", 3).apply(screen.session.state)
 
-        self.click(screen, (7, 1))
-        self.click(screen, (7, 1))
+        self.right_click(screen, (7, 1))
 
         choices = [choice.id for choice in screen.ability_choices]
         self.assertIn("base:knight_swap", choices)
@@ -182,8 +188,7 @@ class ClickPathTests(unittest.TestCase):
         screen = self.screen()
         AdjustResource("base:white", "base:ap", 3).apply(screen.session.state)
 
-        self.click(screen, (7, 1))
-        self.click(screen, (7, 1))
+        self.right_click(screen, (7, 1))
         self.assertTrue(screen.ability_choices)
 
         self.press(screen, p.K_ESCAPE)
@@ -236,8 +241,7 @@ class ClickPathTests(unittest.TestCase):
         """Esc backs out of the innermost thing, so it never strands a half-made choice."""
         screen = self.screen()
         AdjustResource("base:white", "base:ap", 3).apply(screen.session.state)
-        self.click(screen, (7, 1))
-        self.click(screen, (7, 1))
+        self.right_click(screen, (7, 1))
         self.assertTrue(screen.ability_choices)
 
         self.press(screen, p.K_ESCAPE)
@@ -361,8 +365,7 @@ class ClickPathTests(unittest.TestCase):
         screen = self.screen()
         AdjustResource("base:white", "base:ap", 3).apply(screen.session.state)
 
-        self.click(screen, (6, 0))
-        self.click(screen, (6, 0))
+        self.right_click(screen, (6, 0))
         index = [choice.id for choice in screen.ability_choices].index("base:pawn_sprint")
         modal = screen._modal_rect()
         self.click_at(screen, p.Rect(modal.x + 16, modal.y + 50 + index * 42, modal.width - 32, 34).center)
@@ -376,8 +379,7 @@ class ClickPathTests(unittest.TestCase):
     def test_the_highlight_returns_to_ordinary_moves_when_the_ability_is_cancelled(self):
         screen = self.screen()
         AdjustResource("base:white", "base:ap", 3).apply(screen.session.state)
-        self.click(screen, (6, 0))
-        self.click(screen, (6, 0))
+        self.right_click(screen, (6, 0))
         modal = screen._modal_rect()
         index = [choice.id for choice in screen.ability_choices].index("base:pawn_sprint")
         self.click_at(screen, p.Rect(modal.x + 16, modal.y + 50 + index * 42, modal.width - 32, 34).center)

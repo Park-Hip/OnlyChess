@@ -7,6 +7,7 @@ from dataclasses import dataclass
 import pygame as p
 
 from ... import savegame
+from ..fonts import font_family
 from ...runtime import EngineSession
 from ..board_layout import BoardLayout
 from ..presentation_runtime import PresentationRuntime
@@ -29,7 +30,8 @@ PAUSE_ENTRIES = ("Resume", "Save Game", "Restart", "Help", "Reference", "Main Me
 #: abilities, or fusion — that text would have to name content, and content is a mod's to describe.
 HELP_LINES = (
     "Click a piece, then a highlighted square, to move it.",
-    "Click a selected piece again to see its abilities.",
+    "Drag a piece to its destination if you prefer.",
+    "Right-click a piece to see its abilities.",
     "When promoting, press the letter shown in the prompt.",
     "",
     "Ctrl-Z    undo the last move or ability",
@@ -58,6 +60,7 @@ class EngineGameScreen(Screen):
         self.drag_pos = None
         #: How far back through the history the player has scrolled, in lines.
         self.history_scroll = 0
+        self._component_fonts = {}
         self._last_tick = p.time.get_ticks()
         self.presentation = PresentationRuntime(session.load_result, session.mode_id)
 
@@ -160,9 +163,6 @@ class EngineGameScreen(Screen):
             if occupied:
                 self.selected_square = square
                 self.dragging, self.drag_pos = square, position
-            return
-        if square == self.selected_square:
-            self.ability_choices = self._choices()
             return
         candidates = [move for move in self.session.moves_from(self.selected_square) if move.end == square]
         if candidates:
@@ -347,7 +347,7 @@ class EngineGameScreen(Screen):
                 piece = board.at((row, col))
                 if piece and (row, col) != self.dragging:
                     self._draw_piece(surface, piece, rect, text_color, layout.square_size)
-                    self._draw_components(surface, piece, rect, text_color)
+                    self._draw_components(surface, piece, rect, accent)
                     self._draw_status_markers(surface, piece, rect, accent, layout.square_size)
                 self._draw_coordinates(surface, layout, board, row, col, rect, light, dark)
 
@@ -359,18 +359,34 @@ class EngineGameScreen(Screen):
             text = self.shared.fonts["title"].render(self.presentation.glyph(piece.definition.id), True, text_color)
             surface.blit(text, text.get_rect(center=rect.center))
 
-    def _draw_components(self, surface, piece, rect, text_color):
+    def _draw_components(self, surface, piece, rect, accent):
         """Mark what a fused piece has absorbed, beyond the one it is still named after.
 
         Without this a composed rook and a plain rook are the same picture, and the only way to
-        learn a piece moves diagonally now is to click it. Uses each absorbed piece's own glyph, so
-        core never learns a name here either.
+        learn the piece moves diagonally now is to click it. Written the way the pre-refactor game
+        wrote it: two components at most, a `*` when there are more, sized to the square, and
+        outlined in black so it stays legible over a piece of any colour. Each component is drawn
+        as its own declared glyph, so core learns no names here either.
         """
         extra = piece.definition.components[1:]
         if not extra:
             return
-        text = self.shared.fonts["small"].render("+" + "+".join(self.presentation.glyph(component) for component in extra), True, text_color)
-        surface.blit(text, (rect.right - text.get_width() - 2, rect.bottom - text.get_height() - 1))
+        text = "+" + "+".join(self.presentation.glyph(component) for component in extra[:2])
+        if len(extra) > 2:
+            text += "*"
+        font = self._component_font(max(10, rect.width // 4))
+        label = font.render(text, True, accent)
+        position = label.get_rect(bottomright=(rect.right - 2, rect.bottom - 2))
+        outline = font.render(text, True, p.Color("black"))
+        for offset in ((1, 1), (-1, -1), (1, -1), (-1, 1)):
+            surface.blit(outline, position.move(offset))
+        surface.blit(label, position)
+
+    def _component_font(self, size):
+        """Cached by size: the overlay is redrawn for every fused piece on every frame."""
+        if size not in self._component_fonts:
+            self._component_fonts[size] = p.font.SysFont(font_family(), size, bold=True)
+        return self._component_fonts[size]
 
     def _draw_coordinates(self, surface, layout, board, row, col, rect, light, dark):
         """Rank down the left edge, file along the bottom, tinted into the square itself.
