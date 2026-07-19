@@ -5,6 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 import pygame as p
 
+from .mod_preview import sprite_path
+
 
 class PresentationRuntime:
     def __init__(self, result, mode_id: str):
@@ -39,10 +41,27 @@ class PresentationRuntime:
             self.images[key] = p.transform.smoothscale(image, (size, size))
         return self.images[key]
 
-    def image(self, piece_id: str, size: int):
+    def image(self, piece_id: str, size: int, side_id: str | None = None):
+        """The piece's artwork at this size, or None when it has only a glyph.
+
+        Two declarations reach this, and both were already in use: `presentation.sprite` names one
+        image for the piece, while a top-level `sprite:` names a per-side set laid out the way
+        `mod_preview.sprite_path` resolves it. The second exists because most pieces need one
+        picture per side and the first cannot express that — a white rook and a black rook would
+        share an image. The menu preview already understood the per-side form; the board did not,
+        which is why base chess rendered as letters.
+        """
         entry = self.result.registries.content["piece"].get(piece_id)
-        path = entry.value.tree.get("presentation", {}).get("sprite")
-        return self._load_sprite(entry, path, size) if path else None
+        tree = entry.value.tree
+        path = tree.get("presentation", {}).get("sprite")
+        if path:
+            return self._load_sprite(entry, path, size)
+        namespaced = tree.get("sprite")
+        if not namespaced or side_id is None:
+            return None
+        root = self.result.mod_roots[entry.mod_id]
+        resolved = sprite_path(namespaced, side_id, root)
+        return self._load_sprite(entry, str(resolved.relative_to(root)), size) if resolved.is_file() else None
 
     def status_presentation(self, status_id: str) -> dict:
         """The status's declared presentation block ({} when it declares none)."""

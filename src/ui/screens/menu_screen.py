@@ -65,6 +65,23 @@ class MenuScreen(Screen):
                 self.next_screen = EngineGameScreen(self.shared, session=EngineSession(self.shared.app_context.load_result, mode.id, time_limit=self.shared.settings.time_limit))
                 return
 
+    def _draw_backdrop(self, surface, chrome):
+        """The shipped backdrop under a veil in the catalog's own colour.
+
+        Layered rather than swapped: the menu deliberately takes its chrome from the first mode's
+        palette, and dropping a photograph in place of that would throw the theme away. The veil is
+        what keeps the title and the rows legible over an image core cannot predict.
+        """
+        veil = self._color(chrome, "background", PANEL_BG)
+        background = getattr(self.shared, "menu_background", None)
+        if background is None:
+            surface.fill(veil)
+            return
+        surface.blit(p.transform.smoothscale(background, surface.get_size()), (0, 0))
+        scrim = p.Surface(surface.get_size(), p.SRCALPHA)
+        scrim.fill((veil.r, veil.g, veil.b, 190))
+        surface.blit(scrim, (0, 0))
+
     def _load_saved_game(self):
         """Resume a saved game, or say why it cannot be resumed.
 
@@ -80,7 +97,7 @@ class MenuScreen(Screen):
 
     def draw(self, surface):
         chrome = self.modes[0].palette if self.modes else {}
-        surface.fill(self._color(chrome, "background", PANEL_BG))
+        self._draw_backdrop(surface, chrome)
         title = self.shared.fonts["title"].render("OnlyChess", True, self._color(chrome, "accent", ACCENT_GOLD))
         surface.blit(title, title.get_rect(center=(WIDTH // 2, 90)))
         subtitle = self.shared.fonts["normal"].render("Choose a game mode", True, self._color(chrome, "text", TEXT_PRIMARY))

@@ -322,7 +322,7 @@ class EngineGameScreen(Screen):
                 self._draw_coordinates(surface, layout, board, row, col, rect, light, dark)
 
     def _draw_piece(self, surface, piece, rect, text_color, square_size):
-        image = self.presentation.image(piece.definition.id, square_size)
+        image = self.presentation.image(piece.definition.id, square_size, piece.side)
         if image:
             surface.blit(image, rect)
         else:

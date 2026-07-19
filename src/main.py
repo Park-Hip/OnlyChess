@@ -42,6 +42,24 @@ def _font_family():
     return None
 
 
+def _menu_background():
+    """The title screen's backdrop: the shipped image when it is there, a flat fill when it is not.
+
+    Application chrome rather than mod content — no mode is selected yet, so there is no theme to
+    ask. A missing or unreadable file degrades to the fill rather than stopping startup, on the same
+    reasoning as the audio and cursor guards.
+    """
+    background = p.Surface((WIDTH, HEIGHT))
+    background.fill(PANEL_BG)
+    image_path = REPO_ROOT / "images" / "6h50_2.png"
+    if image_path.is_file():
+        try:
+            return p.transform.smoothscale(p.image.load(str(image_path)).convert(), (WIDTH, HEIGHT))
+        except p.error:
+            pass
+    return background
+
+
 def _load_fonts():
     """Load fonts once, from a face that can draw mod-supplied glyphs on this platform."""
     family = _font_family()
@@ -67,8 +85,7 @@ def main():
     clock = p.time.Clock()
     screen.fill(PANEL_BG)
 
-    menu_background = p.Surface((WIDTH, HEIGHT))
-    menu_background.fill(PANEL_BG)
+    menu_background = _menu_background()
     shared = SharedResources(
         images={},
         fonts=_load_fonts(),

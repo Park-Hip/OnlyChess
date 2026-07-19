@@ -3,9 +3,11 @@ id: base:classic_sounds
 name: Classic Sounds
 # Each key is a runtime notification kind; the engine plays the mapped clip when
 # that notification fires. Only kinds the runtime actually emits are declared.
+# move and capture are the real recordings from the pre-refactor game, converted to ogg
+# because the loader accepts wav and ogg only. The rest remain synthesised placeholders.
 cues:
-  move_completed: assets/sfx/move.wav
-  capture_completed: assets/sfx/capture.wav
+  move_completed: assets/sfx/move.ogg
+  capture_completed: assets/sfx/capture.ogg
   ability_used: assets/sfx/ability.wav
   promotion_chosen: assets/sfx/promote.wav
   undo_completed: assets/sfx/undo.wav

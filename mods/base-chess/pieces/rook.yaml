@@ -1,6 +1,9 @@
 type: piece
 id: base:rook
 name: Rook
+# Per-side artwork under assets/sprites/rook/base/. The glyph below stays as the
+# fallback for anywhere a picture cannot be drawn.
+sprite: base:rook
 presentation: { glyph: R }
 material: 5
 

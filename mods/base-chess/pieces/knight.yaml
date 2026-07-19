@@ -6,6 +6,9 @@
 type: piece
 id: base:knight
 name: Knight
+# Per-side artwork under assets/sprites/knight/base/. The glyph below stays as the
+# fallback for anywhere a picture cannot be drawn.
+sprite: base:knight
 presentation: { glyph: N }
 material: 3
 

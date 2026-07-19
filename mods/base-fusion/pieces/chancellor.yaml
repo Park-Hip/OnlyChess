@@ -3,6 +3,7 @@
 type: piece
 id: base:chancellor
 name: Chancellor
+sprite: base:chancellor
 presentation: { glyph: C }
 material: 8
 

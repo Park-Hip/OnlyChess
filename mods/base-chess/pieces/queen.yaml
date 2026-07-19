@@ -1,6 +1,9 @@
 type: piece
 id: base:queen
 name: Queen
+# Per-side artwork under assets/sprites/queen/base/. The glyph below stays as the
+# fallback for anywhere a picture cannot be drawn.
+sprite: base:queen
 presentation: { glyph: Q }
 material: 9
 

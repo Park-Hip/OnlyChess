@@ -3,6 +3,7 @@
 type: piece
 id: base:archbishop
 name: Archbishop
+sprite: base:archbishop
 presentation: { glyph: A }
 material: 6
 

@@ -4,6 +4,7 @@
 type: piece
 id: base:warden
 name: Warden
+sprite: base:warden
 presentation: { glyph: W }
 material: 7
 
