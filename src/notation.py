@@ -16,7 +16,7 @@ before the move; the log is read after. Long form is unambiguous without remembe
 
 from __future__ import annotations
 
-from .engine.actions import Relocate, RecordAbility, RecordMove, Replace
+from .engine.actions import AppendMessage, Relocate, RecordAbility, RecordMove, Replace
 
 
 def square_name(square, rows: int) -> str:
@@ -63,11 +63,23 @@ def _ability(action, state, glyph) -> str:
     return f"{used} [{action.cost}]" if action.cost else used
 
 
-def history(state, glyph) -> tuple[str, ...]:
-    """Every completed action list, most recent last. Derived, so undo shortens it for free."""
-    lines = []
+def history(state, glyph) -> tuple[tuple[str, str, tuple[str, ...]], ...]:
+    """Every completed action list as `(side, text, messages)`, oldest first.
+
+    The side is carried because a move list is read in columns — one player per column — and the
+    messages an action produced travel with it, so an event appears between the moves it happened
+    between rather than in a separate list with no ordering against them.
+
+    Derived from the log, so undo shortens it for free.
+    """
+    entries = []
     for record in state.action_log:
         described = describe_record(record, state, glyph)
-        if described is not None:
-            lines.append(described)
-    return tuple(lines)
+        if described is None:
+            continue
+        mover = next((action.move.piece.side for action in record if isinstance(action, RecordMove)), None)
+        if mover is None:
+            mover = next((action.side for action in record if hasattr(action, "side") and hasattr(action, "resource_id")), "")
+        messages = tuple(action.message for action in record if isinstance(action, AppendMessage))
+        entries.append((mover, described, messages))
+    return tuple(entries)

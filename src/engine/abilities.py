@@ -27,10 +27,17 @@ def select_targets(state, owner, spec, explicit):
     if spec == "self":
         return [owner]
     if explicit is not None:
-        selected = state.board.at(explicit) if isinstance(explicit, tuple) else explicit
-        if selected is None or not _matches_target(state, owner, selected, spec):
-            raise ValueError("the selected target is not permitted")
-        return [selected]
+        # Checked by asking what this ability offers and looking for the choice in it, rather than
+        # by re-testing the filter against a piece. The old form read `board.at(square)` and refused
+        # when it found nothing, so an ability whose target is an *empty* square could never be
+        # used: pawn sprint's destination is empty by definition, and clicking its own highlighted
+        # square did nothing at all. Asking the offer also makes what the board highlights and what
+        # the engine accepts the same set, rather than two computations that have to agree.
+        square = explicit if isinstance(explicit, tuple) else explicit.pos
+        for candidate in select_targets(state, owner, spec, None):
+            if (candidate if isinstance(candidate, tuple) else candidate.pos) == square:
+                return [candidate]
+        raise ValueError("the selected target is not permitted")
     scope = spec.get("scope", {})
     if isinstance(scope, str) and scope == "board":
         return [piece for piece in state.board.pieces() if piece is not owner and _matches_target(state, owner, piece, spec)]

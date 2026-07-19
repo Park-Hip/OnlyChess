@@ -128,6 +128,17 @@ class EngineGameScreen(Screen):
         if event.type == p.MOUSEBUTTONUP and event.button == 1:
             self._finish_drag()
             return
+        if event.type == p.MOUSEBUTTONDOWN and event.button == 3 and self.pending_move is None:
+            # Right-click goes straight to a piece's abilities. The two-click route stays, but this
+            # is the one the pre-refactor game used and it is one step shorter.
+            square = self._layout(p.display.get_surface()).square_at(p.mouse.get_pos())
+            if square is not None and self.session.state.board.at(square) is not None:
+                self.selected_square = square
+                self.ability_choices = self._choices()
+                self.pending_ability = None
+            else:
+                self.ability_choices = ()
+            return
         if event.type != p.MOUSEBUTTONDOWN or event.button != 1 or self.pending_move is not None:
             return
         position = p.mouse.get_pos()
@@ -546,28 +557,59 @@ class EngineGameScreen(Screen):
         return y + (8 if any(taken for _, taken in snapshot.captures) else 0)
 
     def _widget_history(self, surface, widget, rect, y, snapshot, palette):
-        """The move list, newest at the bottom, showing the tail that fits."""
+        """A move list in columns, one player per column, with events across the full width.
+
+        Read rather than scanned line by line: a numbered turn holds both players' moves side by
+        side, so comparing what each did takes one glance instead of two. Events break the columns
+        because they belong to neither player.
+        """
         color = self._color(palette, "text", TEXT_PRIMARY)
-        max_lines = widget.get("max_lines", 10)
-        # Scrolling past the top simply stops there, and a new move pulls the view back to the
-        # bottom, which is where a move log is worth reading.
-        back = min(self.history_scroll, max(0, len(snapshot.history) - max_lines))
-        end = len(snapshot.history) - back
-        shown = snapshot.history[max(0, end - max_lines):end]
-        offset = end - len(shown)
-        # Alternating row tints, as the pre-refactor log had: a move list is scanned rather than
-        # read, and a banded column is far easier to track across than an even wall of text.
         band = self._color(palette, "board_dark", CARD_BG)
-        for index, line in enumerate(shown):
-            row = p.Rect(rect.x + 8, y + index * 20 - 2, rect.width - 16, 20)
-            if (offset + index) % 2:
-                tint = p.Surface(row.size, p.SRCALPHA)
+        accent = self._color(palette, "warning", ACCENT_GOLD)
+        font = self.shared.fonts["small"]
+        seats = [side for side, _ in snapshot.seats] or [""]
+
+        rows = self._history_rows(snapshot, seats)
+        max_rows = widget.get("max_lines", 10)
+        back = min(self.history_scroll, max(0, len(rows) - max_rows))
+        end = len(rows) - back
+        shown = rows[max(0, end - max_rows):end]
+
+        header = p.Rect(rect.x + 8, y - 2, rect.width - 16, 18)
+        surface.blit(font.render("Moves", True, band), (header.x + 4, header.y))
+        cursor = header.bottom + 4
+        column = (rect.width - 16 - 34) // max(1, len(seats))
+        for index, row in enumerate(shown):
+            if row["kind"] == "event":
+                for line in self._wrap(row["text"], rect.width - 32):
+                    surface.blit(font.render(line, True, accent), (rect.x + 20, cursor))
+                    cursor += 16
+                cursor += 2
+                continue
+            strip = p.Rect(rect.x + 8, cursor - 2, rect.width - 16, 18)
+            if index % 2:
+                tint = p.Surface(strip.size, p.SRCALPHA)
                 tint.fill((band.r, band.g, band.b, 60))
-                surface.blit(tint, row.topleft)
-            number = self.shared.fonts["small"].render(f"{offset + index + 1}.", True, band)
-            surface.blit(number, (row.x + 4, row.y + 2))
-            surface.blit(self.shared.fonts["small"].render(line, True, color), (row.x + 34, row.y + 2))
-        return y + len(shown) * 20 + (10 if shown else 0)
+                surface.blit(tint, strip.topleft)
+            surface.blit(font.render(f"{row['turn']}.", True, band), (strip.x + 4, strip.y + 1))
+            for seat_index, side in enumerate(seats):
+                text = row["moves"].get(side)
+                if text:
+                    surface.blit(font.render(text, True, color), (strip.x + 34 + seat_index * column, strip.y + 1))
+            cursor = strip.bottom
+        return cursor + 8
+
+    def _history_rows(self, snapshot, seats):
+        """Group the flat history into numbered turns, with events as their own full-width rows."""
+        rows, turn = [], 0
+        for side, text, messages in snapshot.history:
+            if not rows or rows[-1]["kind"] == "event" or side in rows[-1]["moves"] or side == seats[0]:
+                turn += 1
+                rows.append({"kind": "turn", "turn": turn, "moves": {}})
+            rows[-1]["moves"][side] = text
+            for message in messages:
+                rows.append({"kind": "event", "text": message})
+        return rows
 
     def _widget_warning(self, surface, widget, rect, y, snapshot, palette):
         """The announced event: what is coming and how long there is to react."""

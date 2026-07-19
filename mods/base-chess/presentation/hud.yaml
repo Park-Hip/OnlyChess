@@ -14,6 +14,7 @@ widgets:
   - { type: turn, slot: side }
   - { type: countdown, slot: side }
   - { type: warning, slot: side }
-  - { type: history, slot: side, max_lines: 10 }
-  - { type: log, slot: side, max_lines: 4 }
+  # One log, not two. The move list carries the messages an action produced, so a separate `log`
+  # widget would print every event a second time.
+  - { type: history, slot: side, max_lines: 12 }
   - { type: prompt, slot: bottom }

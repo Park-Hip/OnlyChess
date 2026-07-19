@@ -40,8 +40,12 @@ class HistoryTests(unittest.TestCase):
     def session(self, mode_id="base:advanced"):
         return EngineSession(self.context.load_result, mode_id)
 
-    def history(self, session):
+    def entries(self, session):
         return session.presentation_snapshot(glyph=glyph_of(session)).history
+
+    def history(self, session):
+        """Just the readable text, which is what most of these assertions are about."""
+        return tuple(text for _, text, _ in self.entries(session))
 
     def test_a_move_reads_as_glyph_origin_destination(self):
         session = self.session()
@@ -112,6 +116,30 @@ class HistoryTests(unittest.TestCase):
         session.move(move.start, move.end)
 
         self.assertTrue(self.history(session)[-1].startswith("◆"), self.history(session))
+
+
+    def test_each_entry_carries_the_side_that_made_it(self):
+        """A move list is read in columns, one player each, so the log has to say whose move it is."""
+        session = self.session()
+        session.move((6, 4), (4, 4))
+        session.move((1, 3), (3, 3))
+
+        sides = [side for side, _, _ in self.entries(session)]
+
+        self.assertEqual(2, len(set(sides)), sides)
+        self.assertEqual(session.state.board.sides.__iter__().__next__(), sides[0])
+
+    def test_messages_travel_with_the_action_that_produced_them(self):
+        """An event belongs between the moves it happened between, not in a separate list with no
+        ordering against them."""
+        session = self.session()
+        for _ in range(9):
+            move = session.legal_moves[0]
+            session.move(move.start, move.end)
+
+        with_messages = [messages for _, _, messages in self.entries(session) if messages]
+
+        self.assertTrue(with_messages, "the ninth move warns of an event and should carry its text")
 
 
 if __name__ == "__main__":
