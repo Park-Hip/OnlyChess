@@ -428,9 +428,11 @@ class EngineGameScreen(Screen):
         return p.Color(palette[token]) if palette else fallback
 
     def _widget_turn(self, surface, widget, rect, y, snapshot, palette):
-        label = f"Turn {snapshot.turn_number + 1} | {snapshot.current_side_name} to move | Esc: menu | H: help"
-        surface.blit(self.shared.fonts["normal"].render(label, True, self._color(palette, "text", TEXT_PRIMARY)), (rect.x + 12, y))
-        return y + 24
+        color = self._color(palette, "text", TEXT_PRIMARY)
+        lines = (f"Turn {snapshot.turn_number + 1}", "Esc: pause    H: help")
+        for index, line in enumerate(lines):
+            surface.blit(self.shared.fonts["small"].render(line, True, color), (rect.x + 12, y + index * 20))
+        return y + len(lines) * 20 + 10
 
     def _widget_resources(self, surface, widget, rect, y, snapshot, palette):
         color = self._color(palette, "text", TEXT_PRIMARY)
@@ -529,7 +531,58 @@ class EngineGameScreen(Screen):
         surface.blit(self.shared.fonts["small"].render(f"incoming {detail}", True, color), (card.x + 8, card.y + 24))
         return card.bottom + 10
 
-    _DRAW = {"turn": _widget_turn, "warning": _widget_warning, "history": _widget_history, "material": _widget_material, "captures": _widget_captures, "countdown": _widget_countdown, "resources": _widget_resources, "log": _widget_log, "prompt": _widget_prompt, "clock": _widget_clock}
+    def _widget_player(self, surface, widget, rect, y, snapshot, palette):
+        """One player's whole standing: name, clock, resources, material, and what they have taken.
+
+        Which player depends on the slot, not on a name in the layout: the side that moves first is
+        seated at the bottom, nearest whoever is holding the mouse, and the others sit above. A
+        layout that named `base:white` would only work for mods that happen to have a white.
+        """
+        if not snapshot.seats:
+            return y
+        index = 0 if widget.get("slot") == "bottom" else 1
+        if index >= len(snapshot.seats):
+            return y
+        side_id, name = snapshot.seats[index]
+
+        active = name == snapshot.current_side_name
+        text_color = self._color(palette, "text", TEXT_PRIMARY)
+        accent = self._color(palette, "selection", ACCENT_GOLD)
+        panel = p.Rect(rect.x, rect.y + 4, rect.width, rect.height - 8)
+        p.draw.rect(surface, self._color(palette, "panel", CARD_BG), panel, border_radius=8)
+        # The side to move is outlined, which is the one thing a player checks constantly.
+        p.draw.rect(surface, accent if active else self._color(palette, "board_dark", CARD_BG), panel, width=2, border_radius=8)
+
+        cursor = panel.x + 12
+        label = self.shared.fonts["normal"].render(name, True, accent if active else text_color)
+        surface.blit(label, (cursor, panel.y + 8))
+        cursor += label.get_width() + 16
+
+        for resource, value in snapshot.resources:
+            if resource.startswith(f"{side_id}:"):
+                pill = self.shared.fonts["small"].render(f"{resource.rsplit(':', 1)[-1].upper()} {value}", True, text_color)
+                surface.blit(pill, (cursor, panel.y + 11))
+                cursor += pill.get_width() + 14
+
+        margin = dict(snapshot.material)
+        if len(margin) == 2 and margin.get(name, 0) > min(margin.values()):
+            lead = self.shared.fonts["small"].render(f"+{margin[name] - min(margin.values())}", True, text_color)
+            surface.blit(lead, (cursor, panel.y + 11))
+
+        clock = dict(snapshot.clocks).get(name)
+        if clock is not None:
+            minutes, seconds = divmod(int(clock), 60)
+            color = self._color(palette, "warning", ACCENT_GOLD) if clock < 60 else text_color
+            time_text = self.shared.fonts["normal"].render(f"{minutes}:{seconds:02d}", True, color)
+            surface.blit(time_text, (panel.right - time_text.get_width() - 12, panel.y + 8))
+
+        taken = dict(snapshot.captures).get(name, ())
+        if taken:
+            glyphs = self.shared.fonts["small"].render(" ".join(self.presentation.glyph(piece_id) for piece_id in taken), True, text_color)
+            surface.blit(glyphs, (panel.x + 12, panel.y + 34))
+        return rect.bottom
+
+    _DRAW = {"turn": _widget_turn, "player": _widget_player, "warning": _widget_warning, "history": _widget_history, "material": _widget_material, "captures": _widget_captures, "countdown": _widget_countdown, "resources": _widget_resources, "log": _widget_log, "prompt": _widget_prompt, "clock": _widget_clock}
 
     def _draw_outcome_buttons(self, surface, layout, palette):
         panel = self._color(palette, "panel", CARD_BG)

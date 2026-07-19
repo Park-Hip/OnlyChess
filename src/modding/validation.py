@@ -193,7 +193,7 @@ def _generic(parsed: ParsedFile, _registries: Registries | None) -> list[Content
 
 
 _PALETTE = {"background", "panel", "board_light", "board_dark", "text", "accent", "warning", "selection", "target"}
-_WIDGETS = {"turn", "resources", "log", "prompt", "clock", "material", "countdown", "captures", "history", "warning"}
+_WIDGETS = {"turn", "resources", "log", "prompt", "clock", "material", "countdown", "captures", "history", "warning", "player"}
 _SLOTS = {"top", "side", "bottom"}
 _CUES = {"move_completed", "capture_completed", "ability_used", "promotion_chosen", "event_warning", "event_executed", "status_applied", "status_expired", "outcome_reached", "undo_completed"}
 
@@ -214,8 +214,12 @@ def _hud(parsed: ParsedFile, _registries: Registries | None) -> list[ContentErro
     for index, widget in enumerate(widgets):
         if not isinstance(widget, dict) or widget.get("type") not in _WIDGETS or widget.get("slot") not in _SLOTS:
             errors.append(parsed.error("must use a known widget type and slot", field=("widgets", index), expected="type: turn/resources/log/prompt/clock/material/countdown/captures/history/warning and slot: top/side/bottom")); continue
-        if widget["type"] in seen: errors.append(parsed.error("may appear only once", field=("widgets", index, "type"), expected="one declaration per widget type"))
-        seen.add(widget["type"])
+        # Once per slot rather than once per layout. A widget describing a player belongs in both
+        # bands — one panel per seat — while two of the same widget in one slot is still the
+        # duplicate this check was written to catch.
+        seat = (widget["type"], widget["slot"])
+        if seat in seen: errors.append(parsed.error("may appear only once in a slot", field=("widgets", index, "type"), expected="one declaration per widget type per slot"))
+        seen.add(seat)
     return errors
 
 

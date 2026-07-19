@@ -19,7 +19,7 @@ class BoardLayout:
     columns: int
 
     @classmethod
-    def for_viewport(cls, viewport: tuple[int, int], rows: int, columns: int, *, header: int = 56, margin: int = 16, footer: int = 44) -> "BoardLayout":
+    def for_viewport(cls, viewport: tuple[int, int], rows: int, columns: int, *, header: int = 66, margin: int = 12, footer: int = 66) -> "BoardLayout":
         width, height = viewport
         panel_width = max(180, width // 4)
         available_width = max(1, width - panel_width - margin * 3)
@@ -28,8 +28,10 @@ class BoardLayout:
         square = max(1, min(available_width // columns, available_height // rows))
         board = p.Rect(margin, header + margin, columns * square, rows * square)
         side = p.Rect(board.right + margin, header + margin, max(1, width - board.right - margin * 2), available_height)
-        top = p.Rect(margin, 0, max(1, width - margin * 2), header)
-        bottom = p.Rect(margin, height - footer, max(1, width - margin * 2), footer)
+        # The bands sit above and below the board rather than spanning the window, so a player
+        # panel lines up with the squares it describes instead of running under the side panel.
+        top = p.Rect(margin, 0, board.width, header)
+        bottom = p.Rect(margin, height - footer, board.width, footer)
         return cls(board=board, panel=side, top=top, side=side, bottom=bottom, square_size=square, rows=rows, columns=columns)
 
     def square_rect(self, square: tuple[int, int]) -> p.Rect:

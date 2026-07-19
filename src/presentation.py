@@ -56,6 +56,9 @@ class PresentationSnapshot:
     history: tuple[str, ...] = ()
     #: The announced-but-unfired event, or None when nothing is pending.
     warning: PresentationWarning | None = None
+    #: `(side id, side name)` with the side that moves first at index 0. A screen seats that side
+    #: nearest the player, which is where every board game puts the person holding the pieces.
+    seats: tuple[tuple[str, str], ...] = ()
 
 
 @dataclass(frozen=True)

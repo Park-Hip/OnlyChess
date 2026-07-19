@@ -1,16 +1,19 @@
 type: hud_layout
 id: base:classic_hud
 name: Classic HUD
+
+# Each player gets a panel on their own side of the board — the side that moves first is seated at
+# the bottom, nearest whoever is holding the mouse. The panel carries that player's clock,
+# resources, material lead, and captures, so a glance at one edge answers "how am I doing".
+#
+# The side panel keeps what belongs to the game rather than to a player: the move list, the next
+# event, and whatever a mod's events have to say.
 widgets:
-  - { type: turn, slot: top }
-  # Declared unconditionally: the widget draws nothing when the mode has no time limit, so this
-  # costs a clockless game exactly one blank line of nothing.
-  - { type: clock, slot: side }
-  - { type: resources, slot: side }
-  - { type: material, slot: side }
-  - { type: captures, slot: side }
+  - { type: player, slot: top }
+  - { type: player, slot: bottom }
+  - { type: turn, slot: side }
   - { type: countdown, slot: side }
   - { type: warning, slot: side }
-  - { type: history, slot: side, max_lines: 8 }
+  - { type: history, slot: side, max_lines: 10 }
   - { type: log, slot: side, max_lines: 4 }
   - { type: prompt, slot: bottom }

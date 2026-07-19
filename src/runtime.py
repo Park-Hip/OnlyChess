@@ -186,6 +186,7 @@ class EngineSession:
             # which keeps the session usable without the presentation runtime attached.
             history(self.state, glyph or (lambda piece_id: piece_id.rsplit(":", 1)[-1][:1].upper())),
             self._pending_warning(),
+            tuple(sorted(((side_id, side.name) for side_id, side in board.sides.items()), key=lambda seat: not board.sides[seat[0]].moves_first)),
         )
 
     def _pending_warning(self):
