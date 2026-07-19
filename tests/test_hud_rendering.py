@@ -24,6 +24,11 @@ class _RecordingFont:
         self.rendered.append(text)
         return self.real.render(text, antialias, color)
 
+    def size(self, text):
+        # Widgets measure before they draw, so that a mod's message wraps inside the panel
+        # instead of running off the window. A font double has to be able to measure too.
+        return self.real.size(text)
+
 
 class HudRenderingTests(unittest.TestCase):
     MODE = "proof:arena_mode"

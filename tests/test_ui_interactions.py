@@ -340,6 +340,66 @@ class ClickPathTests(unittest.TestCase):
         self.assertEqual("base:rook", self.occupant(screen, (7, 0)))
         self.assertEqual([], screen.session.state.action_log)
 
+    def test_a_second_piece_can_be_dragged_while_another_is_selected(self):
+        """Drag used to begin only when nothing was selected, so the second piece you touched could
+        never be dragged. That is what made dragging work only some of the time."""
+        screen = self.screen()
+
+        self.click(screen, (7, 0))          # select a rook, which has nowhere to go
+        self.release(screen, (7, 0))
+        self.assertEqual((7, 0), screen.selected_square)
+
+        self.click(screen, (6, 4))          # now press a different piece
+        self.assertEqual((6, 4), screen.dragging)
+
+        self.release(screen, (4, 4))
+
+        self.assertEqual("base:pawn", self.occupant(screen, (4, 4)))
+
+    def test_an_armed_ability_highlights_what_it_can_reach(self):
+        """Pawn sprint has exactly one destination, and nothing on screen used to say which."""
+        screen = self.screen()
+        AdjustResource("base:white", "base:ap", 3).apply(screen.session.state)
+
+        self.click(screen, (6, 0))
+        self.click(screen, (6, 0))
+        index = [choice.id for choice in screen.ability_choices].index("base:pawn_sprint")
+        modal = screen._modal_rect()
+        self.click_at(screen, p.Rect(modal.x + 16, modal.y + 50 + index * 42, modal.width - 32, 34).center)
+
+        highlighted = screen._highlight_targets()
+
+        self.assertEqual("base:pawn_sprint", screen.pending_ability)
+        # Three squares forward, and only that square.
+        self.assertEqual({(3, 0)}, highlighted)
+
+    def test_the_highlight_returns_to_ordinary_moves_when_the_ability_is_cancelled(self):
+        screen = self.screen()
+        AdjustResource("base:white", "base:ap", 3).apply(screen.session.state)
+        self.click(screen, (6, 0))
+        self.click(screen, (6, 0))
+        modal = screen._modal_rect()
+        index = [choice.id for choice in screen.ability_choices].index("base:pawn_sprint")
+        self.click_at(screen, p.Rect(modal.x + 16, modal.y + 50 + index * 42, modal.width - 32, 34).center)
+
+        self.press(screen, p.K_ESCAPE)
+        screen.selected_square = (6, 0)
+
+        self.assertIsNone(screen.pending_ability)
+        self.assertEqual({(5, 0), (4, 0)}, screen._highlight_targets())
+
+    def test_a_long_event_message_is_wrapped_into_the_panel(self):
+        """Messages are written by mods and can be any length; drawn unwrapped they ran off the
+        side of the window."""
+        screen = self.screen("base:advanced")
+        screen.session.state.event_messages.append("A" * 200)
+
+        wrapped = screen._wrap("A very long event message that certainly does not fit inside a narrow side panel", 120)
+
+        self.assertGreater(len(wrapped), 1)
+        for line in wrapped:
+            self.assertLessEqual(screen.shared.fonts["small"].size(line)[0], 120)
+
     def test_a_fused_piece_shows_what_it_absorbed(self):
         screen = self.screen("base:advanced")
         self.clear_to(

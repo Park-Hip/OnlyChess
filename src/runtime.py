@@ -7,6 +7,7 @@ from pathlib import Path
 
 from .engine import Pipeline, build_state
 from .engine.actions import ClearStatus, SetPendingEvent, SetStatus
+from .engine.abilities import select_targets
 from .engine.movegen import threatened
 from .modding.loader import LoadResult, activate, load
 from .notation import history
@@ -152,6 +153,22 @@ class EngineSession:
             ability_id for ability_id, ability in self.state.ability_defs.items()
             if not ability.owner.get("tag_any") or any(tag in piece.definition.components for tag in ability.owner["tag_any"])
         )
+
+    def ability_targets(self, square, ability_id):
+        """Squares an armed ability could act on, for the screen to show before it is committed.
+
+        Asks the ability's own target declaration rather than re-deriving it, so a mod's ability is
+        highlighted correctly without the screen knowing anything about what it does.
+        """
+        owner = self.state.board.at(square)
+        ability = self.state.ability_defs.get(ability_id)
+        if owner is None or ability is None:
+            return set()
+        try:
+            selected = select_targets(self.state, owner, ability.target, None)
+        except ValueError:
+            return set()
+        return {item if isinstance(item, tuple) else item.pos for item in selected}
 
     def use_ability(self, square, ability_id, *, target=None):
         owner = self.state.board.at(square)

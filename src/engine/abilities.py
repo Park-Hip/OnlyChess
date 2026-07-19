@@ -13,7 +13,7 @@ def build_ability_actions(state, owner, ability, target=None):
         raise ValueError(f"'{owner.definition.id}' cannot use '{ability.id}'")
     if ability.when.get("not_status") and any(status in owner.statuses for status in ability.when["not_status"]):
         raise ValueError("the ability condition is not met")
-    selected = _select(state, owner, ability.target, target)
+    selected = select_targets(state, owner, ability.target, target)
     return _effect_actions(state, owner, ability.effect, selected)
 
 
@@ -22,7 +22,8 @@ def _matches(piece, selector):
     return not tags or any(tag in piece.definition.components for tag in tags)
 
 
-def _select(state, owner, spec, explicit):
+def select_targets(state, owner, spec, explicit):
+    """Resolve an ability's declared target. Public because the screen previews it before use."""
     if spec == "self":
         return [owner]
     if explicit is not None:
@@ -107,7 +108,7 @@ def _effect_actions(state, owner, effects, selected):
         # effect acts on something other than what the ability targeted" — that was a limit of the
         # interpreter, not a property of the content. One rule now, applied to every effect:
         # declare `target:` to re-select, or inherit what the ability chose.
-        targeted = _select(state, owner, effect["target"], None) if "target" in effect else selected
+        targeted = select_targets(state, owner, effect["target"], None) if "target" in effect else selected
         if kind == "destroy":
             actions.extend(Remove(piece) for piece in targeted)
         elif kind == "swap":

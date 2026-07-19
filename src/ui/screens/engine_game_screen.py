@@ -144,8 +144,9 @@ class EngineGameScreen(Screen):
             except ValueError as error:
                 self.error_message = str(error); return
             self.pending_ability = None; self.selected_square = None; return
+        occupied = self.session.state.board.at(square) is not None
         if self.selected_square is None:
-            if self.session.state.board.at(square) is not None:
+            if occupied:
                 self.selected_square = square
                 self.dragging, self.drag_pos = square, position
             return
@@ -159,7 +160,12 @@ class EngineGameScreen(Screen):
             if not move.choices: self.session.move(move.start, move.end)
             self.selected_square = None
         else:
-            self.selected_square = square if self.session.state.board.at(square) is not None else None
+            # Pressing a different piece re-selects it *and* begins a drag. Setting the drag only
+            # when nothing was selected meant the second piece you touched could never be dragged,
+            # which is why dragging worked only some of the time.
+            self.selected_square = square if occupied else None
+            if occupied:
+                self.dragging, self.drag_pos = square, position
 
     def _finish_drag(self):
         """Release: play the move if the cursor left the square it started on.
@@ -224,6 +230,20 @@ class EngineGameScreen(Screen):
         self.presentation.play(self.session.drain_notifications())
         return None
 
+    def _highlight_targets(self):
+        """The squares the board should mark as reachable right now.
+
+        While an ability is armed this is what *the ability* can act on, not where the piece could
+        walk. Without that the player is asked to guess which square is legal, which is the whole
+        difficulty with how abilities felt: pawn sprint has exactly one destination and nothing on
+        screen said which.
+        """
+        if self.selected_square is None:
+            return set()
+        if self.pending_ability is not None:
+            return self.session.ability_targets(self.selected_square, self.pending_ability)
+        return {move.end for move in self.session.moves_from(self.selected_square)}
+
     def _update_cursor(self, layout):
         """A hand over anything that responds to a click, an arrow everywhere else."""
         position = p.mouse.get_pos()
@@ -233,8 +253,7 @@ class EngineGameScreen(Screen):
             interactive = any(rect.collidepoint(position) for rect in self._outcome_button_rects(layout))
         else:
             square = layout.square_at(position)
-            targets = {move.end for move in self.session.moves_from(self.selected_square)} if self.selected_square else set()
-            interactive = square is not None and (square in targets or self.session.state.board.at(square) is not None)
+            interactive = square is not None and (square in self._highlight_targets() or self.session.state.board.at(square) is not None)
         try:
             p.mouse.set_cursor(p.SYSTEM_CURSOR_HAND if interactive else p.SYSTEM_CURSOR_ARROW)
         except p.error:
@@ -289,7 +308,7 @@ class EngineGameScreen(Screen):
         text_color = p.Color(palette["text"]) if palette else TEXT_PRIMARY
         accent = p.Color(palette["selection"]) if palette else ACCENT_GOLD
         target = p.Color(palette["target"]) if palette else ACCENT_GOLD
-        targets = {move.end for move in self.session.moves_from(self.selected_square)} if self.selected_square else set()
+        targets = self._highlight_targets()
         last = self.session.state.last_move
         last_squares = {last.start, last.end} if last is not None else set()
         warning = self.session.presentation_snapshot().warning
@@ -442,12 +461,35 @@ class EngineGameScreen(Screen):
             surface.blit(self.shared.fonts["small"].render(label, True, color), (rect.x + 12, y + index * 20))
         return y + max(1, len(snapshot.resources)) * 20 + 12
 
+    def _wrap(self, text, width):
+        """Break text to fit a column. Event messages are written by mods and can be any length;
+        drawn unwrapped they ran off the side of the window, which is where they were going before.
+        """
+        font = self.shared.fonts["small"]
+        if font.size(text)[0] <= width:
+            return [text]
+        lines, current = [], ""
+        for word in text.split():
+            candidate = f"{current} {word}".strip()
+            if current and font.size(candidate)[0] > width:
+                lines.append(current)
+                current = word
+            else:
+                current = candidate
+        if current:
+            lines.append(current)
+        return lines
+
     def _widget_log(self, surface, widget, rect, y, snapshot, palette):
         color = self._color(palette, "text", TEXT_PRIMARY)
         max_lines = widget.get("max_lines", 8)
-        for index, message in enumerate(snapshot.messages[-max_lines:]):
-            surface.blit(self.shared.fonts["small"].render(message, True, color), (rect.x + 12, y + index * 22))
-        return y + min(len(snapshot.messages), max_lines) * 22 + 12
+        width = rect.width - 24
+        drawn = 0
+        for message in snapshot.messages[-max_lines:]:
+            for line in self._wrap(message, width):
+                surface.blit(self.shared.fonts["small"].render(line, True, color), (rect.x + 12, y + drawn * 18))
+                drawn += 1
+        return y + drawn * 18 + (12 if drawn else 0)
 
     def _widget_prompt(self, surface, widget, rect, y, snapshot, palette):
         if snapshot.prompt:
@@ -513,9 +555,18 @@ class EngineGameScreen(Screen):
         end = len(snapshot.history) - back
         shown = snapshot.history[max(0, end - max_lines):end]
         offset = end - len(shown)
+        # Alternating row tints, as the pre-refactor log had: a move list is scanned rather than
+        # read, and a banded column is far easier to track across than an even wall of text.
+        band = self._color(palette, "board_dark", CARD_BG)
         for index, line in enumerate(shown):
-            numbered = f"{offset + index + 1}. {line}"
-            surface.blit(self.shared.fonts["small"].render(numbered, True, color), (rect.x + 12, y + index * 20))
+            row = p.Rect(rect.x + 8, y + index * 20 - 2, rect.width - 16, 20)
+            if (offset + index) % 2:
+                tint = p.Surface(row.size, p.SRCALPHA)
+                tint.fill((band.r, band.g, band.b, 60))
+                surface.blit(tint, row.topleft)
+            number = self.shared.fonts["small"].render(f"{offset + index + 1}.", True, band)
+            surface.blit(number, (row.x + 4, row.y + 2))
+            surface.blit(self.shared.fonts["small"].render(line, True, color), (row.x + 34, row.y + 2))
         return y + len(shown) * 20 + (10 if shown else 0)
 
     def _widget_warning(self, surface, widget, rect, y, snapshot, palette):
@@ -524,11 +575,14 @@ class EngineGameScreen(Screen):
             return y
         color = self._color(palette, "warning", ACCENT_GOLD)
         card = p.Rect(rect.x + 8, y - 4, rect.width - 16, 46)
+        name_lines = self._wrap(snapshot.warning.name, card.width - 16)
+        card.height = 26 + len(name_lines) * 18
         p.draw.rect(surface, color, card, width=1, border_radius=6)
-        surface.blit(self.shared.fonts["small"].render(snapshot.warning.name, True, color), (card.x + 8, card.y + 6))
+        for index, line in enumerate(name_lines):
+            surface.blit(self.shared.fonts["small"].render(line, True, color), (card.x + 8, card.y + 6 + index * 18))
         remaining = snapshot.event_countdown
         detail = "now" if not remaining else f"in {remaining}"
-        surface.blit(self.shared.fonts["small"].render(f"incoming {detail}", True, color), (card.x + 8, card.y + 24))
+        surface.blit(self.shared.fonts["small"].render(f"incoming {detail}", True, color), (card.x + 8, card.bottom - 20))
         return card.bottom + 10
 
     def _widget_player(self, surface, widget, rect, y, snapshot, palette):
