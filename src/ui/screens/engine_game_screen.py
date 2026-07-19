@@ -23,7 +23,7 @@ class AbilityChoice:
 
 #: Pause entries, in the order they are drawn. Shell chrome, not content: these act on the session
 #: and the screen stack, and none of them names a piece, mode, or mod.
-PAUSE_ENTRIES = ("Resume", "Save Game", "Restart", "Help", "Main Menu")
+PAUSE_ENTRIES = ("Resume", "Save Game", "Restart", "Help", "Reference", "Main Menu")
 
 #: Help describes the controls core itself implements. It deliberately says nothing about pieces,
 #: abilities, or fusion — that text would have to name content, and content is a mod's to describe.
@@ -578,8 +578,19 @@ class EngineGameScreen(Screen):
 
         taken = dict(snapshot.captures).get(name, ())
         if taken:
-            glyphs = self.shared.fonts["small"].render(" ".join(self.presentation.glyph(piece_id) for piece_id in taken), True, text_color)
-            surface.blit(glyphs, (panel.x + 12, panel.y + 34))
+            # Drawn as the pieces themselves, at a size that reads as a tally rather than a board.
+            # They belonged to the opponent, so they wear the opponent's colours.
+            opponent = snapshot.seats[1 - index][0] if len(snapshot.seats) > 1 else side_id
+            size, x = 22, panel.x + 12
+            for piece_id in taken:
+                sprite = self.presentation.image(piece_id, size, opponent)
+                if sprite:
+                    surface.blit(sprite, (x, panel.y + 32))
+                    x += size - 4
+                else:
+                    glyph = self.shared.fonts["small"].render(self.presentation.glyph(piece_id), True, text_color)
+                    surface.blit(glyph, (x, panel.y + 34))
+                    x += glyph.get_width() + 4
         return rect.bottom
 
     _DRAW = {"turn": _widget_turn, "player": _widget_player, "warning": _widget_warning, "history": _widget_history, "material": _widget_material, "captures": _widget_captures, "countdown": _widget_countdown, "resources": _widget_resources, "log": _widget_log, "prompt": _widget_prompt, "clock": _widget_clock}
@@ -599,8 +610,52 @@ class EngineGameScreen(Screen):
         return p.Rect(0, 0, 360, height).move(220, 150)
 
     def _overlay_rect(self):
-        height = 96 + (len(PAUSE_ENTRIES) * 44 if self.overlay == "pause" else len(HELP_LINES) * 26)
-        return p.Rect(0, 0, 460, height).move(170, 110)
+        if self.overlay == "pause":
+            return p.Rect(0, 0, 460, 96 + len(PAUSE_ENTRIES) * 44).move(170, 90)
+        if self.overlay == "reference":
+            return p.Rect(0, 0, 620, 96 + len(self._reference_lines()) * 22).move(80, 60)
+        return p.Rect(0, 0, 460, 96 + len(HELP_LINES) * 26).move(170, 110)
+
+    def _reference_lines(self):
+        """What this mode's content says about itself.
+
+        Every line is read from the registries rather than written here. `development` hardcoded a
+        fusion explanation and a list of four abilities, which core cannot ship: that text names
+        pieces and abilities, and naming content is exactly what the prime directive forbids. Read
+        instead, it works for a mod core has never heard of and cannot go stale when content changes.
+        """
+        state = self.session.state
+        # Scoped to what this mode actually starts with, not to everything registered. The
+        # registries hold every enabled mod's content, so an unfiltered list told Prism Arena's
+        # player about chess pieces that will never appear on their 6x6 board.
+        present = {piece.definition.id for piece in state.board.pieces()}
+        lines = ["PIECES"]
+        for piece_id, definition in sorted((pid, d) for pid, d in state.piece_defs.items() if pid in present):
+            registered = self.session.load_result.registries.content["piece"].get(piece_id)
+            name = registered.value.tree.get("name", piece_id) if registered else piece_id
+            worth = f"  worth {definition.material}" if definition.material else ""
+            lines.append(f"  {self.presentation.glyph(piece_id)}  {name}{worth}")
+
+        if state.ability_defs:
+            lines.append("")
+            lines.append("ABILITIES")
+            for ability in sorted(state.ability_defs.values(), key=lambda item: item.name):
+                tags = tuple(ability.owner.get("tag_any", ()))
+                # An ability nobody on this board can use is noise; one with no owner filter is
+                # usable by everything, so it stays.
+                if tags and not any(tag in state.piece_defs[piece_id].components for piece_id in present for tag in tags):
+                    continue
+                cost = ", ".join(f"{amount} {resource.rsplit(':', 1)[-1]}" for resource, amount in ability.cost.items()) or "free"
+                users = " ".join(self.presentation.glyph(tag) for tag in tags)
+                lines.append(f"  {ability.name} — {cost}" + (f"   used by {users}" if users else ""))
+
+        # Fusion is described by the verb the content declared, not by naming any pair: `union`
+        # means the capturer keeps what it absorbs, whatever the two pieces happen to be.
+        if any(table.get("compose") == "union" for table in state.fusion_defs):
+            lines.extend(["", "FUSION", "  A capture absorbs the captured piece's movement."])
+        elif state.fusion_defs:
+            lines.extend(["", "FUSION", "  Some captures combine the two pieces into a third."])
+        return lines
 
     def _overlay_entry_rects(self):
         """Clickable rows for the pause overlay. Help has none — it closes and nothing else."""
@@ -634,6 +689,8 @@ class EngineGameScreen(Screen):
             self._restart()
         elif entry == "Help":
             self.overlay = "help"
+        elif entry == "Reference":
+            self.overlay = "reference"
         elif entry == "Main Menu":
             self._go_to_menu()
 
@@ -648,7 +705,8 @@ class EngineGameScreen(Screen):
         text_color = self._color(palette, "text", TEXT_PRIMARY)
         p.draw.rect(surface, self._color(palette, "panel", CARD_BG), panel, border_radius=10)
         p.draw.rect(surface, border, panel, width=2, border_radius=10)
-        title = self.shared.fonts["title"].render("Paused" if self.overlay == "pause" else "Controls", True, border)
+        titles = {"pause": "Paused", "help": "Controls", "reference": "Reference"}
+        title = self.shared.fonts["title"].render(titles[self.overlay], True, border)
         surface.blit(title, (panel.x + 24, panel.y + 20))
 
         if self.overlay == "pause":
@@ -656,6 +714,11 @@ class EngineGameScreen(Screen):
                 p.draw.rect(surface, border, rect, width=1, border_radius=6)
                 label = self.shared.fonts["normal"].render(entry, True, text_color)
                 surface.blit(label, label.get_rect(center=rect.center))
+            return
+        if self.overlay == "reference":
+            for index, line in enumerate(self._reference_lines()):
+                colour = border if line and not line.startswith(" ") else text_color
+                surface.blit(self.shared.fonts["small"].render(line, True, colour), (panel.x + 24, panel.y + 66 + index * 22))
             return
         for index, line in enumerate(HELP_LINES):
             surface.blit(self.shared.fonts["small"].render(line, True, text_color), (panel.x + 24, panel.y + 66 + index * 26))

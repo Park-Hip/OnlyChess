@@ -33,6 +33,9 @@ speculative version and would block every visible feature behind machinery no co
 | Controls screen (`H`) | SHELL | Controls only — see the help note below |
 | Per-side clock, flag ends the game | ENGINE + WIDGET | Session-level, outside the action log: undo does not refund time |
 | Save / Load game | ENGINE | State snapshot, fingerprinted against the mod set; see below |
+| Piece artwork, real move sounds, menu backdrop | DATA + SHELL | The art was in `images/` all along; the board did not understand the per-side sprite convention |
+| Player panels top and bottom | WIDGET | Seating derives from which side moves first, so it works for any mod's sides |
+| In-game reference | SHELL | Generated from the registries and scoped to the active mode |
 | Event-warning tint and card | ENGINE + WIDGET | Only squares a warning actually committed to; an event that picks at execution shows a name and no squares |
 | Status markers, game-over Quit, scrollable log | DATA + SHELL | Shield, poison and stun were invisible until 2026-07-19 |
 | Player settings + options screen | SETTINGS | Clock length and colours; overrides mod palette tokens narrowly |
@@ -45,21 +48,18 @@ speculative version and would block every visible feature behind machinery no co
 
 ## Still to do
 
-| Feature | Kind | Notes |
-|---|---|---|
-| An in-game content reference | — | Needs the decision below |
+Nothing from either inventory remains unbuilt.
 
-Everything else from both inventories is done, including two things that turned out already to be
-satisfied: Pawn Sprint promotes on arrival via `when: { at_promotion_rank: true }`, and only one
-ability per turn is possible because using one advances the turn.
+## Decisions this plan made along the way
 
-## Two decisions this plan does not make
 
-**Help content that names content.** `development`'s help overlay hardcodes fusion rules and an
-ability list. Core cannot ship that text: it names pieces and abilities, and content is a mod's to
-describe. The controls screen covers what core owns. A real reference has to be generated from the
-registries — which is possible, every ability declares a name and cost — or supplied by mods as a new
-content type. Not yet designed.
+**Help content that names content — resolved 2026-07-19 by generating it.** `development`'s help
+overlay hardcoded a fusion explanation and a list of four abilities. Core cannot ship that text: it
+names pieces and abilities, and content is a mod's to describe. The Reference screen reads the
+registries instead — pieces with their glyphs and worth, abilities with their costs and who can use
+them, and fusion described by the verb the content declared rather than by naming a pair. It is
+scoped to the pieces the active mode actually starts with, so Prism Arena's player is told about
+prisms rather than about chess.
 
 **Save/load — decided 2026-07-19: a state snapshot.** `CLAUDE.md` had already settled it for undo,
 and the reasoning transfers: replay from a captured seed "forces every random effect to draw from an
