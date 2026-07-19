@@ -56,6 +56,10 @@ class ModInfo:
     mod_id: str
     name: str
     ships_code: bool
+    #: The manifest's declared version. Exposed because a saved game has to record what it was
+    #: played against, and "which mods" is not enough — the same mod at a different version can
+    #: describe a different game.
+    version: str = ""
 
 
 @dataclass
@@ -756,7 +760,7 @@ def load(
     return LoadResult(
         registries=registries,
         mods=loaded,
-        installed=tuple(ModInfo(m.mod_id, m.name, m.ships_code) for m in manifests),
+        installed=tuple(ModInfo(m.mod_id, m.name, m.ships_code, m.version) for m in manifests),
         errors=errors,
         linked=linked,
         mod_roots={manifest.mod_id: manifest.root for manifest in manifests},

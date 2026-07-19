@@ -6,6 +6,7 @@ from dataclasses import dataclass
 
 import pygame as p
 
+from ... import savegame
 from ...runtime import EngineSession
 from ..board_layout import BoardLayout
 from ..presentation_runtime import PresentationRuntime
@@ -22,7 +23,7 @@ class AbilityChoice:
 
 #: Pause entries, in the order they are drawn. Shell chrome, not content: these act on the session
 #: and the screen stack, and none of them names a piece, mode, or mod.
-PAUSE_ENTRIES = ("Resume", "Restart", "Help", "Main Menu")
+PAUSE_ENTRIES = ("Resume", "Save Game", "Restart", "Help", "Main Menu")
 
 #: Help describes the controls core itself implements. It deliberately says nothing about pieces,
 #: abilities, or fusion — that text would have to name content, and content is a mod's to describe.
@@ -571,6 +572,10 @@ class EngineGameScreen(Screen):
 
     def _choose_pause_entry(self, entry):
         if entry == "Resume":
+            self.overlay = None
+        elif entry == "Save Game":
+            savegame.write(self.session, self.shared.settings_root)
+            self.error_message = "Game saved"
             self.overlay = None
         elif entry == "Restart":
             self._restart()

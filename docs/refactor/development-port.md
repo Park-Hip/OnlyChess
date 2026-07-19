@@ -32,6 +32,7 @@ speculative version and would block every visible feature behind machinery no co
 | Pause overlay (Resume / Restart / Help / Main Menu) | SHELL | Esc backs out innermost-first; overlay swallows board input |
 | Controls screen (`H`) | SHELL | Controls only — see the help note below |
 | Per-side clock, flag ends the game | ENGINE + WIDGET | Session-level, outside the action log: undo does not refund time |
+| Save / Load game | ENGINE | State snapshot, fingerprinted against the mod set; see below |
 | Event-warning tint and card | ENGINE + WIDGET | Only squares a warning actually committed to; an event that picks at execution shows a name and no squares |
 | Status markers, game-over Quit, scrollable log | DATA + SHELL | Shield, poison and stun were invisible until 2026-07-19 |
 | Player settings + options screen | SETTINGS | Clock length and colours; overrides mod palette tokens narrowly |
@@ -46,7 +47,6 @@ speculative version and would block every visible feature behind machinery no co
 
 | Feature | Kind | Notes |
 |---|---|---|
-| Save / Load game | ENGINE | Needs the decision below |
 | An in-game content reference | — | Needs the decision below |
 
 Everything else from both inventories is done, including two things that turned out already to be
@@ -61,8 +61,15 @@ describe. The controls screen covers what core owns. A real reference has to be 
 registries — which is possible, every ability declares a name and cost — or supplied by mods as a new
 content type. Not yet designed.
 
-**Save/load versus the action log.** `development` serialises `GameState` to `save_game.json`. This
-engine has no serialisation format, and its undo is a log of reversible actions rather than a
-snapshot. Saving could persist the log and replay it, or capture a state snapshot, and the two differ
-in whether a save survives a mod being upgraded underneath it. The inventory also found that dev's
-implementation references attributes that do not exist, so there is no working version to copy.
+**Save/load — decided 2026-07-19: a state snapshot.** `CLAUDE.md` had already settled it for undo,
+and the reasoning transfers: replay from a captured seed "forces every random effect to draw from an
+RNG core owns, and a code mod calling `random.random()` silently breaks it". A replayed save has the
+same hole and hides it better — undo fails when you press it, a replayed save fails hours later
+having reconstructed a game that never happened.
+
+Two consequences worth knowing. The action log is not saved, so a loaded game cannot be undone past
+the point it was loaded; serialising actions would mean giving every action a portable form and a
+version, which is real work for the ability to undo a move made before lunch. And a save records the
+mod set it was played against and refuses to load against a different one, because content is data:
+a piece can gain a move, a fusion table can change shape, and restoring a board into changed rules
+would produce a game that looks fine and is not the one that was saved.

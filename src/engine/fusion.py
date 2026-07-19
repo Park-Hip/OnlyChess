@@ -4,6 +4,30 @@ from .actions import Replace
 from .piece import Piece, PieceDef
 
 
+def compose_definition(piece_defs, base, components):
+    """Build the definition a piece has after absorbing `components`.
+
+    Shared with save loading, which has to rebuild a composed piece from the component list it
+    stored: a fused piece's definition is made at runtime rather than registered, so there is
+    nothing for a save to look up by id.
+    """
+    moves = []
+    for component in components:
+        source = piece_defs.get(component)
+        if source is not None:
+            moves.extend(source.moves)
+    return PieceDef(
+        id=base.id,
+        moves=tuple(moves),
+        components=tuple(components),
+        properties=dict(base.properties),
+        # The capturer's own worth, not the sum of what it has eaten. Summing would count a capture
+        # twice on a material readout — once as the loser's loss, again as the capturer's gain —
+        # and the difference between the two sides is the whole point.
+        material=base.material,
+    )
+
+
 class FusionResolver:
     def __init__(self, state): self.state = state
 
@@ -55,22 +79,7 @@ class FusionResolver:
         if components == list(event.capturer.definition.components):
             return None
 
-        moves = []
-        for component in components:
-            source = self.state.piece_defs.get(component)
-            if source is not None:
-                moves.extend(source.moves)
-
-        definition = PieceDef(
-            id=event.capturer.definition.id,
-            moves=tuple(moves),
-            components=tuple(components),
-            properties=dict(event.capturer.definition.properties),
-            # The capturer's own worth, not the sum of what it has eaten. Summing would count a
-            # capture twice on a material readout — once as the loser's loss, again as the
-            # capturer's gain — and the difference between the two sides is the whole point.
-            material=event.capturer.definition.material,
-        )
+        definition = compose_definition(self.state.piece_defs, event.capturer.definition, components)
         return self._replace_with(event, definition)
 
     def _replace_with(self, event, definition):
