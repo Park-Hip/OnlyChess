@@ -112,14 +112,25 @@ class TickStatus:
 @dataclass
 class AdvanceTurn:
     previous: str | None = None
+    #: Whether this advance completed a full turn, so undo knows to give the count back.
+    counted: bool = False
 
     def apply(self, state) -> None:
         self.previous = state.current_side
         sides = list(state.board.sides)
         state.current_side = sides[(sides.index(state.current_side) + 1) % len(sides)]
+        # A turn is complete when play comes back round to whoever starts. `completed_turns` was
+        # declared, saved, restored and displayed, and nothing had ever incremented it — the turn
+        # counter read 1 for an entire game.
+        first = next((side for side in sides if state.board.sides[side].moves_first), sides[0])
+        self.counted = state.current_side == first
+        if self.counted:
+            state.completed_turns += 1
 
     def undo(self, state) -> None:
         state.current_side = self.previous
+        if self.counted:
+            state.completed_turns -= 1
 
 
 @dataclass

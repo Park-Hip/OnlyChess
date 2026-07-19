@@ -140,6 +140,21 @@ class SnapshotFieldTests(unittest.TestCase):
     def test_nothing_is_warned_before_a_pool_announces_anything(self):
         self.assertIsNone(self.session().presentation_snapshot().warning)
 
+    def test_the_turn_counter_advances_once_both_sides_have_moved(self):
+        """`completed_turns` was declared, saved, restored and displayed, and nothing incremented
+        it — the turn counter read 1 for an entire game."""
+        session = self.session()
+        self.assertEqual(0, session.presentation_snapshot().turn_number)
+
+        session.move((6, 4), (4, 4))
+        self.assertEqual(0, session.presentation_snapshot().turn_number, "white alone is half a turn")
+
+        session.move((1, 3), (3, 3))
+        self.assertEqual(1, session.presentation_snapshot().turn_number)
+
+        session.undo()
+        self.assertEqual(0, session.presentation_snapshot().turn_number, "undo gives the turn back")
+
     def test_a_mode_with_no_pool_has_no_countdown(self):
         self.assertIsNone(self.session("base:vanilla").presentation_snapshot().event_countdown)
 

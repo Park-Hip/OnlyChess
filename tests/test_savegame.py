@@ -36,7 +36,7 @@ class SaveGameTests(unittest.TestCase):
 
     def round_trip(self, session):
         savegame.write(session, self.root)
-        return savegame.restore(self.context.load_result, savegame.read(self.root))
+        return savegame.restore(self.context.load_result, savegame.read(self.root, session.mode_id))
 
     def test_the_board_comes_back_exactly(self):
         session = self.played()
@@ -115,7 +115,7 @@ class SaveGameTests(unittest.TestCase):
         """Content is data: a piece can gain a move, a fusion table can change shape. Restoring a
         board into changed rules would produce a game that looks fine and is not the one saved."""
         savegame.write(self.played(), self.root)
-        data = savegame.read(self.root)
+        data = savegame.read(self.root, "base:advanced")
         data["mods"] = [["base:chess", "0.9.0"]]
 
         with self.assertRaises(savegame.SaveError) as raised:
@@ -125,21 +125,53 @@ class SaveGameTests(unittest.TestCase):
         self.assertIn("base:chess 0.9.0", str(raised.exception))
 
     def test_an_unreadable_save_is_refused_rather_than_crashing(self):
-        (self.root / savegame.SAVE_FILE).write_text("{not json", encoding="utf-8")
+        path = savegame.slot_path(self.root, "base:advanced")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("{not json", encoding="utf-8")
 
         with self.assertRaises(savegame.SaveError):
-            savegame.read(self.root)
+            savegame.read(self.root, "base:advanced")
 
     def test_a_save_from_a_future_format_is_refused(self):
-        (self.root / savegame.SAVE_FILE).write_text(json.dumps({"format": savegame.FORMAT_VERSION + 1}), encoding="utf-8")
+        path = savegame.slot_path(self.root, "base:advanced")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps({"format": savegame.FORMAT_VERSION + 1}), encoding="utf-8")
 
         with self.assertRaises(savegame.SaveError):
-            savegame.read(self.root)
+            savegame.read(self.root, "base:advanced")
 
     def test_no_save_file_is_reported_without_reading_one(self):
         self.assertFalse(savegame.exists(self.root))
         savegame.write(self.played(), self.root)
         self.assertTrue(savegame.exists(self.root))
+        self.assertTrue(savegame.exists(self.root, "base:advanced"))
+        self.assertFalse(savegame.exists(self.root, "base:vanilla"))
+
+    def test_each_mode_keeps_its_own_slot(self):
+        """One shared file meant saving one mode silently destroyed another mode's game."""
+        advanced = self.played()
+        vanilla = EngineSession(self.context.load_result, "base:vanilla")
+        vanilla.move((6, 0), (5, 0))
+
+        savegame.write(advanced, self.root)
+        savegame.write(vanilla, self.root)
+
+        self.assertEqual({"base:advanced", "base:vanilla"}, {mode for mode, _ in savegame.saved(self.root)})
+        # Each slot restores its own game: the advanced one is three moves and a capture in, the
+        # vanilla one is a single pawn move.
+        advanced_again = savegame.restore(self.context.load_result, savegame.read(self.root, "base:advanced"))
+        vanilla_again = savegame.restore(self.context.load_result, savegame.read(self.root, "base:vanilla"))
+        self.assertEqual("base:advanced", advanced_again.mode_id)
+        self.assertEqual("base:vanilla", vanilla_again.mode_id)
+        self.assertEqual(31, len(list(advanced_again.state.board.pieces())))
+        self.assertEqual(32, len(list(vanilla_again.state.board.pieces())))
+
+    def test_a_corrupt_slot_does_not_hide_the_others(self):
+        savegame.write(self.played(), self.root)
+        broken = savegame.slot_path(self.root, "base:vanilla")
+        broken.write_text("{not json", encoding="utf-8")
+
+        self.assertEqual(["base:advanced"], [mode for mode, _ in savegame.saved(self.root)])
 
 
 if __name__ == "__main__":

@@ -3,7 +3,9 @@ both from the outcome screen and during normal play. Restart must build a brand-
 EngineSession (a fresh, empty action log) rather than reversing or replaying the old one."""
 
 import os
+import tempfile
 import unittest
+from pathlib import Path
 
 
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
@@ -21,15 +23,21 @@ class ShellNavigationTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        cls._saves = tempfile.TemporaryDirectory()
+        cls.saves = Path(cls._saves.name)
         p.init()
         cls.context = ApplicationContext.load()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls._saves.cleanup()
 
     def _fonts(self):
         return {"title": p.font.Font(None, 24), "normal": p.font.Font(None, 16), "small": p.font.Font(None, 13)}
 
     def _screen(self):
         session = EngineSession(self.context.load_result, self.MODE)
-        shared = type("Shared", (), {"fonts": self._fonts(), "app_context": self.context, "settings": Settings()})()
+        shared = type("Shared", (), {"fonts": self._fonts(), "app_context": self.context, "settings": Settings(), "settings_root": self.saves})()
         return EngineGameScreen(shared, session=session)
 
     def test_restart_builds_a_fresh_session_with_an_empty_action_log(self):

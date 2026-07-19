@@ -11,7 +11,9 @@ which is played out, because its legality depends on the previous move rather th
 """
 
 import os
+import tempfile
 import unittest
+from pathlib import Path
 
 
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
@@ -29,14 +31,20 @@ from src.settings import Settings
 class ClickPathTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        cls._saves = tempfile.TemporaryDirectory()
+        cls.saves = Path(cls._saves.name)
         p.init()
         # convert_alpha() and the layout both want a real video surface, as in the running app.
         cls.surface = p.display.set_mode((800, 600))
         cls.context = ApplicationContext.load()
 
+    @classmethod
+    def tearDownClass(cls):
+        cls._saves.cleanup()
+
     def screen(self, mode_id="base:vanilla"):
         session = EngineSession(self.context.load_result, mode_id)
-        shared = type("Shared", (), {"fonts": self._fonts(), "app_context": self.context, "settings": Settings()})()
+        shared = type("Shared", (), {"fonts": self._fonts(), "app_context": self.context, "settings": Settings(), "settings_root": self.saves})()
         return EngineGameScreen(shared, session=session)
 
     def _fonts(self):

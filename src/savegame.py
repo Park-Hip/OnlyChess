@@ -34,7 +34,15 @@ from .runtime import EngineSession
 #: Bumped when the stored shape changes in a way older files cannot satisfy.
 FORMAT_VERSION = 1
 
-SAVE_FILE = "save_game.json"
+#: One slot per mode, under a directory of its own. A single shared file meant saving one mode
+#: silently destroyed another mode's game — the modes are separate games, and a save belongs to the
+#: game it came from.
+SAVE_DIR = "saves"
+
+
+def slot_path(root: Path, mode_id: str) -> Path:
+    """Where a mode's save lives. The id is namespaced, and `:` is not a filename anywhere sane."""
+    return Path(root) / SAVE_DIR / f"{mode_id.replace(':', '_')}.json"
 
 
 class SaveError(Exception):
@@ -81,17 +89,41 @@ def capture(session: EngineSession) -> dict:
 
 
 def write(session: EngineSession, root: Path) -> Path:
-    path = Path(root) / SAVE_FILE
+    path = slot_path(root, session.mode_id)
+    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(capture(session), indent=2), encoding="utf-8")
     return path
 
 
-def exists(root: Path) -> bool:
-    return (Path(root) / SAVE_FILE).is_file()
+def exists(root: Path, mode_id: str | None = None) -> bool:
+    """Whether anything is resumable — a given mode, or any mode at all."""
+    if mode_id is not None:
+        return slot_path(root, mode_id).is_file()
+    return any(saved(root))
 
 
-def read(root: Path) -> dict:
-    path = Path(root) / SAVE_FILE
+def saved(root: Path) -> list[tuple[str, dict]]:
+    """Every readable save, as `(mode_id, data)`, newest first.
+
+    A slot that cannot be read is skipped rather than raised: one corrupt file should not stop the
+    menu from offering the others.
+    """
+    directory = Path(root) / SAVE_DIR
+    if not directory.is_dir():
+        return []
+    found = []
+    for path in sorted(directory.glob("*.json"), key=lambda item: item.stat().st_mtime, reverse=True):
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if isinstance(data, dict) and data.get("format") == FORMAT_VERSION and data.get("mode_id"):
+            found.append((data["mode_id"], data))
+    return found
+
+
+def read(root: Path, mode_id: str) -> dict:
+    path = slot_path(root, mode_id)
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except OSError as error:
