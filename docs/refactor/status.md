@@ -263,8 +263,11 @@ The runtime interaction coverage includes promotion, abilities, fusion, schedule
 execution, and undo, and `tests/test_ui_interactions.py` covers the same interactions through the
 screen's event handler rather than the session API.
 
-The independent `proof:arena_mode` is automatically discovered and provides the 6x6 Prism Arena
-release fixture. The automated suite and the 2026-07-17 manual checklist passed historically with no
+The independent `proof:arena_mode` provides the 6x6 Prism Arena release fixture. It moved to
+`tests/fixtures/proof-mod/` on 2026-07-19 so it is not offered to players; a test that needs it
+stages it alongside the shipped mods through `tests/support.py`. It is still the check that core
+holds no chess assumption — a 6x6 board, sides that are not white and black, and a piece whose glyph
+no chess notation could produce — and it still fails loudly if any of that stops being true. The automated suite and the 2026-07-17 manual checklist passed historically with no
 bugs detected; rerun both from a clean environment before a new release sign-off.
 
 ## Documentation ownership

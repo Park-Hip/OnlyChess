@@ -3,6 +3,8 @@
 import os
 import unittest
 
+from tests.support import WithFixtureMods
+
 
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 import pygame as p
@@ -12,11 +14,13 @@ from src.ui.screens.engine_game_screen import EngineGameScreen
 from src.settings import Settings
 
 
-class ReleaseProofTests(unittest.TestCase):
+class ReleaseProofTests(WithFixtureMods):
+    fixtures = ("proof-mod",)
     @classmethod
     def setUpClass(cls):
+        super().setUpClass()
         p.init()
-        cls.context = ApplicationContext.load()
+        cls.context = ApplicationContext.load(cls.mods_dir)
         cls.fonts = {"title": p.font.Font(None, 24), "normal": p.font.Font(None, 16), "small": p.font.Font(None, 13)}
 
     def test_proof_mode_is_auto_discovered_and_uses_a_six_by_six_board(self):

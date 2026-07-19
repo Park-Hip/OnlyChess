@@ -7,14 +7,18 @@ and emission of the `promotion_chosen` / `outcome_reached` kinds that nothing fi
 
 import unittest
 
+from tests.support import WithFixtureMods
+
 from src.engine.piece import Piece
 from src.runtime import ApplicationContext, EngineSession
 
 
-class SoundCueTests(unittest.TestCase):
+class SoundCueTests(WithFixtureMods):
+    fixtures = ("proof-mod",)
     @classmethod
     def setUpClass(cls):
-        cls.context = ApplicationContext.load()
+        super().setUpClass()
+        cls.context = ApplicationContext.load(cls.mods_dir)
 
     def _sound(self, sound_id):
         result = self.context.load_result

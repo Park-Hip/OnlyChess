@@ -535,10 +535,11 @@ class RealBaseModsTests(unittest.TestCase):
         self.manifests, self.discover_errors = discover(REPO_ROOT / "mods")
 
     def test_only_shipped_mods_are_discovered(self):
-        # The walking skeleton is deliberately absent: it is a fixture under tests/fixtures/, so
-        # it never reaches a player's mode catalog.
+        # Both fixtures are deliberately absent. The walking skeleton and the Prism Arena proof mod
+        # live under tests/fixtures/, so neither reaches a player's mode catalog; a test that wants
+        # one stages it explicitly (tests/support.py).
         self.assertEqual(
-            [m.mod_id for m in self.manifests], ["base:chess", "base:events", "base:fusion", "proof:mod"]
+            [m.mod_id for m in self.manifests], ["base:chess", "base:events", "base:fusion"]
         )
         self.assertEqual(self.discover_errors, [])
 
@@ -571,7 +572,7 @@ class RealBaseModsTests(unittest.TestCase):
     def test_the_mods_that_do_not_owe_code_load_their_content(self):
         populated = {name for name, reg in self.result.registries.content.items() if len(reg)}
         self.assertEqual(populated, {"ability", "board", "event", "event_pool", "fusion", "game_mode", "piece", "resource", "status", "theme", "hud_layout", "sound"})
-        self.assertEqual(self.result.mods, ("base:chess", "proof:mod", "base:events", "base:fusion"))
+        self.assertEqual(self.result.mods, ("base:chess", "base:events", "base:fusion"))
 
 
 if __name__ == "__main__":

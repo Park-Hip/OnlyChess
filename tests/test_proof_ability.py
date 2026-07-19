@@ -3,15 +3,19 @@
 import os
 import unittest
 
+from tests.support import WithFixtureMods
+
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 
 from src.runtime import ApplicationContext, EngineSession
 
 
-class ProofAbilityTests(unittest.TestCase):
+class ProofAbilityTests(WithFixtureMods):
+    fixtures = ("proof-mod",)
     @classmethod
     def setUpClass(cls):
-        cls.context = ApplicationContext.load()
+        super().setUpClass()
+        cls.context = ApplicationContext.load(cls.mods_dir)
 
     def test_glow_up_applies_glow_and_emits_ability_notification(self):
         session = EngineSession(self.context.load_result, "proof:arena_mode")

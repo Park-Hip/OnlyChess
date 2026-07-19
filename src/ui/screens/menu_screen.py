@@ -24,7 +24,7 @@ class MenuScreen(Screen):
         self.quit_rect = p.Rect(WIDTH // 2 - 100, HEIGHT - 80, 200, 48)
         self.mods_rect = p.Rect(WIDTH // 2 - 320, HEIGHT - 80, 200, 48)
         self.options_rect = p.Rect(WIDTH // 2 + 120, HEIGHT - 80, 200, 48)
-        self.load_rect = p.Rect(WIDTH // 2 - 100, HEIGHT - 140, 200, 44)
+        self.load_rect = p.Rect(WIDTH // 2 - 160, 150, 320, 46)
         self.load_error = None
 
     @property
@@ -32,10 +32,20 @@ class MenuScreen(Screen):
         return self.shared.app_context.modes
 
     def _visible_rows(self):
-        return max(1, (self.quit_rect.top - self.top - 12) // self.row_height)
+        return max(1, (self.quit_rect.top - self._rows_top - 12) // self.row_height)
+
+    @property
+    def _resumable(self):
+        return savegame.exists(self.shared.settings_root)
+
+    @property
+    def _rows_top(self):
+        """Where the mode list starts. Continue takes the space above it when there is a save to
+        resume, because that is almost certainly what the player came back for."""
+        return self.top + (76 if self._resumable else 0)
 
     def _row_rect(self, index):
-        return p.Rect(WIDTH // 2 - 220, self.top + (index - self.scroll) * self.row_height, 440, self.row_height - 8)
+        return p.Rect(WIDTH // 2 - 220, self._rows_top + (index - self.scroll) * self.row_height, 440, self.row_height - 8)
 
     def _color(self, palette, token, fallback):
         return p.Color(palette[token]) if palette else fallback
@@ -53,7 +63,7 @@ class MenuScreen(Screen):
         if self.mods_rect.collidepoint(position):
             self.next_screen = ModsScreen(self.shared)
             return
-        if self.load_rect.collidepoint(position) and savegame.exists(self.shared.settings_root):
+        if self._resumable and self.load_rect.collidepoint(position):
             self._load_saved_game()
             return
         if self.options_rect.collidepoint(position):
@@ -111,11 +121,13 @@ class MenuScreen(Screen):
             label = f"{mode.name}  ({mode.rows} x {mode.columns})"
             text = self.shared.fonts["normal"].render(label, True, self._color(mode.palette, "text", TEXT_PRIMARY))
             surface.blit(text, text.get_rect(center=rect.center))
-        if savegame.exists(self.shared.settings_root):
+        if self._resumable:
             p.draw.rect(surface, self._color(chrome, "panel", CARD_BG), self.load_rect, border_radius=8)
-            p.draw.rect(surface, self._color(chrome, "selection", ACCENT_GOLD), self.load_rect, width=2, border_radius=8)
-            resume = self.shared.fonts["normal"].render("Continue Saved Game", True, self._color(chrome, "text", TEXT_PRIMARY))
+            p.draw.rect(surface, self._color(chrome, "accent", ACCENT_GOLD), self.load_rect, width=2, border_radius=8)
+            resume = self.shared.fonts["normal"].render("Continue Saved Game", True, self._color(chrome, "accent", ACCENT_GOLD))
             surface.blit(resume, resume.get_rect(center=self.load_rect.center))
+            divider = self.shared.fonts["small"].render("New Game", True, self._color(chrome, "text", TEXT_PRIMARY))
+            surface.blit(divider, divider.get_rect(center=(WIDTH // 2, self._rows_top - 16)))
         if self.load_error:
             for index, line in enumerate(self.load_error.splitlines()):
                 surface.blit(self.shared.fonts["small"].render(line, True, p.Color("#C86B5E")), (60, HEIGHT - 190 + index * 18))

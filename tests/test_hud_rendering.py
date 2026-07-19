@@ -4,6 +4,8 @@ hardcoded panel. Removing a widget from the layout removes it from screen with n
 import os
 import unittest
 
+from tests.support import WithFixtureMods
+
 
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 import pygame as p
@@ -30,14 +32,16 @@ class _RecordingFont:
         return self.real.size(text)
 
 
-class HudRenderingTests(unittest.TestCase):
+class HudRenderingTests(WithFixtureMods):
+    fixtures = ("proof-mod",)
     MODE = "proof:arena_mode"
     BACKGROUND = p.Color("#111827")  # proof theme background
 
     @classmethod
     def setUpClass(cls):
+        super().setUpClass()
         p.init()
-        cls.context = ApplicationContext.load()
+        cls.context = ApplicationContext.load(cls.mods_dir)
 
     def _fonts(self):
         return {"title": p.font.Font(None, 24), "normal": p.font.Font(None, 16), "small": p.font.Font(None, 13)}

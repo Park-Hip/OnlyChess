@@ -7,6 +7,8 @@ only. A piece wearing both must draw the glow via its icon and the ward via its 
 import os
 import unittest
 
+from tests.support import WithFixtureMods
+
 
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
@@ -29,14 +31,16 @@ class _RecordingFont:
         return self.real.render(text, antialias, color)
 
 
-class StatusIconTests(unittest.TestCase):
+class StatusIconTests(WithFixtureMods):
+    fixtures = ("proof-mod",)
     MODE = "proof:arena_mode"
 
     @classmethod
     def setUpClass(cls):
+        super().setUpClass()
         p.init()
         p.display.set_mode((960, 640))  # convert_alpha() needs a video surface, as in the real app
-        cls.context = ApplicationContext.load()
+        cls.context = ApplicationContext.load(cls.mods_dir)
 
     def _runtime(self):
         return PresentationRuntime(self.context.load_result, self.MODE)

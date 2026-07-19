@@ -8,6 +8,8 @@ pin that the log reads correctly for base chess *and* for a mod whose pieces hav
 import os
 import unittest
 
+from tests.support import WithFixtureMods
+
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 
@@ -32,10 +34,12 @@ class SquareNameTests(unittest.TestCase):
         self.assertEqual("c1", square_name((5, 2), rows=6))
 
 
-class HistoryTests(unittest.TestCase):
+class HistoryTests(WithFixtureMods):
+    fixtures = ("proof-mod",)
     @classmethod
     def setUpClass(cls):
-        cls.context = ApplicationContext.load()
+        super().setUpClass()
+        cls.context = ApplicationContext.load(cls.mods_dir)
 
     def session(self, mode_id="base:advanced"):
         return EngineSession(self.context.load_result, mode_id)
