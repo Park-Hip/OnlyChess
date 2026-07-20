@@ -61,6 +61,8 @@ class EngineGameScreen(Screen):
         #: How far back through the history the player has scrolled, in lines.
         self.history_scroll = 0
         self._component_fonts = {}
+        #: `(side id, name)` with the first-moving side first; the screen seats players by it.
+        self._seats = session.presentation_snapshot().seats
         self._last_tick = p.time.get_ticks()
         self.presentation = PresentationRuntime(session.load_result, session.mode_id)
 
@@ -351,8 +353,14 @@ class EngineGameScreen(Screen):
                     self._draw_status_markers(surface, piece, rect, accent, layout.square_size)
                 self._draw_coordinates(surface, layout, board, row, col, rect, light, dark)
 
+    def _seat_of(self, side_id):
+        seats = [side for side, _ in self._seats]
+        return seats.index(side_id) if side_id in seats else 0
+
     def _draw_piece(self, surface, piece, rect, text_color, square_size):
-        image = self.presentation.image(piece.definition.id, square_size, piece.side)
+        # A player's colour dyes the artwork; without one the piece keeps the sprite content shipped.
+        tint = self.shared.settings.piece_color(self._seat_of(piece.side))
+        image = self.presentation.image(piece.definition.id, square_size, piece.side, tint, [side for side, _ in self._seats])
         if image:
             surface.blit(image, rect)
         else:

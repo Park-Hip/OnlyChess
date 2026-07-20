@@ -57,6 +57,25 @@ class SettingsTests(unittest.TestCase):
                     f"preset pair {light}/{dark} is below the contrast floor",
                 )
 
+    def test_piece_colours_are_addressed_by_seat_not_by_side_name(self):
+        """Side ids belong to content, so a preference must not name one. Seat 0 is whoever moves
+        first, which works for a mod whose players are Amber and Violet."""
+        settings = Settings(colors={"piece_first": "#98D8A0", "piece_second": "#8B3A3A"})
+
+        self.assertEqual("#98D8A0", settings.piece_color(0))
+        self.assertEqual("#8B3A3A", settings.piece_color(1))
+        self.assertIsNone(settings.piece_color(2), "a third seat has no preference to apply")
+        self.assertIsNone(Settings().piece_color(0), "unset leaves the artwork as the mod shipped it")
+
+    def test_piece_colours_are_not_palette_tokens(self):
+        """A piece is drawn from artwork, so its colour dyes the sprite rather than replacing a
+        colour name. Applying settings must leave the palette's own text colour alone."""
+        palette = {"text": "#FFFFFF", "board_light": "#AAAAAA"}
+
+        resolved = Settings(colors={"piece_first": "#98D8A0"}).apply(palette)
+
+        self.assertEqual("#FFFFFF", resolved["text"])
+
     def test_settings_round_trip_through_disk(self):
         with tempfile.TemporaryDirectory() as directory:
             Settings(clock_minutes=15, colors={"dark_square": "#769656"}).save(Path(directory))

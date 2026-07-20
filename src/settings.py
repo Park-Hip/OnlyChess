@@ -26,14 +26,20 @@ SETTINGS_FILE = "config.json"
 CLOCK_CHOICES = (None, 5, 10, 15, 30)
 
 #: Palette tokens a player may override, mapped to the setting key that overrides them.
-OVERRIDABLE = {"board_light": "light_square", "board_dark": "dark_square", "text": "piece"}
+OVERRIDABLE = {"board_light": "light_square", "board_dark": "dark_square"}
+
+#: Piece colours are not palette tokens: a piece is drawn from its own artwork, so the colour has to
+#: dye that artwork rather than replace a colour name. Keyed by seat — the side that moves first and
+#: the one after it — because side ids belong to content and a setting must not name them.
+PIECE_KEYS = ("piece_first", "piece_second")
 
 #: Presets per setting. Cycling beats a colour picker for a keyboard-and-mouse menu, and a curated
 #: list cannot produce a combination that fails the contrast check below by accident.
 COLOR_CHOICES = {
     "light_square": ("#E8D5B5", "#EEEED2", "#D9C7A7", "#CFD8DC", "#F0D9B5"),
     "dark_square": ("#8B6F47", "#769656", "#6B4F3A", "#546E7A", "#B58863"),
-    "piece": ("#FFFFFF", "#F5F5DC", "#FFE0B2", "#E0E0E0"),
+    "piece_first": ("#FFFFFF", "#F5DEB3", "#B0C4DE", "#E9967A", "#98D8A0"),
+    "piece_second": ("#3A3A3A", "#8B3A3A", "#3A5A8B", "#5A3A6B", "#6B5A3A"),
 }
 
 #: Below this Euclidean RGB distance two colours read as the same at a glance, and pieces vanish
@@ -101,6 +107,12 @@ class Settings:
             if key in self.colors and token in resolved:
                 resolved[token] = self.colors[key]
         return resolved
+
+    def piece_color(self, seat: int) -> str | None:
+        """The colour chosen for the player in this seat, or None to leave the artwork alone."""
+        if 0 <= seat < len(PIECE_KEYS):
+            return self.colors.get(PIECE_KEYS[seat])
+        return None
 
     def conflicts(self) -> list[str]:
         """Report colour pairs too close to tell apart, so the menu can refuse to save them."""

@@ -19,7 +19,8 @@ ROWS = (
     ("clock_minutes", "Time limit", CLOCK_CHOICES),
     ("light_square", "Light squares", COLOR_CHOICES["light_square"]),
     ("dark_square", "Dark squares", COLOR_CHOICES["dark_square"]),
-    ("piece", "Piece colour", COLOR_CHOICES["piece"]),
+    ("piece_first", "Piece colour (first)", COLOR_CHOICES["piece_first"]),
+    ("piece_second", "Piece colour (second)", COLOR_CHOICES["piece_second"]),
 )
 
 
