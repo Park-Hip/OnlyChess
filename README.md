@@ -1,15 +1,34 @@
 # OnlyChess
 
-OnlyChess is a Python/Pygame chess variant. Standard chess is the base mode; optional mods add
-capture fusion, Action Point abilities, and scheduled global events.
+**A moddable chess engine.** Pieces, boards, abilities, events, fusion rules, themes, and HUD
+layouts are all defined as data under `mods/` — the engine in `src/` holds no chess knowledge of its
+own. Standard chess is the starting point, not the product.
 
-The application is mod-driven: the engine in `src/` loads pieces, rules, boards, abilities, events,
-presentation, and tuning from `mods/`. The base game uses the same public path as any third-party
-mod.
+## How it works
+
+The core is an engine; all content is a mod. Core may never import a concrete piece, branch on a
+piece id, or hardcode the roster. When a change would require core to know about a specific piece,
+that is a missing capability in the engine, not a task for the modder.
+
+**The base game is a mod.** Standard chess, fusion, and events load from `mods/base-*` through
+exactly the path a third-party mod uses — no privileges, no private API. `base:chess` registers
+`castle` and `enpassant` through the same public verb call any code mod would use. This is the
+project's forcing function: if the mod API cannot express the base game, the API is incomplete, and
+the game visibly breaks.
+
+Two consequences worth knowing, because they explain most of the design:
+
+- **Every state change is an action, and every action has an inverse.** Nothing mutates game state
+  directly; the engine records what happened. Undo therefore *reverses the log* rather than replaying
+  effects — so it never asks what an effect meant, only what it did, and it works for a mod's effect
+  the engine has never heard of, including a random one.
+- **Code mods grow the vocabulary; they do not bypass it.** A modder who needs shogi drops registers
+  a `drop` move type, and from then on *every* data mod can write `type: drop` without touching
+  Python. Content stays data.
 
 ## Play
 
-Requires Python 3.12. Either set up a virtual environment with the standard library:
+Requires Python 3.12. Set up a virtual environment with the standard library:
 
 ```bash
 python3 -m venv .venv
@@ -17,44 +36,25 @@ python3 -m venv .venv
 .venv/bin/python main.py
 ```
 
-or, on Windows, `.venv\Scripts\python main.py`. [`uv`](https://github.com/astral-sh/uv) works too if
-you have it:
+or, on Windows, `.venv\Scripts\python main.py`. [`uv`](https://github.com/astral-sh/uv) works too
+(`uv run python main.py`) but is a convenience, not a requirement — the dependencies are `pygame` and
+`ruamel.yaml`. The game needs a display; over SSH, connect with `ssh -X` so `DISPLAY` is set.
 
-```powershell
-uv run python main.py
-```
-
-`uv` is a convenience, not a requirement — the dependencies are `pygame` and `ruamel.yaml`, and
-nothing in the project needs more than a plain venv. The game needs a display; over SSH, connect
-with `ssh -X` so `DISPLAY` is set.
-
-The menu offers every linked mode discovered under `mods/`. The shipped install includes:
+The menu offers every linked mode discovered under `mods/`:
 
 - **Standard Chess** — standard chess from `base:chess` only.
 - **Advanced** — chess plus `base:fusion` and `base:events`.
 
-If a saved game exists, the menu leads with **Continue** above the mode list.
+**Mods** lists installed metadata, flags code-bearing mods, and reports attributed load errors.
+**Options** sets a time limit and cycles curated board and piece colours. Games save to one slot per
+mode and appear under **Continue** on the menu.
 
-The **Mods** button shows installed-mod metadata, flags code-bearing mods, and reports attributed
-load errors. It is informational; installing or disabling mods still happens by changing the
-folders under `mods/` and restarting the application.
-
-The **Options** button sets a time limit and cycles curated colours for the light squares, dark
-squares, and each side's pieces. Preferences are the one layer allowed to overrule a mod, and the
-override is deliberately narrow: they may replace palette tokens a theme already has, but cannot
-invent tokens it lacks. Nothing reaches disk or the running game until **Save**.
-
-The `proof:arena_mode` fixture — an independent 6x6 mod that proves core holds no chess assumption —
-deliberately lives under `tests/fixtures/proof-mod/` rather than `mods/`, so it is not offered to
-players. Core cannot filter a fixture out at discovery without naming a mod, which the prime
-directive forbids, so the directory is where that distinction has to live.
+Adding a mod means placing its folder under `mods/` and restarting. There is no hot reload, load-order
+editor, or mod manager.
 
 ### Controls
 
-- Click a piece, then a highlighted square, to move it.
-- Drag a piece to its destination if you prefer.
-- Right-click a piece to see its abilities; click a target when prompted.
-- When promoting, press the letter shown in the prompt.
+Click a piece then a highlighted square, or drag it. Right-click a piece for its abilities.
 
 | Key | Action |
 |---|---|
@@ -64,61 +64,105 @@ directive forbids, so the directory is where that distinction has to live.
 | **Esc** | Pause, or cancel what is open |
 | **H** | Controls help |
 
-Pausing offers Resume, Save Game, Restart, Help, Reference, and Main Menu. The **Reference** screen
-is generated from the loaded registries rather than written by hand — hardcoded help text would have
-to name content, and content is a mod's to describe.
+The **Reference** screen, reachable from the pause menu, is generated from the loaded registries
+rather than written by hand — hardcoded help text would have to name content.
 
 ## Mechanics
 
-- **Fusion:** a displacing capture — one where the capturer ends up standing on the captured
-  square — absorbs the captured piece's components, and the capturer's moves are rebuilt from
-  everything it now contains. Any pair fuses, and capture order does not change the result. Identity
-  follows the capturer, so a fused rook is still primarily a rook and keeps its own sprite and
-  abilities. Royalty is never absorbed.
-- **Abilities:** pieces may spend Action Points on content-defined effects such as swapping,
-  sniping, shielding, or sprinting.
+- **Fusion:** a displacing capture — one where the capturer ends up standing on the captured square —
+  absorbs the captured piece's components, and the capturer's moves are rebuilt from everything it
+  now contains. Any pair fuses, and capture order does not change the result. Identity follows the
+  capturer, so a fused rook keeps its own sprite and abilities. Royalty is never absorbed, expressed
+  as a property check rather than a piece id.
+- **Abilities:** pieces spend Action Points on content-defined effects such as swapping, sniping,
+  shielding, or sprinting.
 - **Events:** Advanced mode selects a scheduled event, warns before it executes, and records its
   outcome as reversible actions.
 
-Fusion moved from a hand-authored table to composition on 2026-07-19. The table named a result for
-six specific ordered pairs, so only those six could fuse. Composition is more general but costs one
-thing worth stating: Warden's diagonal was deliberately capped at three squares, and no derived rule
-can express a cap like that, so a rook-bishop now moves as a full rook *and* a full bishop. That is a
-chosen balance change, not an oversight. The four authored fused pieces (Archbishop, Chancellor,
-Warden, Inquisitor) remain valid, placeable content; nothing produces them any more. A mod that wants
-authored pairs can still use `rules`.
+Fusion moved from a hand-authored table to composition on 2026-07-19. The table named a result for six
+ordered pairs, so only those six could fuse. Composition costs one thing worth stating: Warden's
+diagonal was deliberately capped at three squares, and no derived rule can express a cap, so a
+rook-bishop now moves as a full rook *and* a full bishop. That is a chosen balance change. The four
+authored fused pieces remain placeable content; nothing produces them any more.
 
-## Saving
+## Making a mod
 
-Saving writes `saves/<mode>.json` — one slot per mode, so saving one game cannot destroy another's.
-A save is a state snapshot, not a replay: replaying would force every random effect through an RNG
-core owns, and a save that reconstructs a game that never happened fails hours later instead of
-immediately. A save records the mod set and manifest versions it was played against and refuses to
-load against a different one, naming both sides of the mismatch.
+A mod is a folder with a `manifest.yaml` and content files. Folders are cosmetic — the loader reads
+the `type:` declaration inside each file, never the path.
 
-The action log is **not** saved, so a loaded game cannot be undone past the load point. That is a
-deliberate trade, recorded in `src/savegame.py`.
+```
+mymod/
+  manifest.yaml
+  pieces/dragon.yaml
+  code/__init__.py     # optional, only if you need a new verb
+```
 
-## Presentation
+A piece is data. Offsets are `[forward, right]` in the piece's own frame, never raw board
+coordinates:
 
-The screen renders mod-declared themes, piece sprites or glyphs, status markers, HUD widgets, and
-sound cues. Base chess ships artwork for all twelve piece/side combinations and base fusion ships
-four more; move and capture play real recordings, and the remaining cues are placeholders.
+```yaml
+type: piece
+id: mymod:dragon
+name: Dragon
+material: 3
+presentation: { glyph: D }
+moves:
+  - type: leap
+    offsets: [[1, 2], [2, 1], [2, -1], [1, -2], [-1, -2], [-2, -1], [-2, 1], [-1, 2]]
+```
 
-The board sits between two per-player panels showing clock, resources, material lead, and captures.
-Which player a panel describes comes from the seating order in the snapshot, not from a side name in
-the layout — a layout naming `base:white` would only work for mods that happen to have a white.
+IDs are namespaced (`mymod:dragon`) because two authors will both invent a Dragon and unnamespaced
+IDs make that a silent collision.
 
-The move log uses long algebraic notation derived from the board's own dimensions and each piece's
-declared glyph, because `Nf3` depends on knowing knights are called N, which is a fact about chess
-rather than about this engine. Castling is recognised by shape — two pieces relocating in one move —
-so a mod's own two-piece move reads correctly. History derives from the action log, so undo shortens
-it for free.
+A code mod never imports from `src`. It is handed an api object, and that object is the entire
+surface:
 
-Still out of scope, and documented as limits rather than bugs: custom HUD widget *types*, arbitrary
-per-piece text overlays, new event triggers beyond scheduled pools, and presentation effects. Data
-mods compose the existing vocabulary; code mods register `move_type` verbs. See
-[status.md](docs/refactor/status.md) for the full boundary.
+```python
+# mymod/code/__init__.py
+def register(api):
+    api.move_type("drop", drop_fn, threatens=False)
+```
+
+The vocabulary freezes when the last `register()` returns — a verb added after validation would mean
+content was checked against an incomplete vocabulary.
+
+Errors name the mod, file, position, field, problem, and what was expected, because the person
+reading them does not write Python:
+
+```
+ERROR  mymod  pieces/dragon.yaml:7:3
+  field:     moves[0].type
+  problem:   unknown move type 'slid'
+  expected:  one of base:castle, base:enpassant, leap, slide
+  did you mean 'slide'?
+```
+
+Every content error in a load is reported in one pass, not one per run. Start with the
+[modder guide](docs/modding/modder-guide.md); read a [specification](docs/modding/spec/) only when
+you need the exact contract.
+
+### What you can and cannot extend today
+
+Data mods compose the existing vocabulary across thirteen content types. Code mods register
+`move_type` verbs. **Not yet extensible:** effects, conditions, selectors, event triggers beyond
+scheduled pools, custom HUD widget types, arbitrary per-piece overlays, and presentation effects.
+These are documented limits rather than hidden bugs — see [status.md](docs/refactor/status.md).
+
+### Trust
+
+There is deliberately **no sandbox**. Python cannot be meaningfully sandboxed, so rather than pretend
+otherwise, a manifest declares whether a mod ships code (`code: true`) and the UI surfaces it. A
+pure-data mod is genuinely safe to install, and most mods are pure data.
+
+## Repository map
+
+| Path | Holds |
+|---|---|
+| `src/engine/` | Board, move generation, the action log, statuses, the move pipeline |
+| `src/modding/` | Loader, registries, validation, the code-mod api, the error contract |
+| `src/ui/` | Screens, presentation runtime, board layout |
+| `mods/` | The base game as three mods: `base-chess`, `base-fusion`, `base-events` |
+| `docs/modding/` | Modder guide, normative specs, ADRs |
 
 ## Verify
 
@@ -139,26 +183,20 @@ python -m unittest @test_modules -q
 documented until 2026-07-18, which is why the suite had never run on another platform and a
 Windows-only path assertion survived in it.
 
-**Use `unittest`, not `pytest`.** The suite is not pytest-collectable: the tests import each other
-package-relatively (`from .modding.builders import ...`), which only resolves under `unittest`'s
-package discovery. `pytest` fails at collection with `ImportError: attempted relative import with no
-known parent package`, and pytest is not a declared dependency. Note that `CLAUDE.md` currently
-instructs `python -m pytest`; that instruction does not work and needs reconciling.
-
-Do not use `uv run` for a single module: it drops the repository root from `sys.path` and every test
-fails with `ModuleNotFoundError: No module named 'src'`.
+Use `unittest`, not `pytest`: the tests import each other package-relatively, which only resolves
+under `unittest` discovery, and pytest is not a declared dependency. Do not use `uv run` for a single
+module — it drops the repository root from `sys.path` and every test fails with
+`ModuleNotFoundError: No module named 'src'`.
 
 ## Documentation
 
+- [Modding guide](docs/modding/README.md)
 - [New contributor onboarding](docs/onboarding/README.md)
-- [Continuation roadmap](docs/onboarding/continuation-roadmap.md)
 - [Contributor start here](docs/refactor/start-here.md)
 - [Current runtime status](docs/refactor/status.md)
 - [What changed in refactor 2](docs/refactor/refactor2-changes.md)
 - [Product completion specification](docs/refactor/product-completion-spec.md)
 - [Delivery milestones](docs/refactor/milestones.md)
-- [Modding guide](docs/modding/README.md)
-- [Presentation contract](docs/modding/spec/presentation.md)
 
 ## Tech stack
 
