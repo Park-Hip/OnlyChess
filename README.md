@@ -28,6 +28,11 @@ Two consequences worth knowing, because they explain most of the design:
 
 ## Play
 
+**The easiest way to play** is to download the latest release:
+Download `OnlyChess.exe` from the [v2.0.0 Release](https://github.com/Park-Hip/OnlyChess/releases) page.
+
+### Running from source (Developers / Mac / Linux)
+
 Requires Python 3.12. Set up a virtual environment with the standard library:
 
 ```bash
